@@ -1,0 +1,67 @@
+# <PROJECT> — task runner.
+# Local dev is isolated (never touches system-wide tooling). The `check` target
+# is the single sanctioned gate; run it before every commit. `make help` lists
+# everything. Replace the placeholder commands below with your stack's tools.
+
+# Pin the language/runtime version in ONE place so local and CI can't drift.
+# (e.g. read from a version file: `$(shell cat .tool-version)`)
+TOOLVER := <pinned-version>
+ENV     ?= .devenv          # isolated environment dir (venv / node_modules / etc.)
+BIN     := $(ENV)/bin       # the environment's own binaries
+
+# Use bash and fail loudly.
+SHELL := bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := help
+
+# ── Local dev (isolated) ──────────────────────────────────────────────────
+$(ENV):                        ## create the isolated environment
+	<create isolated environment, e.g. python -m venv $(ENV) / npm ci>
+
+.PHONY: install
+install: $(ENV)                ## install runtime + dev deps into the environment
+	<install dependencies into $(ENV)>
+
+.PHONY: lock
+lock: $(ENV)                   ## freeze exact installed versions for reproducibility
+	<write a lockfile of exact versions>
+	@echo ">> wrote lockfile"
+
+.PHONY: lint
+lint: $(ENV)                   ## lint
+	<run the linter, e.g. $(BIN)/ruff check .>
+
+.PHONY: format
+format: $(ENV)                 ## auto-format
+	<run the formatter>
+
+.PHONY: typecheck
+typecheck: $(ENV)              ## static type check
+	<run the type checker, e.g. $(BIN)/mypy src/>
+
+.PHONY: test
+test: $(ENV)                   ## run tests with coverage (>=80% target)
+	<run tests with coverage, e.g. $(BIN)/pytest --cov=src>
+
+# The single sanctioned gate — the loop and every commit run THIS.
+.PHONY: check
+check: lint typecheck test      ## lint + typecheck + test (run before committing)
+
+.PHONY: clean
+clean:                          ## remove the environment and caches
+	rm -rf $(ENV) .*_cache .coverage htmlcov
+
+# ── Project-specific targets ──────────────────────────────────────────────
+# Add run / build / validate / acceptance targets your project needs, e.g.:
+# .PHONY: build
+# build:                        ## build the artifact / image
+# 	<build command>
+#
+# .PHONY: accept
+# accept: $(ENV)                ## run the acceptance check for the gate phase
+# 	<command that measures results against the documented thresholds>
+
+.PHONY: help
+help:                           ## list targets
+	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
