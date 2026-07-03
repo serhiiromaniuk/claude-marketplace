@@ -1,0 +1,11 @@
+{
+  "name": "toolkit",
+  "description": "General-purpose personal toolkit: skills, slash commands, and setup guidelines.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Serhii Romaniuk"
+  },
+  "homepage": "https://github.com/serhiiromaniuk/claude-marketplace",
+  "repository": "https://github.com/serhiiromaniuk/claude-marketplace",
+  "license": "MIT"
+}

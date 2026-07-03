@@ -1,0 +1,15 @@
+{
+  "name": "serhii",
+  "owner": {
+    "name": "Serhii Romaniuk"
+  },
+  "description": "Serhii's personal Claude Code plugins — skills, commands, and setup guidelines.",
+  "plugins": [
+    {
+      "name": "toolkit",
+      "source": "./plugins/toolkit",
+      "description": "General-purpose personal toolkit: skills, slash commands, and setup guidelines.",
+      "license": "MIT"
+    }
+  ]
+}
