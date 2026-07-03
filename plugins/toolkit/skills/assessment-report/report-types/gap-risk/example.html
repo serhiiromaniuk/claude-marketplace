@@ -1,0 +1,889 @@
+<!-- SYNTHETIC SAMPLE: all names, IPs, AWS account IDs, hostnames, findings, and costs are fictional and for illustration only. Not a real audit of any real system. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acme Widgets — Infrastructure Gap &amp; Risk Analysis (v3)</title>
+<style>
+  :root{
+    /* ── blueprint identity ─────────────────────────────── */
+    --ink:#0c1726; --navy:#0d2742; --navy-2:#0a1d33; --navy-hi:#356084;
+    --slate:#334155; --muted:#475569;          /* darkened for WCAG AA on white */
+    --line:#e2e8f0; --panel:#f7f9fb; --panel2:#eef2f6;
+    --cyan:#2ba6c9; --cyan-d:#1a7f9c; --cyan-l:#8fd6e8;   /* architectural cyan */
+    --clay:#c2603d; --clay-d:#9f4a2c; --clay-l:#e6a589;   /* terracotta rooftops */
+    /* severity — unchanged, carries meaning */
+    --crit:#7f1d1d; --high:#dc2626; --med:#d97706; --low:#2563eb; --ok:#16a34a;
+    /* grade bands — unchanged */
+    --gA:#16a34a; --gB:#65a30d; --gC:#d97706; --gD:#ea580c; --gF:#b91c1c;
+    /* type system */
+    --serif:Georgia,"Liberation Serif","DejaVu Serif","Times New Roman",serif;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--ink);font-size:10.5px;line-height:1.5;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @page{ size:A4; margin:13mm 12mm 15mm 12mm; }
+
+  /* ── type voices ── */
+  h1,h2,h3{font-family:var(--serif);margin:0 0 .35em;line-height:1.15;font-weight:700;}
+  h2{font-size:21px;color:var(--navy);letter-spacing:-.3px;}
+  h3{font-size:14px;color:var(--navy);}
+  h4{font-family:var(--mono);font-size:8.7px;color:#3f5063;text-transform:uppercase;
+    letter-spacing:1.1px;font-weight:600;margin:0 0 .5em;display:flex;align-items:center;gap:6px;}
+  h4::before{content:"";width:6px;height:6px;background:var(--clay);transform:rotate(45deg);
+    flex:none;display:inline-block;}              /* recurring city-tile glyph */
+  h4.plain::before{display:none;}
+  p{margin:0 0 .6em;}
+  a{color:var(--cyan-d);text-decoration:none;}
+  .mono{font-family:var(--mono);font-size:9px;}
+  small{font-size:9px;color:var(--muted);}
+  .footer{display:none;}
+  .page{break-before:page;}
+  .avoid{break-inside:avoid;}
+
+  /* ── COVER ─────────────────────────────────────────────── */
+  .cover{height:244mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
+    padding:17mm 16mm 14mm;position:relative;overflow:hidden;
+    background:
+      repeating-linear-gradient(30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(-30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      linear-gradient(155deg,#0a1d33 0%,#0d2742 48%,#10324a 100%);}
+  .cover::after{content:"";position:absolute;right:-55mm;top:-55mm;width:150mm;height:150mm;
+    border-radius:50%;background:radial-gradient(circle,rgba(43,166,201,.30),transparent 70%);}
+  .brandmark{display:flex;align-items:center;gap:10px;z-index:3;position:relative;}
+  .brandmark .wm{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#aebfce;}
+  .brandmark .wm b{color:#fff;}
+  .cover .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--cyan-l);font-weight:600;margin-top:30px;z-index:3;position:relative;}
+  .cover h1{font-size:50px;line-height:1.02;margin-top:12px;max-width:150mm;z-index:3;position:relative;
+    letter-spacing:-1px;}
+  .cover .sub{font-size:14.5px;color:#c7d6e3;margin-top:14px;max-width:140mm;font-weight:400;
+    line-height:1.55;z-index:3;position:relative;font-family:var(--sans);}
+  .chips{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;z-index:3;position:relative;}
+  .chip{background:rgba(143,214,232,.08);border:1px solid rgba(143,214,232,.28);
+    padding:5px 12px;border-radius:5px;font-size:9.5px;color:#dbe7f0;font-family:var(--mono);
+    letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px;}
+  .chip .tn{color:var(--cyan-l);font-weight:700;}
+  .verdict{z-index:3;position:relative;margin-top:24px;display:flex;align-items:stretch;gap:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(143,214,232,.22);
+    border-radius:10px;padding:18px 22px;max-width:158mm;}
+  .verdict .big{font-family:var(--serif);font-size:62px;font-weight:700;line-height:.9;
+    color:#fff;align-self:center;}
+  .verdict .vsep{width:1px;background:rgba(143,214,232,.25);}
+  .verdict .vtext{font-size:11.5px;color:#c7d6e3;line-height:1.5;align-self:center;}
+  .verdict .vtext .vh{font-family:var(--serif);color:#fff;font-size:16px;font-weight:700;
+    display:block;margin-bottom:5px;letter-spacing:-.2px;}
+  .verdict .vtext b{color:var(--cyan-l);}
+  .statstrip{z-index:3;position:relative;display:flex;gap:0;margin-top:18px;max-width:158mm;
+    border:1px solid rgba(143,214,232,.18);border-radius:8px;overflow:hidden;}
+  .statstrip .s{flex:1;padding:11px 14px;background:rgba(255,255,255,.03);}
+  .statstrip .s+.s{border-left:1px solid rgba(143,214,232,.16);}
+  .statstrip .s .v{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;line-height:1;}
+  .statstrip .s .l{font-family:var(--mono);font-size:7.6px;letter-spacing:.6px;color:#9fb3c6;
+    text-transform:uppercase;margin-top:5px;}
+  .cover .spacer{flex:1;}
+  .cover .meta{display:flex;gap:28px;flex-wrap:wrap;z-index:3;position:relative;}
+  .cover .meta div{font-family:var(--mono);font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#8ba0b5;}
+  .cover .meta b{display:block;color:#fff;font-size:11.5px;margin-top:3px;font-family:var(--sans);
+    letter-spacing:0;text-transform:none;font-weight:600;}
+  .skyline{position:absolute;right:0;bottom:34mm;width:175mm;z-index:1;opacity:.6;pointer-events:none;}
+
+  /* ── layout shells ── */
+  .grid{display:grid;gap:11px;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g2{grid-template-columns:1fr 1fr;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+
+  /* ── section header: numbered tile + architect scale-rule ── */
+  .sec-head{display:flex;align-items:center;gap:11px;position:relative;
+    padding-bottom:9px;margin-bottom:14px;}
+  .sec-head .no{font-family:var(--serif);font-weight:700;font-size:14px;color:#fff;
+    width:27px;height:27px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(155deg,#1c4664,#0d2742);
+    border-top:1.5px solid var(--navy-hi);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28);}
+  .sec-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:
+      linear-gradient(var(--navy),var(--navy)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--navy) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+  .sec-head::before{content:"";position:absolute;left:0;bottom:0;width:46px;height:6px;z-index:1;
+    background:
+      linear-gradient(var(--clay),var(--clay)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--clay) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+
+  /* ── badges / pills ── */
+  .grade{display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);
+    width:36px;height:36px;border-radius:8px;color:#fff;font-weight:700;font-size:18px;}
+  .gA{background:var(--gA);}.gB{background:var(--gB);}.gC{background:var(--gC);}
+  .gD{background:var(--gD);}.gF{background:var(--gF);}
+  .sev{display:inline-block;padding:2px 7px;border-radius:4px;color:#fff;font-weight:700;
+    font-size:8.5px;letter-spacing:.4px;white-space:nowrap;font-family:var(--sans);}
+  .s-crit{background:var(--crit);}.s-high{background:var(--high);}
+  .s-med{background:var(--med);}.s-low{background:var(--low);}
+  .pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:8.5px;font-weight:600;
+    font-family:var(--mono);letter-spacing:.3px;white-space:nowrap;}
+  .p-ok{background:#dcfce7;color:#166534;}
+  .p-eff{background:#e0f3f8;color:var(--cyan-d);}
+
+  .cd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:3px;vertical-align:middle;}
+  .cv{background:#16a34a;}.ci{background:#f59e0b;}.ca{background:#94a3b8;}
+  .st{font-weight:700;font-size:8px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:var(--mono);letter-spacing:.2px;}
+  .st-now{background:#fee2e2;color:#991b1b;}
+  .st-sch{background:#e0f3f8;color:var(--cyan-d);}
+  .st-acc{background:#eef2f6;color:#475569;}
+  .res{color:#15803d;font-weight:700;}
+
+  /* ── tables ── */
+  table{width:100%;border-collapse:collapse;font-size:9.3px;}
+  th{background:var(--navy);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:8.4px;
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;}
+  td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:nth-child(even) td{background:var(--panel);}
+  .num{text-align:center;font-weight:700;}
+  .score-cell{font-weight:800;text-align:center;font-family:var(--mono);}
+
+  /* ── KPI strip ── */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:6px 0 2px;}
+  .kpi{background:var(--navy);color:#fff;border-radius:8px;padding:14px 15px;position:relative;overflow:hidden;
+    border-top:2px solid var(--navy-hi);}
+  .kpi .n{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;letter-spacing:-.5px;}
+  .kpi .l{font-family:var(--mono);font-size:8px;color:#b6cadb;margin-top:7px;letter-spacing:.3px;
+    line-height:1.5;text-transform:uppercase;}
+  .kpi.cyan{background:var(--cyan-d);border-top-color:var(--cyan-l);}
+  .kpi.amber{background:#b45309;border-top-color:#f59e0b;}
+  .kpi.slate{background:#3f5063;border-top-color:#7c93a8;}
+
+  .dim{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:8.7px;}
+  .dim .lab{width:80px;color:var(--slate);flex:none;font-family:var(--mono);font-size:8px;}
+  .dim .bar{flex:1;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+  .dim .bar i{display:block;height:100%;border-radius:4px;}
+  .dim .v{width:26px;text-align:right;font-weight:700;color:var(--slate);font-family:var(--mono);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:8.6px;color:var(--slate);font-family:var(--mono);}
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  ul.tight{margin:.2em 0 .6em;padding-left:15px;}
+  ul.tight li{margin-bottom:3px;}
+  ul.tight li::marker{color:var(--cyan);}
+  .callout{border-left:4px solid var(--cyan);background:#ecf8fb;border-radius:0 6px 6px 0;padding:10px 13px;font-size:9.6px;}
+  .callout.warn{border-color:var(--med);background:#fffbeb;}
+  .callout.risk{border-color:var(--high);background:#fef2f2;}
+  .callout b{color:var(--navy);}
+  .tag{font-family:var(--mono);font-size:7.8px;color:var(--muted);font-weight:600;letter-spacing:.6px;text-transform:uppercase;}
+
+  /* ── pull-quote (editorial pacing device) ── */
+  .pq{font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--navy);
+    border-left:4px solid var(--clay);padding:4px 0 4px 20px;margin:18px 0;max-width:165mm;font-style:italic;}
+  .pq b{color:var(--clay-d);font-style:normal;}
+
+  /* insight mini-cards */
+  .ins{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;border-top:2px solid var(--clay-l);}
+  .ins .ih{font-family:var(--mono);font-size:8.4px;text-transform:uppercase;letter-spacing:.8px;color:var(--clay-d);font-weight:700;margin-bottom:5px;}
+  .ins p{font-size:9.4px;margin:0;color:var(--slate);}
+
+  /* ── TOC ── */
+  .toc{font-size:12px;}
+  .toc a{display:flex;align-items:baseline;color:var(--ink);padding:8px 0;border-bottom:1px dotted #cbd5e1;}
+  .toc .tn{width:28px;color:var(--clay-d);font-weight:700;flex:none;font-family:var(--mono);}
+  .toc .tt{flex:1;font-family:var(--serif);font-size:13px;}
+  .toc .tp{color:var(--muted);font-weight:700;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="brandmark">
+    <svg width="30" height="30" viewBox="0 0 60 60" aria-hidden="true">
+      <!-- isometric logomark: three stacked tenant-blocks -->
+      <polygon points="30,6 46,15 30,24 14,15" fill="#8fd6e8" fill-opacity=".9"/>
+      <polygon points="14,15 30,24 30,36 14,27" fill="#2ba6c9" fill-opacity=".85"/>
+      <polygon points="46,15 30,24 30,36 46,27" fill="#1a7f9c" fill-opacity=".9"/>
+      <polygon points="20,33 30,39 30,49 20,43" fill="#c2603d" fill-opacity=".9"/>
+      <polygon points="40,33 30,39 30,49 40,43" fill="#9f4a2c" fill-opacity=".9"/>
+      <polygon points="30,30 40,36 30,42 20,36" fill="#e6a589" fill-opacity=".95"/>
+    </svg>
+    <div class="wm"><b>ACME</b> · SAMPLE</div>
+  </div>
+
+  <!-- line-art isometric skyline fills the lower band -->
+  <svg class="skyline" viewBox="0 0 600 200" fill="none" aria-hidden="true">
+    <g stroke="#8fd6e8" stroke-width="1.1" stroke-linejoin="round">
+      <!-- block B (short, left) -->
+      <polygon points="90,95 130,115 90,135 50,115" fill="#2ba6c9" fill-opacity=".10"/>
+      <polygon points="50,115 90,135 90,175 50,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="130,115 90,135 90,175 130,155" fill="#0a1d33" fill-opacity=".12"/>
+      <!-- block A (tall, center-left) -->
+      <polygon points="160,40 206,63 160,86 114,63" fill="#c2603d" fill-opacity=".16"/>
+      <polygon points="114,63 160,86 160,172 114,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="206,63 160,86 160,172 206,149" fill="#0a1d33" fill-opacity=".12"/>
+      <!-- block C (medium) -->
+      <polygon points="255,70 297,91 255,112 213,91" fill="#8fd6e8" fill-opacity=".14"/>
+      <polygon points="213,91 255,112 255,176 213,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="297,91 255,112 255,176 297,155" fill="#0a1d33" fill-opacity=".12"/>
+      <!-- block D (tall thin, right) -->
+      <polygon points="350,30 388,49 350,68 312,49" fill="#2ba6c9" fill-opacity=".12"/>
+      <polygon points="312,49 350,68 350,168 312,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="388,49 350,68 350,168 388,149" fill="#0a1d33" fill-opacity=".12"/>
+      <!-- block E (short, far right) -->
+      <polygon points="430,85 474,107 430,129 386,107" fill="#c2603d" fill-opacity=".12"/>
+      <polygon points="386,107 430,129 430,173 386,151" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="474,107 430,129 430,173 474,151" fill="#0a1d33" fill-opacity=".12"/>
+    </g>
+  </svg>
+
+  <div class="kicker">Infrastructure Assessment · v3</div>
+  <h1>Acme Widgets Gap&nbsp;&amp;&nbsp;Risk Analysis</h1>
+  <div class="sub">A read-only audit of all three infrastructure tenants behind the Acme Widgets game — with severity &amp; confidence scoring, cost &amp; backup posture, and a costed, accept-or-fix remediation roadmap.</div>
+  <div class="chips">
+    <span class="chip"><span class="tn">01</span> Bare-metal &amp; CI · 3 VPS</span>
+    <span class="chip"><span class="tn">02</span> AWS Non-Prod · 111111111111</span>
+    <span class="chip"><span class="tn">03</span> AWS Prod · 222222222222 · eu-central-1</span>
+  </div>
+  <div class="verdict">
+    <div class="big">D</div>
+    <div class="vsep"></div>
+    <div class="vtext">
+      <span class="vh">Overall posture: At-Risk · 54 / 100</span>
+      Production runs today — backups are current and a WAF is in place — but it has no redundancy, an internet-open SSH bastion, and an unrotated all-powerful access key.
+      <b>Fully remediable in ≈ 3 working days for &lt; $60/mo extra run-cost.</b>
+    </div>
+  </div>
+  <div class="statstrip">
+    <div class="s"><div class="v">3</div><div class="l">Tenants assessed</div></div>
+    <div class="s"><div class="v">19</div><div class="l">Findings · 1 crit / 4 high</div></div>
+    <div class="s"><div class="v">≈3 d</div><div class="l">To clear the backlog</div></div>
+    <div class="s"><div class="v">$220</div><div class="l">Prod run-cost / mo</div></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div>Prepared by<b>Serhii Romaniuk — DevOps</b></div>
+    <div>Date<b>22 June 2026</b></div>
+    <div>Method<b>Live read-only discovery</b></div>
+    <div>Sources<b>AWS API · SSH · Terraform · Confluence</b></div>
+  </div>
+</div>
+
+<!-- ============ TOC ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">·</div><h2>Contents</h2></div>
+<div class="toc">
+  <a href="#s-exec"><span class="tn">01</span><span class="tt">Executive Summary &amp; dashboard</span><span class="tp">3</span></a>
+  <a href="#s-method"><span class="tn">02</span><span class="tt">How to read this report — scoring &amp; confidence</span><span class="tp">4</span></a>
+  <a href="#s-arch"><span class="tn">03</span><span class="tt">Architecture — three tenants, one game</span><span class="tp">5</span></a>
+  <a href="#s-b1"><span class="tn">04</span><span class="tt">Tenant 01 — Bare-metal &amp; CI</span><span class="tp">6</span></a>
+  <a href="#s-b2"><span class="tn">05</span><span class="tt">Tenant 02 — AWS Non-Prod</span><span class="tp">7</span></a>
+  <a href="#s-b3"><span class="tn">06</span><span class="tt">Tenant 03 — AWS Production</span><span class="tp">8</span></a>
+  <a href="#s-cost"><span class="tn">07</span><span class="tt">Cost actuals &amp; backup / DR posture</span><span class="tp">9</span></a>
+  <a href="#s-reg"><span class="tn">08</span><span class="tt">Consolidated risk register (residual &amp; stance)</span><span class="tp">10</span></a>
+  <a href="#s-impact"><span class="tn">09</span><span class="tt">Impact, business case &amp; roadmap</span><span class="tp">11</span></a>
+  <a href="#s-appx"><span class="tn">10</span><span class="tt">Appendix — evidence &amp; standards mapping</span><span class="tp">12</span></a>
+</div>
+<div class="callout" style="margin-top:18px;">
+  <b>What changed in v3.</b> This release is a <b>design-system overhaul</b> — the findings, scores and costs are unchanged from v2. New: a blueprint visual identity (isometric tile motif, architectural-cyan + terracotta palette), a three-voice type system (serif display · sans body · mono annotation), re-spaced charts, consolidated token vocabularies, and darkened captions for contrast. Content carried over from v2: per-finding <b>confidence flags</b>, per-tenant <b>radar profiles</b>, <b>cost actuals</b>, <b>backup / DR (RPO/RTO)</b> posture, and the <b>residual-risk + deferral-stance</b> register. Navigation: this contents list and all section headers are clickable; the PDF carries bookmarks and page numbers.
+</div>
+
+<!-- ============ EXECUTIVE SUMMARY ============ -->
+<div class="page"></div>
+<div id="s-exec" class="sec-head"><div class="no">1</div><h2>Executive Summary</h2></div>
+
+<p>The Acme Widgets platform spans <b>three independent infrastructure tenants</b>. They work today, but the assessment found <b>19 issues</b> — one critical and four high-severity — concentrated in security hardening and production resilience. The good news for budget-holders: <b>the backlog is small, mostly low-cost configuration work, and reversible</b>, and the extra monthly run-cost to fix it is under $60. The theme is not "broken" — it is <b>"unowned and unhardened."</b></p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">D</div><div class="l">Overall posture<br>54 / 100 — At-Risk</div></div>
+  <div class="kpi amber"><div class="n">19</div><div class="l">Findings<br>1 Crit · 4 High · 9 Med · 5 Low</div></div>
+  <div class="kpi cyan"><div class="n">≈3</div><div class="l">Working days to clear<br>the full backlog</div></div>
+  <div class="kpi slate"><div class="n">$220</div><div class="l">Prod run-cost / mo<br>(+&lt;$60 to make HA)</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:13px;">
+  <div class="card avoid">
+    <h4>Composite Posture Score</h4>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <svg width="138" height="138" viewBox="0 0 160 160">
+        <circle cx="80" cy="80" r="64" fill="none" stroke="#e8edf2" stroke-width="18"/>
+        <circle cx="80" cy="80" r="64" fill="none" stroke="#ea580c" stroke-width="18"
+          stroke-linecap="round" stroke-dasharray="217 402" transform="rotate(-90 80 80)"/>
+        <text x="80" y="76" text-anchor="middle" font-size="42" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">54</text>
+        <text x="80" y="98" text-anchor="middle" font-size="10" fill="#475569" font-family="Consolas,monospace" letter-spacing="1">OUT OF 100</text>
+      </svg>
+      <div style="font-size:9px;flex:1;">
+        <div class="dim"><span class="lab">Security</span><div class="bar"><i style="width:49%;background:var(--gD)"></i></div><span class="v">49</span></div>
+        <div class="dim"><span class="lab">Resilience</span><div class="bar"><i style="width:44%;background:var(--gD)"></i></div><span class="v">44</span></div>
+        <div class="dim"><span class="lab">Observability</span><div class="bar"><i style="width:39%;background:var(--gF)"></i></div><span class="v">39</span></div>
+        <div class="dim"><span class="lab">IaC / Maint.</span><div class="bar"><i style="width:60%;background:var(--gC)"></i></div><span class="v">60</span></div>
+        <div class="dim"><span class="lab">Cost-fit</span><div class="bar"><i style="width:78%;background:var(--gB)"></i></div><span class="v">78</span></div>
+        <p style="margin-top:7px;color:var(--muted);font-size:8.2px;font-family:var(--mono);line-height:1.6;">Weighted — Security 30% · Resilience 25% · IaC 20% · Observability 15% · Cost 10%. Tenants — Prod 50% · Bare-metal 35% · Non-prod 15%.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card avoid">
+    <h4>Findings by Severity</h4>
+    <svg width="100%" height="138" viewBox="0 0 320 138" font-family="Consolas,monospace">
+      <g font-size="9.5" fill="#334155">
+        <text x="0" y="20">CRITICAL</text><rect x="74" y="10" width="20" height="14" rx="2" fill="#7f1d1d"/><text x="100" y="21" font-weight="700">1</text>
+        <text x="0" y="48">HIGH</text><rect x="74" y="38" width="80" height="14" rx="2" fill="#dc2626"/><text x="160" y="49" font-weight="700">4</text>
+        <text x="0" y="76">MEDIUM</text><rect x="74" y="66" width="180" height="14" rx="2" fill="#d97706"/><text x="260" y="77" font-weight="700">9</text>
+        <text x="0" y="104">LOW</text><rect x="74" y="94" width="100" height="14" rx="2" fill="#2563eb"/><text x="180" y="105" font-weight="700">5</text>
+      </g>
+      <line x1="74" y1="118" x2="300" y2="118" stroke="#cbd5e1"/>
+      <text x="74" y="132" font-size="8" fill="#64748b">0</text><text x="276" y="132" font-size="8" fill="#64748b">count</text>
+    </svg>
+    <div class="legend" style="margin-top:4px;">
+      <span><i class="sw" style="background:var(--crit)"></i>Critical</span>
+      <span><i class="sw" style="background:var(--high)"></i>High</span>
+      <span><i class="sw" style="background:var(--med)"></i>Medium</span>
+      <span><i class="sw" style="background:var(--low)"></i>Low</span>
+    </div>
+  </div>
+</div>
+
+<div class="card avoid" style="margin-top:11px;">
+  <h4>Impact × Effort — where to spend the 3 days first</h4>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <svg width="368" height="232" viewBox="0 0 380 244" font-family="Consolas,monospace">
+      <rect x="44" y="12" width="156" height="100" rx="3" fill="#ecfdf5"/>
+      <rect x="200" y="12" width="156" height="100" rx="3" fill="#eef7fb"/>
+      <rect x="44" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+      <rect x="200" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+      <text x="50" y="26" font-size="8.5" font-weight="700" fill="#15803d">QUICK WINS — DO FIRST</text>
+      <text x="206" y="26" font-size="8.5" font-weight="700" fill="#1a7f9c">STRATEGIC — PLAN IN</text>
+      <text x="50" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">FILL-INS</text>
+      <text x="206" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">LOWER PRIORITY</text>
+      <line x1="44" y1="212" x2="356" y2="212" stroke="#334155"/>
+      <line x1="44" y1="12" x2="44" y2="212" stroke="#334155"/>
+      <line x1="200" y1="12" x2="200" y2="212" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <line x1="44" y1="112" x2="356" y2="112" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <text x="200" y="232" text-anchor="middle" font-size="8.5" fill="#475569">EFFORT  →  (low → high)</text>
+      <text x="16" y="112" text-anchor="middle" font-size="8.5" fill="#475569" transform="rotate(-90 16 112)">IMPACT  →</text>
+      <g font-size="7.5" font-weight="700">
+        <!-- quick wins -->
+        <circle cx="92" cy="40" r="10.5" fill="#dc2626" opacity=".9"/><text x="92" y="43" text-anchor="middle" fill="#fff">C2</text>
+        <circle cx="148" cy="44" r="12" fill="#7f1d1d" opacity=".9"/><text x="148" y="47" text-anchor="middle" fill="#fff">C1</text>
+        <circle cx="92" cy="76" r="10.5" fill="#dc2626" opacity=".9"/><text x="92" y="79" text-anchor="middle" fill="#fff">A2</text>
+        <circle cx="156" cy="80" r="9" fill="#d97706" opacity=".92"/><text x="156" y="83" text-anchor="middle" fill="#fff">A4</text>
+        <circle cx="120" cy="100" r="8" fill="#d97706" opacity=".88"/><text x="120" y="103" text-anchor="middle" fill="#fff">A6</text>
+        <!-- strategic -->
+        <circle cx="236" cy="46" r="10.5" fill="#dc2626" opacity=".9"/><text x="236" y="49" text-anchor="middle" fill="#fff">C3</text>
+        <circle cx="304" cy="50" r="10.5" fill="#dc2626" opacity=".88"/><text x="304" y="53" text-anchor="middle" fill="#fff">A1</text>
+        <circle cx="262" cy="86" r="9" fill="#d97706" opacity=".9"/><text x="262" y="89" text-anchor="middle" fill="#fff">C4</text>
+        <!-- fill-ins -->
+        <circle cx="96" cy="150" r="9" fill="#d97706" opacity=".82"/><text x="96" y="153" text-anchor="middle" fill="#fff">A5</text>
+        <circle cx="148" cy="160" r="7.5" fill="#2563eb" opacity=".82"/><text x="148" y="163" text-anchor="middle" fill="#fff">B2</text>
+        <circle cx="96" cy="190" r="7.5" fill="#2563eb" opacity=".75"/><text x="96" y="193" text-anchor="middle" fill="#fff">C8</text>
+        <!-- lower priority -->
+        <circle cx="240" cy="150" r="9" fill="#d97706" opacity=".82"/><text x="240" y="153" text-anchor="middle" fill="#fff">C6</text>
+        <circle cx="306" cy="158" r="9" fill="#d97706" opacity=".78"/><text x="306" y="161" text-anchor="middle" fill="#fff">B3</text>
+        <circle cx="246" cy="188" r="9" fill="#d97706" opacity=".78"/><text x="246" y="191" text-anchor="middle" fill="#fff">C5</text>
+      </g>
+    </svg>
+    <div style="font-size:9px;flex:1;">
+      <p style="margin-bottom:6px;"><b>Read it like this:</b> bubbles top-left are bargains — big risk reduction for almost no effort. Clear those in week one.</p>
+      <ul class="tight">
+        <li><b>C1</b> Static admin key → OIDC</li>
+        <li><b>C2</b> Lock down prod SSH bastion</li>
+        <li><b>C3</b> Production HA (task + DB + cache)</li>
+        <li><b>A1</b> Update runners / EOL Docker</li>
+        <li><b>A2</b> Raise CI log limit (Unity)</li>
+        <li><b>C4</b> Production alarms / monitoring</li>
+      </ul>
+      <small>Bubble size &amp; colour = severity. IDs map to the register.</small>
+    </div>
+  </div>
+</div>
+
+<div class="grid g3 avoid" style="margin-top:11px;">
+  <div class="panel">
+    <h4>What we'd do</h4>
+    <ul class="tight">
+      <li>Static admin key → keyless <b>OIDC</b></li>
+      <li>Close the internet-open <b>SSH bastion</b></li>
+      <li>Add <b>redundancy</b>: 2nd task, RDS Multi-AZ, Redis failover</li>
+      <li>Stand up <b>production alarms</b></li>
+      <li>Update &amp; <b>pin</b> CI runners; raise log limit</li>
+      <li>Harden bare-metal; consolidate <b>Terraform</b></li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Impact if we don't</h4>
+    <ul class="tight">
+      <li><b>Account takeover</b> if the key leaks — unbounded</li>
+      <li>Single task/AZ failure = <b>full prod outage</b></li>
+      <li>Incidents found <b>by players, not alarms</b></li>
+      <li>Builds break with no code change; <b>blind re-runs</b></li>
+      <li>Ongoing <b>brute-force</b> exposure on every host</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Effort &amp; cost</h4>
+    <div class="dim"><span class="lab">01 Bare-metal</span><div class="bar"><i style="width:33%;background:var(--cyan-d)"></i></div><span class="v">1.0d</span></div>
+    <div class="dim"><span class="lab">02 Non-Prod</span><div class="bar"><i style="width:8%;background:var(--cyan-d)"></i></div><span class="v">0.25d</span></div>
+    <div class="dim"><span class="lab">03 Prod</span><div class="bar"><i style="width:58%;background:var(--cyan-d)"></i></div><span class="v">1.75d</span></div>
+    <p style="margin-top:8px;font-size:9px;"><b>≈ 3.0 days</b>, no new licences. Extra run-cost for HA ≈ <b>+$30–60/mo</b> on a $220/mo base — small relative to one outage.</p>
+  </div>
+</div>
+
+<!-- ============ HOW TO READ ============ -->
+<div class="page"></div>
+<div id="s-method" class="sec-head"><div class="no">2</div><h2>How to Read This Report</h2></div>
+<div class="grid g3">
+  <div class="card avoid">
+    <h4>Risk score</h4>
+    <p>Each finding is <b>Likelihood × Impact</b> (1–5 each) = a <b>1–25 score</b>.</p>
+    <table>
+      <tr><th>Score</th><th>Severity</th></tr>
+      <tr><td class="num">20–25</td><td><span class="sev s-crit">CRITICAL</span></td></tr>
+      <tr><td class="num">12–19</td><td><span class="sev s-high">HIGH</span></td></tr>
+      <tr><td class="num">6–11</td><td><span class="sev s-med">MEDIUM</span></td></tr>
+      <tr><td class="num">1–5</td><td><span class="sev s-low">LOW</span></td></tr>
+    </table>
+  </div>
+  <div class="card avoid">
+    <h4>Posture grade</h4>
+    <p>0–100 across 5 dimensions → letter band. A <b>security</b> scale: "C" = fair.</p>
+    <table>
+      <tr><th>Band</th><th>Grade</th></tr>
+      <tr><td class="num">85–100</td><td><span class="grade gA" style="width:21px;height:21px;font-size:11px">A</span> Strong</td></tr>
+      <tr><td class="num">70–84</td><td><span class="grade gB" style="width:21px;height:21px;font-size:11px">B</span> Good</td></tr>
+      <tr><td class="num">55–69</td><td><span class="grade gC" style="width:21px;height:21px;font-size:11px">C</span> Fair</td></tr>
+      <tr><td class="num">40–54</td><td><span class="grade gD" style="width:21px;height:21px;font-size:11px">D</span> At-risk</td></tr>
+      <tr><td class="num">&lt;40</td><td><span class="grade gF" style="width:21px;height:21px;font-size:11px">F</span> Critical</td></tr>
+    </table>
+  </div>
+  <div class="card avoid">
+    <h4>Confidence flag</h4>
+    <p>A coloured dot beside each finding ID shows <b>how certain</b> the evidence is:</p>
+    <p style="margin:5px 0"><span class="cd cv"></span> <b>Verified</b> — observed live (AWS API / SSH)</p>
+    <p style="margin:5px 0"><span class="cd ci"></span> <b>Inferred</b> — from config/Terraform, not live-confirmed</p>
+    <p style="margin:5px 0"><span class="cd ca"></span> <b>Assumed</b> — reasonable, needs confirmation</p>
+    <p style="font-size:8.4px;color:var(--muted);font-family:var(--mono)">17 of 19 findings are Verified.</p>
+  </div>
+</div>
+
+<div class="grid g2 avoid" style="margin-top:11px;">
+  <div class="panel">
+    <h4>Residual risk &amp; deferral stance</h4>
+    <p>The register shows each score as <b>now → after fix</b> (e.g. <span class="mono">16 <span class="res">→2</span></span>) so the value of the work is explicit. Each finding also carries an honest <b>interim stance</b> — because the platform is live and not everything must move at once:</p>
+    <p style="margin:4px 0"><span class="st st-now">Fix now</span> &nbsp;security / cheap &amp; high-value — don't wait</p>
+    <p style="margin:4px 0"><span class="st st-sch">Schedule</span> &nbsp;real work, plan into a cycle</p>
+    <p style="margin:4px 0"><span class="st st-acc">Accept (interim)</span> &nbsp;tolerable for now with eyes open</p>
+  </div>
+  <div class="panel">
+    <h4>Radar profiles &amp; axes</h4>
+    <p>Each tenant page carries a 5-axis <b>radar</b> — a bigger terracotta shape = healthier. Axes are abbreviated:</p>
+    <p class="mono" style="font-size:9px;line-height:1.9">S = Security · R = Resilience · O = Observability<br>I = IaC / Maintainability · C = Cost-fit</p>
+    <p style="font-size:8.6px;color:var(--muted)">The outer pentagon is 100; the inner guide ring is 50. Standards each finding maps to (CIS / Well-Architected / NIST) are listed in the Appendix to keep these pages clean.</p>
+  </div>
+</div>
+
+<div class="callout" style="margin-top:11px;">
+  <b>Evidence base.</b> <i>(Synthetic sample — the narrative below illustrates the methodology; all data is fictional.)</i> In the source engagement, findings came from <b>live, read-only discovery</b>: AWS API calls under <span class="mono">AdministratorAccess</span> SSO (no changes made), passwordless SSH to the three VPS hosts, the project Terraform, and the Acme Widgets Confluence runbook. <b>No resource was created, modified, or deleted.</b> Cost figures came from AWS Cost Explorer; effort figures are engineering estimates.
+</div>
+
+<!-- ============ ARCHITECTURE ============ -->
+<div class="page"></div>
+<div id="s-arch" class="sec-head"><div class="no">3</div><h2>Architecture — Three Tenants, One Game</h2></div>
+<p>Acme Widgets is <b>split-brain by design history</b>: development runs on rented bare-metal, production runs on AWS — in a <b>different region</b> than the accounts are configured for. The unusual part is the deploy path: CI on the bare-metal hosts builds and pushes <b>straight into the AWS production account</b>, while the AWS "non-prod" account holds only DNS and Terraform state.</p>
+<div class="card avoid" style="margin-top:6px;padding-top:18px;">
+<svg width="100%" height="270" viewBox="0 0 720 276" font-family="-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c2603d"/></marker>
+    <marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
+  </defs>
+  <!-- the dramatized split-brain deploy arc: bare-metal → prod, over non-prod -->
+  <path d="M120,44 C 300,4 540,4 588,52" fill="none" stroke="#c2603d" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+  <rect x="300" y="2" width="170" height="17" rx="8" fill="#c2603d"/>
+  <text x="385" y="14" text-anchor="middle" font-size="8.6" font-weight="700" fill="#fff" font-family="Consolas,monospace">CI BUILDS &amp; DEPLOYS TO PROD</text>
+
+  <rect x="10" y="46" width="220" height="210" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="120" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">01 · Bare-metal VPS</text>
+  <text x="120" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace">non-prod (dev/staging) + CI</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="26" y="94" width="188" height="44" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="110" font-weight="700">srv-db-01 · 203.0.113.11</text><text x="34" y="124" fill="#475569">GitLab runners (client+backend, DinD)</text>
+    <rect x="26" y="144" width="188" height="44" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="160" font-weight="700">srv-app-01 · 203.0.113.22</text><text x="34" y="174" fill="#475569">Traefik · dev+staging · Redis · MQ</text>
+    <rect x="26" y="194" width="188" height="44" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="210" font-weight="700">srv-run-01 · 203.0.113.33</text><text x="34" y="224" fill="#475569">Unity Accelerator · Postgres (all envs)</text>
+  </g>
+  <rect x="250" y="46" width="200" height="210" rx="8" fill="#eef7fb" stroke="#bfdbfe"/>
+  <text x="350" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">02 · AWS Non-Prod</text>
+  <text x="350" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace">111111111111 · eu-north-1</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="266" y="100" width="168" height="38" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="274" y="116" font-weight="700">Route 53 zones</text><text x="274" y="129" fill="#475569">Acme Widgetsgame.net · non-prd.*</text>
+    <rect x="266" y="146" width="168" height="38" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="274" y="162" font-weight="700">TF state bucket</text><text x="274" y="175" fill="#475569">default VPC only · no compute</text>
+  </g>
+  <text x="350" y="210" text-anchor="middle" font-size="8.5" fill="#1a7f9c" font-weight="700" font-family="Consolas,monospace">DNS + STATE ONLY · ~$1/MO</text>
+  <text x="350" y="224" text-anchor="middle" font-size="8" fill="#94a3b8">(bypassed by the deploy path above)</text>
+  <text x="350" y="244" text-anchor="middle" font-size="8" fill="#94a3b8">real non-prod = bare-metal, left</text>
+  <rect x="470" y="46" width="240" height="210" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="590" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">03 · AWS Production</text>
+  <text x="590" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace">222222222222 · <tspan font-weight="700" fill="#1a7f9c">eu-central-1</tspan> · ~$220/mo</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="486" y="94" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="109">ALB (internet-facing) + <tspan font-weight="700" fill="#16a34a">WAF ✓</tspan></text>
+    <rect x="486" y="120" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="135">ECS Fargate · <tspan font-weight="700" fill="#dc2626">1 task</tspan> · prod_backend</text>
+    <rect x="486" y="146" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="161">RDS PG 17.9 · <tspan font-weight="700" fill="#dc2626">single-AZ</tspan> · 7d backups ✓</text>
+    <rect x="486" y="172" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="187">ElastiCache Valkey · <tspan font-weight="700" fill="#dc2626">no failover</tspan></text>
+    <rect x="486" y="198" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="213">Amazon MQ · bastion (<tspan font-weight="700" fill="#dc2626">SSH open</tspan>)</text>
+    <rect x="486" y="224" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="239">custom VPC 10.0.0.0/16</text>
+  </g>
+</svg>
+<small>CI on bare-metal builds &amp; deploys into the AWS prod account. Non-prod AWS holds only DNS + Terraform state. Region split: config says eu-north-1; production compute lives in eu-central-1.</small>
+</div>
+
+<div class="grid g3 avoid" style="margin-top:13px;">
+  <div class="ins">
+    <div class="ih">Split-brain topology</div>
+    <p>Dev/staging live on bare-metal; prod lives on AWS. The two halves share no platform, so a change proven in "non-prod" was never proven on prod-like infra.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">No staging buffer</div>
+    <p>Because AWS non-prod has no compute, production is effectively the first AWS environment any new infrastructure ever touches.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">Region drift</div>
+    <p>Profiles point at <span class="mono">eu-north-1</span> but everything runs in <span class="mono">eu-central-1</span> — a standing trap for operators reading config at face value.</p>
+  </div>
+</div>
+
+<div class="pq">The fastest path from a leaked credential to a production outage is <b>shorter than it should be</b> — and the architecture, not any single host, is why.</div>
+
+<!-- ============ BLOCK 1 ============ -->
+<div class="page"></div>
+<div id="s-b1" class="sec-head"><div class="no">4</div><h2>Tenant 01 — Bare-metal &amp; CI</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gD">D</span><div><b style="font-size:17px;font-family:var(--serif)">52</b><small> / 100</small><br><span class="tag">Weak — at risk</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,46.6 97.2,61.2 80.7,84.7 51.7,95.2 35.4,58.8" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">R</text><text x="103" y="123">O</text><text x="33" y="123">I</text><text x="8" y="54">C</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · verified live</h4>
+    <ul class="tight">
+      <li><b>3 hosts</b>, Debian 12 / Ubuntu 24.04, Docker 27.4</li>
+      <li>Runners: GitLab Runner <b>17.9.0</b>, DinD <b>Docker 20.10 (EOL)</b></li>
+      <li>All env containers healthy (5 / 15 / 4 up)</li>
+      <li>Weekly cron prune; last run reclaimed 14.6 GB</li>
+      <li>Runner disk <b>74%</b>; app host <b>2.9/3.8 GB</b> RAM, no swap</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Clean client/backend separation, compose-managed</li>
+      <li>Documented runbook + post-cleanup checklist</li>
+      <li>Cron cleanup working (old <span class="mono">-it</span> bug fixed)</li>
+    </ul>
+    <h4 style="margin-top:8px;">Effort</h4>
+    <p><span class="pill p-eff">≈ 1.0 day</span> update+pin runners &amp; raise log limit (0.5d) · harden SSH/swap/disk (0.5d).</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:38px">ID</th><th>Finding</th><th style="width:54px">Severity</th><th class="num" style="width:26px">L</th><th class="num" style="width:26px">I</th><th class="num" style="width:34px">Score</th><th style="width:150px">Business impact</th><th style="width:42px">Effort</th></tr>
+  <tr><td>A1<span class="cd cv"></span></td><td><b>EOL Docker 20.10 in DinD + Runner 17.9 outdated</b> (unpinned)</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>Unpatched CVEs on a privileged container; unsupported tooling</td><td>0.5d</td></tr>
+  <tr><td>A2<span class="cd ci"></span></td><td><b>CI job-log limit at default 4 MB</b> — truncates Unity logs</td><td><span class="sev s-high">HIGH</span></td><td class="num">5</td><td class="num">3</td><td class="score-cell">15</td><td>Failed builds hide the real error → repeated blind re-runs, wasted dev hours</td><td>0.25d</td></tr>
+  <tr><td>A3<span class="cd cv"></span></td><td><b>Floating image tags</b> (<span class="mono">:alpine</span>, <span class="mono">:20-dind</span>)</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>A routine pull can change versions &amp; break builds with no code change</td><td><small>w/ A1</small></td></tr>
+  <tr><td>A4<span class="cd ci"></span></td><td><b>SSH brute-force surface</b> — 2 GB+ <span class="mono">btmp</span>, no fail2ban</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Continuous credential attacks across all three hosts</td><td>0.25d</td></tr>
+  <tr><td>A5<span class="cd cv"></span></td><td><b>No swap</b> on app &amp; DB hosts (3.8 GB RAM)</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>OOM kills under memory pressure → service drops</td><td>0.25d</td></tr>
+  <tr><td>A6<span class="cd cv"></span></td><td><b>Runner disk 74%</b>, weekly-only prune</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Recurring mid-week <span class="mono">ENOSPC</span> build failures</td><td>0.25d</td></tr>
+  <tr><td>A7<span class="cd cv"></span></td><td><b>Hostname/role mismatch</b> + root-gated runner config (bus factor)</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">2</td><td class="score-cell">4</td><td>Operational confusion; slower incident response; single-person dependency</td><td><small>doc</small></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified &nbsp; <span class="cd ci"></span> Inferred (A2: config root-locked, default assumed · A4: from runbook) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<!-- ============ BLOCK 2 ============ -->
+<div class="page"></div>
+<div id="s-b2" class="sec-head"><div class="no">5</div><h2>Tenant 02 — AWS Non-Prod · 111111111111</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gC">C</span><div><b style="font-size:17px;font-family:var(--serif)">68</b><small> / 100</small><br><span class="tag">Fair — needs work</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,31 104.6,58.8 86.8,93.1 53.2,93.1 28,56.3" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">R</text><text x="103" y="123">O</text><text x="33" y="123">I</text><text x="8" y="54">C</text></g>
+    </svg>
+    <small style="display:block;text-align:center;margin-top:2px;">Resilience = n/a (no compute)</small>
+  </div>
+  <div class="panel">
+    <h4>Inventory · verified live</h4>
+    <ul class="tight">
+      <li><b>No compute</b> in any region (ECS/RDS/EC2/LB = 0)</li>
+      <li>Route 53: <span class="mono">Acme Widgetsgame.net</span>, <span class="mono">non-prd.*</span></li>
+      <li>S3 TF-state bucket — public-access-blocked, encrypted</li>
+      <li>Only the <b>default VPC</b> exists (unused)</li>
+      <li>Spend ≈ <b>$1/mo</b> (Route 53 only)</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>State bucket correctly locked down &amp; encrypted</li>
+      <li>Clean DNS ownership for the non-prod domain</li>
+    </ul>
+    <h4 style="margin-top:8px;">Effort</h4>
+    <p><span class="pill p-eff">≈ 0.25 day</span> default-VPC cleanup + region/ownership doc. TF consolidation shared with Tenant 03.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:38px">ID</th><th>Finding</th><th style="width:54px">Severity</th><th class="num" style="width:26px">L</th><th class="num" style="width:26px">I</th><th class="num" style="width:34px">Score</th><th style="width:170px">Business impact</th><th style="width:42px">Effort</th></tr>
+  <tr><td>B1<span class="cd cv"></span></td><td><b>Two divergent Terraform codebases</b>; one stale (Mar 2025) describes resources that don't exist</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Risk of applying the wrong/stale stack; drift; one copy has no git history (unclear provenance)</td><td><small>w/ C6</small></td></tr>
+  <tr><td>B3<span class="cd cv"></span></td><td><b>No prod/non-prod parity</b> — dev &amp; staging on bare-metal, prod on AWS</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Tests never exercise prod-like infra → defects surface first in production</td><td><small>strategic</small></td></tr>
+  <tr><td>B2<span class="cd cv"></span></td><td><b>Default VPC in use</b>; no IaC-managed network</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">3</td><td class="score-cell">6</td><td>Attack-surface hygiene; networking not reproducible</td><td>0.25d</td></tr>
+  <tr><td>B4<span class="cd cv"></span></td><td><b>Region config drift</b> (profiles say eu-north-1; nothing runs there)</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">2</td><td class="score-cell">4</td><td>Operators target the wrong region; wasted time, mistaken "empty" conclusions</td><td><small>doc</small></td></tr>
+</table>
+
+<div class="callout warn" style="margin-top:11px;">
+  <b>Structural note.</b> This tenant is cheap and quiet, but the real message is that <b>non-production is not on AWS at all</b> — so production is effectively also the first place new infrastructure is ever tested. Closing that parity gap is a <b>strategic</b> decision, flagged separately from the 3-day remediation budget.
+</div>
+
+<div class="pq">Tenant 02's lowest-severity finding carries the report's biggest open question: <b>should non-prod live on AWS</b> so prod stops being its own staging environment?</div>
+
+<!-- ============ BLOCK 3 ============ -->
+<div class="page"></div>
+<div id="s-b3" class="sec-head"><div class="no">6</div><h2>Tenant 03 — AWS Production · eu-central-1</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gD">D</span><div><b style="font-size:17px;font-family:var(--serif)">51</b><small> / 100</small><br><span class="tag">Weak — at risk</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,45 89.8,63.6 81.6,86 50.1,97.3 30.4,57.2" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">R</text><text x="103" y="123">O</text><text x="33" y="123">I</text><text x="8" y="54">C</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · verified live</h4>
+    <ul class="tight">
+      <li>ECS Fargate <span class="mono">prd/prod_backend</span> — desired <b>1</b>, running 1</li>
+      <li>RDS Postgres 17.9 <span class="mono">db.t3.micro</span> — single-AZ</li>
+      <li>ElastiCache Valkey 7.2 · Amazon MQ (running)</li>
+      <li>ALB internet-facing · bastion <span class="mono">t4g.nano</span></li>
+      <li>Custom VPC 10.0.0.0/16 · 3 CloudWatch alarms</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--clay);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Strengths <span class="pill p-ok">good baseline</span></h4>
+    <ul class="tight">
+      <li><b>WAF attached</b> to the public ALB ✓</li>
+      <li>RDS <b>private + encrypted</b>, 7-day backups, delete-protected ✓</li>
+      <li>All S3 <b>public-access-blocked + encrypted</b> ✓</li>
+    </ul>
+    <h4 style="margin-top:8px;">Effort</h4>
+    <p><span class="pill p-eff">≈ 1.75 days</span> OIDC key (0.5) · bastion (0.25) · HA (0.5) · alarms (0.5) · cache user + TF (0.5, shared).</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:38px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:26px">L</th><th class="num" style="width:26px">I</th><th class="num" style="width:34px">Score</th><th style="width:152px">Business impact</th><th style="width:42px">Effort</th></tr>
+  <tr><td>C1<span class="cd cv"></span></td><td><b>Static IAM admin access key</b> (<span class="mono">terraform-deployment-prd</span>) — unrotated since Aug 2025, last used May 2026</td><td><span class="sev s-crit">CRIT</span></td><td class="num">3</td><td class="num">5</td><td class="score-cell">15</td><td>Leak = <b>total prod account takeover</b>. No rotation, no expiry, full privilege</td><td>0.5d</td></tr>
+  <tr><td>C2<span class="cd cv"></span></td><td><b>Bastion SSH open to 0.0.0.0/0</b> (public IP, port 22)</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>Internet-wide brute-force entry point into the production network</td><td>0.25d</td></tr>
+  <tr><td>C3<span class="cd cv"></span></td><td><b>No high availability</b> — ECS 1 task, RDS single-AZ, Redis no failover</td><td><span class="sev s-high">HIGH</span></td><td class="num">3</td><td class="num">4</td><td class="score-cell">12</td><td>Any single task/AZ failure = <b>full prod outage</b> with no automatic recovery</td><td>0.5d</td></tr>
+  <tr><td>C4<span class="cd cv"></span></td><td><b>Minimal monitoring</b> — only 3 CloudWatch alarms</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Incidents detected by players, not alarms → longer outages, no early warning</td><td>0.5d</td></tr>
+  <tr><td>C5<span class="cd cv"></span></td><td><b>Over-privileged cache user</b> — <span class="mono">gitlab-runner-cache</span> has AmazonS3FullAccess + static key</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Static credential with account-wide S3 reach → large lateral blast radius</td><td>0.25d</td></tr>
+  <tr><td>C6<span class="cd cv"></span></td><td><b>Duplicate Terraform + two state conventions</b></td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Drift &amp; confusion; risk of applying the wrong stack against prod</td><td>0.5d</td></tr>
+  <tr><td>C7<span class="cd cv"></span></td><td><b>Under-provisioned</b> (<span class="mono">db.t3.micro</span>, single Fargate task)</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">3</td><td class="score-cell">6</td><td>No headroom for growth/spikes; burstable DB credits exhaust under load</td><td><small>review</small></td></tr>
+  <tr><td>C8<span class="cd cv"></span></td><td><b>Unused default VPC</b>; lambda/cache bucket versioning suspended</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">2</td><td class="score-cell">4</td><td>Hygiene; reduced recoverability of objects</td><td>0.1d</td></tr>
+</table>
+
+<div class="callout risk" style="margin-top:9px;">
+  <b>The two that should not wait.</b> <b>C1</b> (a never-expiring, all-powerful key) and <b>C2</b> (SSH open to the internet) together mean a single leaked credential <i>or</i> a successful brute-force gives an attacker production. Both are <b>under a day combined</b> and need no architecture change — the highest risk-reduction-per-hour in the report.
+</div>
+
+<!-- ============ COST & DR ============ -->
+<div class="page"></div>
+<div id="s-cost" class="sec-head"><div class="no">7</div><h2>Cost Actuals &amp; Backup / DR Posture</h2></div>
+<div class="grid g2">
+  <div class="card avoid">
+    <h4>Production spend · AWS Cost Explorer, verified</h4>
+    <p style="font-size:9.4px">Prod runs at <b>≈ $220 / month</b> (~$2.6k/yr), trending <b>down</b> from $245 (Mar) → $220 (May). Non-prod is <b>≈ $1/mo</b> (Route 53 only).</p>
+    <svg width="100%" height="132" viewBox="0 0 320 132" font-size="8.5" font-family="Consolas,monospace">
+      <g fill="#334155">
+        <text x="0" y="16">EC2-Other (NAT/EBS)</text><rect x="124" y="8" width="120" height="11" rx="2" fill="#1a7f9c"/><text x="249" y="17" font-weight="700">$41</text>
+        <text x="0" y="34">ECS Fargate</text><rect x="124" y="26" width="113" height="11" rx="2" fill="#2ba6c9"/><text x="242" y="35" font-weight="700">$39</text>
+        <text x="0" y="52">Amazon MQ</text><rect x="124" y="44" width="74" height="11" rx="2" fill="#6cc4dd"/><text x="203" y="53" font-weight="700">$26</text>
+        <text x="0" y="70">Load Balancing</text><rect x="124" y="62" width="71" height="11" rx="2" fill="#8fd6e8"/><text x="200" y="71" font-weight="700">$24</text>
+        <text x="0" y="88">RDS Postgres</text><rect x="124" y="80" width="61" height="11" rx="2" fill="#c2603d"/><text x="190" y="89" font-weight="700">$21</text>
+        <text x="0" y="106">VPC (NAT data)</text><rect x="124" y="98" width="54" height="11" rx="2" fill="#e6a589"/><text x="183" y="107" font-weight="700">$19</text>
+      </g>
+      <text x="0" y="126" fill="#64748b" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="7.6">May 2026 · remainder (~$50) = CloudWatch, ElastiCache, data transfer, misc</text>
+    </svg>
+    <div class="callout" style="margin-top:6px;font-size:9px">
+      <b>Read:</b> spend is modest and healthy. The biggest lines are <b>fixed infra</b> (NAT, MQ, ELB) not compute — so the single-task prod is cheap, and adding HA (2nd task + Multi-AZ RDS) adds only <b>~$30–60/mo</b>. Cost is not a blocker to fixing resilience.
+    </div>
+  </div>
+  <div class="card avoid">
+    <h4>Backup &amp; DR posture · verified live</h4>
+    <table>
+      <tr><th>Layer</th><th>RPO<br><small style="color:#cbd5e1">data loss</small></th><th>RTO<br><small style="color:#cbd5e1">to recover</small></th><th>State</th></tr>
+      <tr><td><b>RDS</b> Postgres</td><td>~5 min<br><small>PITR</small></td><td>30 min–2 h<br><small>manual</small></td><td><span class="sev s-med" style="background:#d97706">PARTIAL</span></td></tr>
+      <tr><td><b>Redis</b> Valkey</td><td>≤24 h<br><small>daily snap</small></td><td>minutes<br><small>rebuildable</small></td><td><span class="sev" style="background:#16a34a">OK</span></td></tr>
+      <tr><td><b>ECS</b> backend</td><td>n/a<br><small>stateless</small></td><td>minutes / AZ-dep.</td><td><span class="sev s-med" style="background:#d97706">PARTIAL</span></td></tr>
+      <tr><td><b>S3 / state</b></td><td>0<br><small>versioned</small></td><td>instant</td><td><span class="sev" style="background:#16a34a">OK</span></td></tr>
+    </table>
+    <ul class="tight" style="margin-top:8px;font-size:9px">
+      <li>Backups <b>exist and are current</b> — RDS daily snapshot taken <b>today</b>, 7-day retention + ~5-min PITR; Redis 7-day snapshots ✓</li>
+      <li>Gap is <b>recovery speed, not data loss</b>: no Multi-AZ standby → failure means a <b>manual restore</b>, not an automatic failover</li>
+      <li><b>No cross-region DR</b> — a region outage = extended downtime</li>
+      <li><span class="mono">skip_final_snapshot=true</span> in Terraform — a teardown leaves no safety snapshot (mitigated today by delete-protection)</li>
+      <li><b>A restore has never been tested</b></li>
+    </ul>
+  </div>
+</div>
+<div class="callout warn" style="margin-top:11px;">
+  <b>DR bottom line.</b> Data durability is in good shape; <b>availability</b> is not. The same HA work in C3 (Multi-AZ RDS, Redis failover, a 2nd task) is what converts "manual restore over hours" into "automatic failover in minutes." A one-off <b>restore drill</b> (≈0.25 day) would validate the RTO numbers above — currently they are estimates, not proven.
+</div>
+
+<div class="pq">Acme Widgets can <b>recover its data</b> — what it cannot yet do is <b>stay up</b> while it does. Durability is solved; availability is the open line item.</div>
+
+<!-- ============ RISK REGISTER ============ -->
+<div class="page"></div>
+<div id="s-reg" class="sec-head"><div class="no">8</div><h2>Consolidated Risk Register</h2></div>
+<p>All 19 findings, ranked by current risk score. <b>Score</b> shows <span class="mono">now <span class="res">→ residual</span></span> after the fix. <b>Stance</b> is the honest interim call while the platform stays live. <small>ID prefix: A = Bare-metal · B = AWS Non-Prod · C = AWS Prod · dot = confidence.</small></p>
+<table>
+  <tr><th style="width:42px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:58px">Score</th><th style="width:42px">Effort</th><th style="width:88px">Stance</th></tr>
+  <tr><td>C2<span class="cd cv"></span></td><td>Bastion SSH open to the internet</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→2</span></td><td>0.25d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>A1<span class="cd cv"></span></td><td>EOL Docker + outdated runners (unpinned)</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→4</span></td><td>0.5d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>C1<span class="cd cv"></span></td><td>Static admin access key, never rotated</td><td><span class="sev s-crit">CRIT</span></td><td class="score-cell">15 <span class="res">→3</span></td><td>0.5d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>A2<span class="cd ci"></span></td><td>CI log limit truncates Unity logs</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">15 <span class="res">→2</span></td><td>0.25d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>C3<span class="cd cv"></span></td><td>No HA (ECS / RDS / Redis)</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">12 <span class="res">→4</span></td><td>0.5d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>C4<span class="cd cv"></span></td><td>Minimal monitoring (3 alarms)</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→4</span></td><td>0.5d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>A3<span class="cd cv"></span></td><td>Floating image tags</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→3</span></td><td><small>w/ A1</small></td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>A4<span class="cd ci"></span></td><td>SSH brute-force, no fail2ban</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→3</span></td><td>0.25d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>C5<span class="cd cv"></span></td><td>Over-privileged cache IAM user</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→2</span></td><td>0.25d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>C6<span class="cd cv"></span></td><td>Duplicate Terraform / state conventions</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→3</span></td><td>0.5d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>B1<span class="cd cv"></span></td><td>Two divergent TF codebases</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→3</span></td><td><small>w/ C6</small></td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>B3<span class="cd cv"></span></td><td>No prod/non-prod parity</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→6</span></td><td><small>strategic</small></td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+  <tr><td>A5<span class="cd cv"></span></td><td>No swap on app/DB hosts</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→3</span></td><td>0.25d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>A6<span class="cd cv"></span></td><td>Runner disk 74%, weekly-only prune</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→3</span></td><td>0.25d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>B2<span class="cd cv"></span></td><td>Default VPC in use; no IaC network</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6 <span class="res">→2</span></td><td>0.25d</td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+  <tr><td>C7<span class="cd cv"></span></td><td>Under-provisioned (micro DB, 1 task)</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6 <span class="res">→4</span></td><td><small>review</small></td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+  <tr><td>A7<span class="cd cv"></span></td><td>Hostname/role mismatch; bus factor</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4 <span class="res">→2</span></td><td><small>doc</small></td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+  <tr><td>B4<span class="cd cv"></span></td><td>Region config drift</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4 <span class="res">→2</span></td><td><small>doc</small></td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+  <tr><td>C8<span class="cd cv"></span></td><td>Default VPC unused; bucket versioning off</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4 <span class="res">→1</span></td><td>0.1d</td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+</table>
+<small style="display:block;margin-top:6px"><span class="st st-now">Fix now</span> 5 items · <span class="st st-sch">Schedule</span> 8 items · <span class="st st-acc">Accept (interim)</span> 6 items — accepting the Lows is a legitimate call while the platform is stable; they're listed so the acceptance is deliberate, not accidental.</small>
+
+<!-- ============ IMPACT & ROADMAP ============ -->
+<div class="page"></div>
+<div id="s-impact" class="sec-head"><div class="no">9</div><h2>Impact &amp; Business Case</h2></div>
+<p>The remediation is small in hours but the avoided losses are not symmetric: high-severity items defend against <b>low-probability / high-cost</b> events (a breach, a prod outage) plus one <b>high-frequency / low-cost</b> drain (wasted CI debugging). Rates are left as variables so finance can plug in real numbers.</p>
+<table>
+  <tr><th>Risk area</th><th>Exposure today</th><th>Illustrative annual cost*</th><th>After fix</th></tr>
+  <tr><td><b>Credential compromise</b><br>(C1, C2, C5)</td><td>Leaked key or brute-forced bastion → full prod control</td><td><b>Catastrophic / uncapped</b> — expected loss dominates even at low probability</td><td>Keyless OIDC + closed bastion + scoped roles → blast radius collapses</td></tr>
+  <tr><td><b>Production downtime</b><br>(C3, C4)</td><td>Single task/AZ failure = full outage; no alarms = found late. Assume 1 incident/qtr × <b>H</b> h MTTR</td><td>4 × H × (lost-rev/hr + N eng × rate)</td><td>Auto-recovery + early alarms → MTTR hours → minutes</td></tr>
+  <tr><td><b>CI debugging drain</b><br>(A2, A1, A6)</td><td>Truncated logs &amp; flaky runners → blind re-runs (~4/wk × 20 min + wait)</td><td>≈ 150–250 dev-hours / yr × rate</td><td>Full logs + pinned runners → near-zero waste</td></tr>
+  <tr><td><b>Run-cost of the fix</b></td><td>Prod base $220/mo</td><td>HA adds <b>≈ $360–720/yr</b></td><td>Trivial vs. a single outage or breach</td></tr>
+</table>
+<small>* Illustrative framing, not a quote. The point is the <b>asymmetry</b>: ≈3 days + &lt;$60/mo against open-ended downside.</small>
+
+<h3 style="margin-top:16px;">Prioritised Roadmap</h3>
+<div class="grid g3 avoid">
+  <div class="card" style="border-top:2px solid var(--ok);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--ok);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 1 — Quick wins <span class="pill p-eff">~1.25 d</span></h4>
+    <p class="tag">High impact · low effort · reversible</p>
+    <ul class="tight">
+      <li><b>C2</b> Close bastion SSH</li>
+      <li><b>C1</b> Admin key → OIDC</li>
+      <li><b>A2</b> Raise CI log limit</li>
+      <li><b>A4</b> fail2ban on all hosts</li>
+      <li><b>A6</b> Disk-threshold prune</li>
+      <li><b>C5</b> Scope cache IAM user</li>
+    </ul>
+  </div>
+  <div class="card" style="border-top:2px solid var(--cyan);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--cyan);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 2 — Strategic <span class="pill p-eff">~1.5 d</span></h4>
+    <p class="tag">High impact · needs a window</p>
+    <ul class="tight">
+      <li><b>C3</b> HA: 2nd task, RDS Multi-AZ, Redis failover</li>
+      <li><b>C4</b> Alarm pack (ECS/RDS/Redis/MQ/ALB)</li>
+      <li><b>A1+A3</b> Update &amp; pin runners / DinD</li>
+      <li><b>+</b> Restore drill to prove RTO</li>
+    </ul>
+  </div>
+  <div class="card" style="border-top:2px solid var(--clay);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--clay);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 3 — Hygiene <span class="pill p-eff">~0.5 d</span></h4>
+    <p class="tag">Low effort · opportunistic</p>
+    <ul class="tight">
+      <li><b>C6/B1</b> Consolidate Terraform</li>
+      <li><b>A5</b> Add swap; <b>B2/C8</b> retire default VPCs</li>
+      <li><b>A7/B4</b> Fix docs: roles, region, ownership</li>
+    </ul>
+  </div>
+</div>
+<div class="callout" style="margin-top:13px;">
+  <b>Bottom line.</b> Acme Widgets's infrastructure is <b>functional but unhardened and unowned</b>. Three working days — front-loaded with sub-day security quick wins, for under $60/mo extra — moves the estate from <b>"D / At-Risk"</b> toward <b>"B / Good"</b>, removes the two most dangerous exposures on day one, and stops a steady leak of developer time. The remaining open question is <b>strategic</b>: whether non-production should live on AWS to restore prod parity.
+</div>
+
+<div class="pq">Three days of work and under sixty dollars a month stand between <b>"D / At-Risk" and "B / Good."</b> The asymmetry — not the effort — is the headline.</div>
+
+<!-- ============ APPENDIX ============ -->
+<div class="page"></div>
+<div id="s-appx" class="sec-head"><div class="no">10</div><h2>Appendix — Evidence &amp; Standards Mapping</h2></div>
+<div class="grid g2">
+  <div class="panel avoid">
+    <h4>Account &amp; tenant reference</h4>
+    <table>
+      <tr><th>Tenant</th><th>Identifier</th><th>Region</th></tr>
+      <tr><td>01 Bare-metal</td><td class="mono">203.0.113.11 · 203.0.113.22 · 203.0.113.33</td><td>VPS</td></tr>
+      <tr><td>02 AWS Non-Prod</td><td class="mono">111111111111</td><td>eu-north-1</td></tr>
+      <tr><td>03 AWS Prod</td><td class="mono">222222222222</td><td>eu-central-1</td></tr>
+      <tr><td>DNS / shared state</td><td class="mono">333333333333</td><td>global</td></tr>
+    </table>
+  </div>
+  <div class="panel avoid">
+    <h4>Verified live — examples</h4>
+    <ul class="tight">
+      <li>ECS <span class="mono">prd/prod_backend</span> desired 1/running 1</li>
+      <li>RDS <span class="mono">prd</span> MultiAZ=false, snapshot taken 22 Jun 03:32, 7-day retention</li>
+      <li>IAM <span class="mono">terraform-deployment-prd</span> = AdministratorAccess, key since 2025-08-28, last used 2026-05-14</li>
+      <li>SG bastion ingress 22 ← 0.0.0.0/0</li>
+      <li>WAF <span class="mono">prd-production-prod-waf</span> on ALB ✓</li>
+      <li>Cost Explorer: prod $219.94 (May 2026)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Standards mapping · for compliance / audit readers</h4>
+  <table>
+    <tr><th style="width:46px">ID</th><th>CIS AWS / Docker</th><th>AWS Well-Architected</th><th>NIST 800-53</th></tr>
+    <tr><td>C1, C5</td><td>CIS AWS 1.14–1.16 (IAM keys, least-priv)</td><td>SEC02/SEC03 — Identity &amp; permissions</td><td>AC-2, AC-6, IA-5</td></tr>
+    <tr><td>C2, A4</td><td>CIS AWS 5.2 (no 0.0.0.0/0 → 22)</td><td>SEC05 — Network protection</td><td>SC-7, AC-7</td></tr>
+    <tr><td>C3</td><td>—</td><td>REL10/REL11 — Fault isolation &amp; recovery</td><td>CP-10</td></tr>
+    <tr><td>C4</td><td>CIS AWS 4.x (monitoring)</td><td>OPS / REL — Observability</td><td>AU-6, SI-4</td></tr>
+    <tr><td>C3 (DR), RDS</td><td>—</td><td>REL09 — Backup &amp; restore</td><td>CP-9, CP-10</td></tr>
+    <tr><td>A1, A3</td><td>CIS Docker Benchmark (supported versions)</td><td>SEC06 — Compute protection</td><td>SI-2 (flaw remediation)</td></tr>
+    <tr><td>C6, B1</td><td>—</td><td>OPS05 — IaC / config management</td><td>CM-2, CM-3</td></tr>
+    <tr><td>B2, C8</td><td>CIS AWS 5.x (VPC), S3 versioning</td><td>SEC05 / REL09</td><td>SC-7, CP-9</td></tr>
+  </table>
+  <small>Mapping is indicative, to anchor findings to recognised frameworks; it is not a formal compliance attestation.</small>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Method &amp; integrity statement</h4>
+  <p style="margin:0;">Discovery performed 01 Jan 2026 via AWS CLI under SSO <span class="mono">AdministratorAccess</span> (describe/list calls only), SSH to the three VPS hosts (read commands only), the project Terraform, and the Acme Widgets Confluence runbook. Cost data from AWS Cost Explorer. <b>No resource was created, modified, or deleted in any account; no secrets or access keys were read or printed.</b> Scores and effort are engineering estimates to prioritise discussion, not a fixed-price quote.</p>
+</div>
+
+</body>
+</html>

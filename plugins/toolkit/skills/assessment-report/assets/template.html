@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<!--
+  ASSESSMENT-REPORT TEMPLATE  ·  "blueprint" design system v3
+  Copy this file to your scratchpad, then fill it in per the active report-types/<type>/type.md.
+  The <style> block below IS the design system (see STYLE.md). The <body> shows ONE live example
+  of every component, each marked with a "COMPONENT: name" comment. Duplicate/re-point them; delete what you don't use.
+  For a full, real, filled-in report see report-types/gap-risk/example.html.
+  Render ONLY with assets/render.mjs (Chrome CDP) — never `chrome --print-to-pdf`.
+
+  DESIGN IDENTITY (don't flatten back to a generic corporate look):
+   · Palette  — blueprint-navy + architectural-cyan + terracotta. Severity & grade scales are UNCHANGED (they carry meaning).
+   · Type     — three voices: SERIF display (headlines, big numbers, grades) · SANS body · MONO annotation (every label/eyebrow/axis).
+   · Signature— isometric logomark, line-art skyline on the cover, a clay tile-glyph (◆) on every label, an architect's scale-tick rule under every section header.
+  Re-skin the SUBJECT motif per report (here: a city). Keep the type system, the tile-glyph, and the scale-tick rule — they are the through-line.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REPORT TITLE — set me</title>
+<style>
+  :root{
+    /* ── blueprint identity ── */
+    --ink:#0c1726; --navy:#0d2742; --navy-2:#0a1d33; --navy-hi:#356084;
+    --slate:#334155; --muted:#475569;            /* darkened for WCAG AA on white — do not lighten */
+    --line:#e2e8f0; --panel:#f7f9fb; --panel2:#eef2f6;
+    --cyan:#2ba6c9; --cyan-d:#1a7f9c; --cyan-l:#8fd6e8;   /* architectural cyan (cool accent / "good"/info) */
+    --clay:#c2603d; --clay-d:#9f4a2c; --clay-l:#e6a589;   /* terracotta (warm accent / subject motif / radar fill) */
+    /* severity — UNCHANGED, carries meaning */
+    --crit:#7f1d1d; --high:#dc2626; --med:#d97706; --low:#2563eb; --ok:#16a34a;
+    /* grade bands — UNCHANGED */
+    --gA:#16a34a; --gB:#65a30d; --gC:#d97706; --gD:#ea580c; --gF:#b91c1c;
+    /* type voices (all system fonts — serif resolves to Liberation/DejaVu Serif on Linux renderers) */
+    --serif:Georgia,"Liberation Serif","DejaVu Serif","Times New Roman",serif;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{font-family:var(--sans); color:var(--ink); font-size:10.5px; line-height:1.5;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  @page{ size:A4; margin:13mm 12mm 15mm 12mm; }
+
+  /* ── type voices: serif headlines, sans body, mono labels ── */
+  h1,h2,h3{font-family:var(--serif); margin:0 0 .35em; line-height:1.15; font-weight:700;}
+  h2{font-size:21px;color:var(--navy);letter-spacing:-.3px;}
+  h3{font-size:14px;color:var(--navy);}
+  h4{font-family:var(--mono); font-size:8.7px; color:#3f5063; text-transform:uppercase; letter-spacing:1.1px;
+    font-weight:600; margin:0 0 .5em; display:flex; align-items:center; gap:6px;}
+  h4::before{content:""; width:6px; height:6px; background:var(--clay); transform:rotate(45deg);
+    flex:none; display:inline-block;}                 /* SIGNATURE: recurring tile-glyph on every label */
+  h4.plain::before{display:none;}                     /* use .plain when you hand-place the glyph (e.g. before a pill) */
+  p{margin:0 0 .6em;} a{color:var(--cyan-d);text-decoration:none;}
+  .mono{font-family:var(--mono);font-size:9px;}
+  small{font-size:9px;color:var(--muted);}            /* AA: caption gray is --muted, never lighter */
+  .footer{display:none;}                              /* page numbers come from the renderer */
+  .page{break-before:page;} .avoid{break-inside:avoid;}
+
+  /* ── COVER: blueprint gradient + isometric grid texture + cyan glow ── */
+  .cover{height:244mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
+    padding:17mm 16mm 14mm;position:relative;overflow:hidden;
+    background:
+      repeating-linear-gradient(30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(-30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      linear-gradient(155deg,#0a1d33 0%,#0d2742 48%,#10324a 100%);}
+  .cover::after{content:"";position:absolute;right:-55mm;top:-55mm;width:150mm;height:150mm;
+    border-radius:50%;background:radial-gradient(circle,rgba(43,166,201,.30),transparent 70%);}
+  .brandmark{display:flex;align-items:center;gap:10px;z-index:3;position:relative;}
+  .brandmark .wm{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#aebfce;}
+  .brandmark .wm b{color:#fff;}
+  .cover .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--cyan-l);font-weight:600;margin-top:30px;z-index:3;position:relative;}
+  .cover h1{font-size:50px;line-height:1.02;margin-top:12px;max-width:150mm;z-index:3;position:relative;letter-spacing:-1px;}
+  .cover .sub{font-family:var(--sans);font-size:14.5px;color:#c7d6e3;margin-top:14px;max-width:140mm;
+    font-weight:400;line-height:1.55;z-index:3;position:relative;}
+  .chips{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;z-index:3;position:relative;}
+  .chip{background:rgba(143,214,232,.08);border:1px solid rgba(143,214,232,.28);padding:5px 12px;border-radius:5px;
+    font-size:9.5px;color:#dbe7f0;font-family:var(--mono);letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px;}
+  .chip .tn{color:var(--cyan-l);font-weight:700;}
+  .verdict{z-index:3;position:relative;margin-top:24px;display:flex;align-items:stretch;gap:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(143,214,232,.22);border-radius:10px;padding:18px 22px;max-width:158mm;}
+  .verdict .big{font-family:var(--serif);font-size:62px;font-weight:700;line-height:.9;color:#fff;align-self:center;}
+  .verdict .vsep{width:1px;background:rgba(143,214,232,.25);}
+  .verdict .vtext{font-size:11.5px;color:#c7d6e3;line-height:1.5;align-self:center;}
+  .verdict .vtext .vh{font-family:var(--serif);color:#fff;font-size:16px;font-weight:700;display:block;margin-bottom:5px;letter-spacing:-.2px;}
+  .verdict .vtext b{color:var(--cyan-l);}
+  .statstrip{z-index:3;position:relative;display:flex;margin-top:18px;max-width:158mm;
+    border:1px solid rgba(143,214,232,.18);border-radius:8px;overflow:hidden;}
+  .statstrip .s{flex:1;padding:11px 14px;background:rgba(255,255,255,.03);}
+  .statstrip .s+.s{border-left:1px solid rgba(143,214,232,.16);}
+  .statstrip .s .v{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;line-height:1;}
+  .statstrip .s .l{font-family:var(--mono);font-size:7.6px;letter-spacing:.6px;color:#9fb3c6;text-transform:uppercase;margin-top:5px;}
+  .cover .spacer{flex:1;}
+  .cover .meta{display:flex;gap:28px;flex-wrap:wrap;z-index:3;position:relative;}
+  .cover .meta div{font-family:var(--mono);font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#8ba0b5;}
+  .cover .meta b{display:block;color:#fff;font-size:11.5px;margin-top:3px;font-family:var(--sans);letter-spacing:0;text-transform:none;font-weight:600;}
+  .skyline{position:absolute;right:0;bottom:34mm;width:175mm;z-index:1;opacity:.6;pointer-events:none;}
+
+  /* ── layout shells ── */
+  .grid{display:grid;gap:11px;} .g3{grid-template-columns:repeat(3,1fr);} .g2{grid-template-columns:1fr 1fr;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+
+  /* ── SIGNATURE: section header = numbered tile + architect scale-tick rule (clay accent on the first 46px) ── */
+  .sec-head{display:flex;align-items:center;gap:11px;position:relative;padding-bottom:9px;margin-bottom:14px;}
+  .sec-head .no{font-family:var(--serif);font-weight:700;font-size:14px;color:#fff;width:27px;height:27px;border-radius:6px;
+    flex:none;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#1c4664,#0d2742);
+    border-top:1.5px solid var(--navy-hi);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28);}
+  .sec-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:
+      linear-gradient(var(--navy),var(--navy)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--navy) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+  .sec-head::before{content:"";position:absolute;left:0;bottom:0;width:46px;height:6px;z-index:1;
+    background:
+      linear-gradient(var(--clay),var(--clay)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--clay) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+
+  /* ── badges / pills ── */
+  .grade{display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);width:36px;height:36px;border-radius:8px;color:#fff;font-weight:700;font-size:18px;}
+  .gA{background:var(--gA);}.gB{background:var(--gB);}.gC{background:var(--gC);}.gD{background:var(--gD);}.gF{background:var(--gF);}
+  .sev{display:inline-block;padding:2px 7px;border-radius:4px;color:#fff;font-weight:700;font-size:8.5px;letter-spacing:.4px;white-space:nowrap;font-family:var(--sans);}
+  .s-crit{background:var(--crit);}.s-high{background:var(--high);}.s-med{background:var(--med);}.s-low{background:var(--low);}
+  .pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:8.5px;font-weight:600;font-family:var(--mono);letter-spacing:.3px;white-space:nowrap;}
+  .p-ok{background:#dcfce7;color:#166534;} .p-eff{background:#e0f3f8;color:var(--cyan-d);}
+  .cd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:3px;vertical-align:middle;} .cv{background:#16a34a;}.ci{background:#f59e0b;}.ca{background:#94a3b8;}
+  .st{font-weight:700;font-size:8px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:var(--mono);letter-spacing:.2px;}
+  .st-now{background:#fee2e2;color:#991b1b;}.st-sch{background:#e0f3f8;color:var(--cyan-d);}.st-acc{background:#eef2f6;color:#475569;}
+  .res{color:#15803d;font-weight:700;}
+
+  /* ── tables: mono uppercase header ── */
+  table{width:100%;border-collapse:collapse;font-size:9.3px;}
+  th{background:var(--navy);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:8.4px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;}
+  td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:nth-child(even) td{background:var(--panel);} .num{text-align:center;font-weight:700;} .score-cell{font-weight:800;text-align:center;font-family:var(--mono);}
+
+  /* ── KPI strip: serif numbers, mono labels, accent top-border ── */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:6px 0 2px;}
+  .kpi{background:var(--navy);color:#fff;border-radius:8px;padding:14px 15px;border-top:2px solid var(--navy-hi);}
+  .kpi .n{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;letter-spacing:-.5px;}
+  .kpi .l{font-family:var(--mono);font-size:8px;color:#b6cadb;margin-top:7px;letter-spacing:.3px;line-height:1.5;text-transform:uppercase;}
+  .kpi.cyan{background:var(--cyan-d);border-top-color:var(--cyan-l);} .kpi.amber{background:#b45309;border-top-color:#f59e0b;} .kpi.slate{background:#3f5063;border-top-color:#7c93a8;}
+
+  .dim{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:8.7px;} .dim .lab{width:80px;color:var(--slate);flex:none;font-family:var(--mono);font-size:8px;}
+  .dim .bar{flex:1;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;} .dim .bar i{display:block;height:100%;border-radius:4px;} .dim .v{width:26px;text-align:right;font-weight:700;color:var(--slate);font-family:var(--mono);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:8.6px;color:var(--slate);font-family:var(--mono);} .legend span{display:inline-flex;align-items:center;gap:4px;} .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
+  ul.tight{margin:.2em 0 .6em;padding-left:15px;} ul.tight li{margin-bottom:3px;} ul.tight li::marker{color:var(--cyan);}
+  .callout{border-left:4px solid var(--cyan);background:#ecf8fb;border-radius:0 6px 6px 0;padding:10px 13px;font-size:9.6px;} .callout.warn{border-color:var(--med);background:#fffbeb;} .callout.risk{border-color:var(--high);background:#fef2f2;} .callout b{color:var(--navy);}
+  .tag{font-family:var(--mono);font-size:7.8px;color:var(--muted);font-weight:600;letter-spacing:.6px;text-transform:uppercase;}
+
+  /* ── pull-quote: editorial pacing device — use to fill a sparse page, never as filler prose ── */
+  .pq{font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--navy);border-left:4px solid var(--clay);padding:4px 0 4px 20px;margin:18px 0;max-width:165mm;font-style:italic;} .pq b{color:var(--clay-d);font-style:normal;}
+  /* ── insight mini-card: 2–3 short "what this means" cards under a diagram ── */
+  .ins{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;border-top:2px solid var(--clay-l);}
+  .ins .ih{font-family:var(--mono);font-size:8.4px;text-transform:uppercase;letter-spacing:.8px;color:var(--clay-d);font-weight:700;margin-bottom:5px;} .ins p{font-size:9.4px;margin:0;color:var(--slate);}
+
+  .toc a{display:flex;align-items:baseline;color:var(--ink);padding:8px 0;border-bottom:1px dotted #cbd5e1;font-size:12px;} .toc .tn{width:28px;color:var(--clay-d);font-weight:700;flex:none;font-family:var(--mono);} .toc .tt{flex:1;font-family:var(--serif);font-size:13px;} .toc .tp{color:var(--muted);font-weight:700;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER (1 page) ============ -->
+<div class="cover">
+  <!-- COMPONENT: brandmark — isometric logomark + mono wordmark. Re-tint blocks to the subject; 3 blocks reads as "3 things assessed". -->
+  <div class="brandmark">
+    <svg width="30" height="30" viewBox="0 0 60 60" aria-hidden="true">
+      <polygon points="30,6 46,15 30,24 14,15" fill="#8fd6e8" fill-opacity=".9"/>
+      <polygon points="14,15 30,24 30,36 14,27" fill="#2ba6c9" fill-opacity=".85"/>
+      <polygon points="46,15 30,24 30,36 46,27" fill="#1a7f9c" fill-opacity=".9"/>
+      <polygon points="20,33 30,39 30,49 20,43" fill="#c2603d" fill-opacity=".9"/>
+      <polygon points="40,33 30,39 30,49 40,43" fill="#9f4a2c" fill-opacity=".9"/>
+      <polygon points="30,30 40,36 30,42 20,36" fill="#e6a589" fill-opacity=".95"/>
+    </svg>
+    <div class="wm"><b>ORG</b> · PROJECT</div>
+  </div>
+
+  <!-- COMPONENT: skyline — subject-derived line-art motif filling the cover's lower band (here: isometric city).
+       Each block = top diamond + two side faces. Swap this SVG for the report's own subject motif (topology, map, etc.). -->
+  <svg class="skyline" viewBox="0 0 600 200" fill="none" aria-hidden="true">
+    <g stroke="#8fd6e8" stroke-width="1.1" stroke-linejoin="round">
+      <polygon points="90,95 130,115 90,135 50,115" fill="#2ba6c9" fill-opacity=".10"/>
+      <polygon points="50,115 90,135 90,175 50,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="130,115 90,135 90,175 130,155" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="160,40 206,63 160,86 114,63" fill="#c2603d" fill-opacity=".16"/>
+      <polygon points="114,63 160,86 160,172 114,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="206,63 160,86 160,172 206,149" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="255,70 297,91 255,112 213,91" fill="#8fd6e8" fill-opacity=".14"/>
+      <polygon points="213,91 255,112 255,176 213,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="297,91 255,112 255,176 297,155" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="350,30 388,49 350,68 312,49" fill="#2ba6c9" fill-opacity=".12"/>
+      <polygon points="312,49 350,68 350,168 312,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="388,49 350,68 350,168 388,149" fill="#0a1d33" fill-opacity=".12"/>
+    </g>
+  </svg>
+
+  <div class="kicker">REPORT KIND · vN</div>
+  <h1>Report Title</h1>
+  <div class="sub">One-sentence scope + what the reader gets.</div>
+  <div class="chips">
+    <span class="chip"><span class="tn">01</span> scope chip</span>
+    <span class="chip"><span class="tn">02</span> scope chip</span>
+  </div>
+  <!-- COMPONENT: verdict box — big serif grade + one-line so-what for a budget-holder -->
+  <div class="verdict">
+    <div class="big">D</div><div class="vsep"></div>
+    <div class="vtext"><span class="vh">Headline verdict · score / 100</span>One-line so-what. <b>The asymmetry / takeaway in cyan.</b></div>
+  </div>
+  <!-- COMPONENT: statstrip — 4 quick stats (serif number + mono label); fills the cover, adds scannability -->
+  <div class="statstrip">
+    <div class="s"><div class="v">3</div><div class="l">Areas assessed</div></div>
+    <div class="s"><div class="v">19</div><div class="l">Findings</div></div>
+    <div class="s"><div class="v">≈3 d</div><div class="l">To clear backlog</div></div>
+    <div class="s"><div class="v">$X</div><div class="l">A key number</div></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta"><div>Prepared by<b>Name — Role</b></div><div>Date<b>DD Mon YYYY</b></div><div>Method<b>…</b></div><div>Sources<b>…</b></div></div>
+</div>
+
+<!-- ============ CONTENTS (clickable; bookmarks come from <h2> automatically) ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">·</div><h2>Contents</h2></div>
+<div class="toc">
+  <a href="#s1"><span class="tn">01</span><span class="tt">Executive Summary</span><span class="tp">3</span></a>
+  <!-- … one per section; use 01/02/03 numerals (not ①②③ glyphs); verify page numbers after a first render … -->
+</div>
+
+<!-- ============ 1 · EXECUTIVE SUMMARY (dashboard) ============ -->
+<div class="page"></div>
+<div id="s1" class="sec-head"><div class="no">1</div><h2>Executive Summary</h2></div>
+<p>2–3 sentences: what was assessed, the headline, and the cost/effort to fix.</p>
+
+<!-- COMPONENT: KPI strip (variants: default / .cyan / .amber / .slate) -->
+<div class="kpis">
+  <div class="kpi"><div class="n">D</div><div class="l">Overall posture<br>54 / 100</div></div>
+  <div class="kpi amber"><div class="n">19</div><div class="l">Findings</div></div>
+  <div class="kpi cyan"><div class="n">≈3</div><div class="l">Days to fix</div></div>
+  <div class="kpi slate"><div class="n">$X</div><div class="l">A key number</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:13px;">
+  <!-- COMPONENT: Gauge (donut). dasharray = round(score/100*402) " " remainder. Number is SERIF; "OUT OF 100" is MONO. -->
+  <div class="card avoid"><h4>Composite Score</h4>
+    <svg width="138" height="138" viewBox="0 0 160 160">
+      <circle cx="80" cy="80" r="64" fill="none" stroke="#e8edf2" stroke-width="18"/>
+      <circle cx="80" cy="80" r="64" fill="none" stroke="#ea580c" stroke-width="18" stroke-linecap="round" stroke-dasharray="217 402" transform="rotate(-90 80 80)"/>
+      <text x="80" y="76" text-anchor="middle" font-size="42" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">54</text>
+      <text x="80" y="98" text-anchor="middle" font-size="10" fill="#475569" font-family="Consolas,monospace" letter-spacing="1">OUT OF 100</text>
+    </svg>
+    <!-- COMPONENT: Dimension bars (mono labels) -->
+    <div class="dim"><span class="lab">Security</span><div class="bar"><i style="width:49%;background:var(--gD)"></i></div><span class="v">49</span></div>
+  </div>
+  <!-- COMPONENT: Severity bars (mono ticks; severity colours UNCHANGED) -->
+  <div class="card avoid"><h4>Findings by Severity</h4>
+    <svg width="100%" height="120" viewBox="0 0 320 120" font-family="Consolas,monospace"><g font-size="9.5" fill="#334155">
+      <text x="0" y="20">CRITICAL</text><rect x="74" y="10" width="20" height="14" rx="2" fill="#7f1d1d"/><text x="100" y="21" font-weight="700">1</text>
+      <text x="0" y="48">HIGH</text><rect x="74" y="38" width="80" height="14" rx="2" fill="#dc2626"/><text x="160" y="49" font-weight="700">4</text>
+      <text x="0" y="76">MEDIUM</text><rect x="74" y="66" width="180" height="14" rx="2" fill="#d97706"/><text x="260" y="77" font-weight="700">9</text>
+      <text x="0" y="104">LOW</text><rect x="74" y="94" width="100" height="14" rx="2" fill="#2563eb"/><text x="180" y="105" font-weight="700">5</text>
+    </g></svg>
+  </div>
+</div>
+
+<!-- COMPONENT: Impact × Effort matrix (the showpiece). bubble RADIUS & colour = severity; top-left = quick win.
+     SPACE BUBBLES SO NONE OVERLAP — lay them on a loose grid inside each quadrant; mono axis labels. -->
+<div class="card avoid" style="margin-top:11px;"><h4>Impact × Effort</h4>
+  <svg width="368" height="232" viewBox="0 0 380 244" font-family="Consolas,monospace">
+    <rect x="44" y="12" width="156" height="100" rx="3" fill="#ecfdf5"/><rect x="200" y="12" width="156" height="100" rx="3" fill="#eef7fb"/>
+    <rect x="44" y="112" width="156" height="100" rx="3" fill="#fafafa"/><rect x="200" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+    <text x="50" y="26" font-size="8.5" font-weight="700" fill="#15803d">QUICK WINS — DO FIRST</text><text x="206" y="26" font-size="8.5" font-weight="700" fill="#1a7f9c">STRATEGIC — PLAN IN</text>
+    <text x="50" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">FILL-INS</text><text x="206" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">LOWER PRIORITY</text>
+    <line x1="44" y1="212" x2="356" y2="212" stroke="#334155"/><line x1="44" y1="12" x2="44" y2="212" stroke="#334155"/>
+    <line x1="200" y1="12" x2="200" y2="212" stroke="#cbd5e1" stroke-dasharray="3 3"/><line x1="44" y1="112" x2="356" y2="112" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+    <text x="200" y="232" text-anchor="middle" font-size="8.5" fill="#475569">EFFORT  →  (low → high)</text>
+    <text x="16" y="112" text-anchor="middle" font-size="8.5" fill="#475569" transform="rotate(-90 16 112)">IMPACT  →</text>
+    <g font-size="7.5" font-weight="700"><circle cx="92" cy="44" r="11" fill="#dc2626" opacity=".9"/><text x="92" y="47" text-anchor="middle" fill="#fff">X1</text></g>
+  </svg>
+</div>
+
+<!-- ============ N · PER-AREA SCORECARD + FINDINGS (repeat per tenant/area) ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">N</div><h2>Area Name</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <!-- COMPONENT: Scorecard with radar. Score is SERIF; radar fill is TERRACOTTA (--clay) at .32 opacity, 2px clay stroke,
+       cyan-tinted guide pentagons, MONO axis letters. Vertices for value v: center(70,70) R=52,
+       unit vectors S(0,-1) R(.951,-.309) O(.588,.809) I(-.588,.809) C(-.951,-.309); vertex = center + (v/100)*R*unit -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;"><span class="grade gD">D</span><div><b style="font-size:17px;font-family:var(--serif)">52</b><small> / 100</small><br><span class="tag">Weak — at risk</span></div></div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,46.6 97.2,61.2 80.7,84.7 51.7,95.2 35.4,58.8" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">R</text><text x="103" y="123">O</text><text x="33" y="123">I</text><text x="8" y="54">C</text></g>
+    </svg>
+  </div>
+  <div class="panel"><h4>Inventory · verified live</h4><ul class="tight"><li>…</li></ul></div>
+  <!-- when a label needs a leading pill, use h4.plain and hand-place the tile-glyph: -->
+  <div class="panel"><h4 class="plain"><span style="width:6px;height:6px;background:var(--clay);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Strengths <span class="pill p-ok">good</span></h4><ul class="tight"><li>…</li></ul><h4 style="margin-top:8px;">Effort</h4><p><span class="pill p-eff">≈ N day</span> …</p></div>
+</div>
+
+<!-- COMPONENT: Findings table. Confidence dot on the ID; severity badge; L/I/Score -->
+<table style="margin-top:11px;">
+  <tr><th style="width:38px">ID</th><th>Finding</th><th style="width:54px">Severity</th><th class="num" style="width:26px">L</th><th class="num" style="width:26px">I</th><th class="num" style="width:34px">Score</th><th style="width:150px">Business impact</th><th style="width:42px">Effort</th></tr>
+  <tr><td>X1<span class="cd cv"></span></td><td><b>Finding title</b> — detail</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>What it costs the business</td><td>0.5d</td></tr>
+</table>
+<small><span class="cd cv"></span> Verified &nbsp; <span class="cd ci"></span> Inferred &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<!-- COMPONENT: insight mini-cards — drop 3 under a diagram to add "so-what" + de-densify a sparse page -->
+<div class="grid g3 avoid" style="margin-top:13px;">
+  <div class="ins"><div class="ih">Insight one</div><p>One or two sentences of so-what.</p></div>
+  <div class="ins"><div class="ih">Insight two</div><p>One or two sentences of so-what.</p></div>
+  <div class="ins"><div class="ih">Insight three</div><p>One or two sentences of so-what.</p></div>
+</div>
+
+<!-- COMPONENT: pull-quote — use to fill a half-empty page with a real takeaway, not filler -->
+<div class="pq">A single sentence that crystallises the section's point, with the <b>key phrase</b> picked out.</div>
+
+<!-- ============ CONSOLIDATED RISK REGISTER ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">R</div><h2>Risk Register</h2></div>
+<!-- COMPONENT: Register with residual (score → after) + stance pill -->
+<table>
+  <tr><th style="width:42px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:58px">Score</th><th style="width:42px">Effort</th><th style="width:88px">Stance</th></tr>
+  <tr><td>X1<span class="cd cv"></span></td><td>…</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→2</span></td><td>0.25d</td><td><span class="st st-now">Fix now</span></td></tr>
+  <tr><td>X2<span class="cd cv"></span></td><td>…</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→3</span></td><td>0.5d</td><td><span class="st st-sch">Schedule</span></td></tr>
+  <tr><td>X3<span class="cd cv"></span></td><td>…</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4 <span class="res">→1</span></td><td>0.1d</td><td><span class="st st-acc">Accept (interim)</span></td></tr>
+</table>
+
+<!-- ============ IMPACT / BUSINESS CASE / ROADMAP ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">$</div><h2>Impact &amp; Roadmap</h2></div>
+<table><tr><th>Risk area</th><th>Exposure today</th><th>Illustrative cost*</th><th>After fix</th></tr>
+<tr><td>…</td><td>…</td><td>…</td><td>…</td></tr></table>
+<small>* Illustrative; leave rates as variables for finance.</small>
+<!-- COMPONENT: roadmap wave cards — accent top-border + hand-placed tile-glyph keyed to each wave's colour (ok / cyan / clay) -->
+<div class="grid g3 avoid" style="margin-top:11px;">
+  <div class="card" style="border-top:2px solid var(--ok);"><h4 class="plain"><span style="width:6px;height:6px;background:var(--ok);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 1 — Quick wins <span class="pill p-eff">~Xd</span></h4><p class="tag">High impact · low effort · reversible</p><ul class="tight"><li>…</li></ul></div>
+  <div class="card" style="border-top:2px solid var(--cyan);"><h4 class="plain"><span style="width:6px;height:6px;background:var(--cyan);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 2 — Strategic <span class="pill p-eff">~Xd</span></h4><p class="tag">High impact · needs a window</p><ul class="tight"><li>…</li></ul></div>
+  <div class="card" style="border-top:2px solid var(--clay);"><h4 class="plain"><span style="width:6px;height:6px;background:var(--clay);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Wave 3 — Hygiene <span class="pill p-eff">~Xd</span></h4><p class="tag">Low effort · opportunistic</p><ul class="tight"><li>…</li></ul></div>
+</div>
+<div class="callout" style="margin-top:13px;"><b>Bottom line.</b> One paragraph the decision-maker can quote.</div>
+
+<!-- ============ APPENDIX (heavy detail lives here to keep pages clean) ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">+</div><h2>Appendix</h2></div>
+<div class="panel avoid"><h4>Evidence / method / standards mapping</h4><p>Raw command output, account refs, CIS/Well-Architected/NIST mapping, integrity statement.</p></div>
+
+</body>
+</html>
