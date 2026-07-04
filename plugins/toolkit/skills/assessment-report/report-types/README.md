@@ -19,10 +19,10 @@ report-types/<type>/
 | Type | Status | Use when |
 |---|---|---|
 | **gap-risk** | ✅ available | General scored gap/risk assessment of a system, estate, or project. Tenants/areas → findings → grades → roadmap. (e.g. infra/cloud audit.) |
-| security-review | 🔲 planned | OWASP/CIS-driven security posture review; threat-centric findings. |
-| cost-review | 🔲 planned | Cloud spend/FinOps: cost actuals, waste, savings-plan coverage, rightsizing. |
-| due-diligence | 🔲 planned | Tech/vendor due-diligence for acquisitions or partnerships. |
-| architecture-review | 🔲 planned | Well-Architected-style design review of a single system. |
-| post-incident | 🔲 planned | Incident timeline, root cause, contributing factors, action items. |
+| **security-review** | ✅ available | OWASP/CIS/NIST-CSF threat-centric security posture review; findings by attack-surface domain (Identity, Network, Data, AppSec, Detection & Response). |
+| **cost-review** | ✅ available | Cloud spend/FinOps: cost actuals, waste, commitment coverage, rightsizing. Opportunities scored Savings×Effort. |
+| **due-diligence** | ✅ available | Tech/vendor due-diligence for acquisitions or partnerships. Overall RAG verdict; findings scored Likelihood×Deal-impact. |
+| **architecture-review** | ✅ available | Well-Architected-style design review of a single system, across the 6 WAF pillars. |
+| **post-incident** | ✅ available | Blameless post-mortem: SEV, timeline, root-cause chain, contributing factors, action items. |
 
 To add a type: copy `gap-risk/type.md` as a starting point, adjust the section list and scoring, register it in the table above, and (ideally) drop a real `example.html` once you've produced one.

@@ -1,0 +1,760 @@
+<!-- SYNTHETIC SAMPLE: the company, incident, timeline, metrics, revenue figures, and action items are entirely fictional and for illustration only. Not a real post-incident review of any real system or event. All actors are roles, never individuals. STRICTLY BLAMELESS. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cartwright — Post-Incident Review: Checkout API Outage (Aurora Failover Storm)</title>
+<style>
+  :root{
+    /* ── blueprint identity ─────────────────────────────── */
+    --ink:#0c1726; --navy:#0d2742; --navy-2:#0a1d33; --navy-hi:#356084;
+    --slate:#334155; --muted:#475569;          /* darkened for WCAG AA on white */
+    --line:#e2e8f0; --panel:#f7f9fb; --panel2:#eef2f6;
+    --cyan:#2ba6c9; --cyan-d:#1a7f9c; --cyan-l:#8fd6e8;   /* architectural cyan */
+    --clay:#c2603d; --clay-d:#9f4a2c; --clay-l:#e6a589;   /* terracotta rooftops */
+    /* severity — unchanged, carries meaning */
+    --crit:#7f1d1d; --high:#dc2626; --med:#d97706; --low:#2563eb; --ok:#16a34a;
+    /* grade bands — unchanged */
+    --gA:#16a34a; --gB:#65a30d; --gC:#d97706; --gD:#ea580c; --gF:#b91c1c;
+    /* type system */
+    --serif:Georgia,"Liberation Serif","DejaVu Serif","Times New Roman",serif;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--ink);font-size:10.5px;line-height:1.5;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @page{ size:A4; margin:13mm 12mm 15mm 12mm; }
+
+  /* ── type voices ── */
+  h1,h2,h3{font-family:var(--serif);margin:0 0 .35em;line-height:1.15;font-weight:700;}
+  h2{font-size:21px;color:var(--navy);letter-spacing:-.3px;}
+  h3{font-size:14px;color:var(--navy);}
+  h4{font-family:var(--mono);font-size:8.7px;color:#3f5063;text-transform:uppercase;
+    letter-spacing:1.1px;font-weight:600;margin:0 0 .5em;display:flex;align-items:center;gap:6px;}
+  h4::before{content:"";width:6px;height:6px;background:var(--clay);transform:rotate(45deg);
+    flex:none;display:inline-block;}              /* recurring city-tile glyph */
+  h4.plain::before{display:none;}
+  p{margin:0 0 .6em;}
+  a{color:var(--cyan-d);text-decoration:none;}
+  .mono{font-family:var(--mono);font-size:9px;}
+  small{font-size:9px;color:var(--muted);}
+  .footer{display:none;}
+  .page{break-before:page;}
+  .avoid{break-inside:avoid;}
+
+  /* ── COVER ─────────────────────────────────────────────── */
+  .cover{height:244mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
+    padding:17mm 16mm 14mm;position:relative;overflow:hidden;
+    background:
+      repeating-linear-gradient(30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(-30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      linear-gradient(155deg,#0a1d33 0%,#0d2742 48%,#10324a 100%);}
+  .cover::after{content:"";position:absolute;right:-55mm;top:-55mm;width:150mm;height:150mm;
+    border-radius:50%;background:radial-gradient(circle,rgba(43,166,201,.30),transparent 70%);}
+  .brandmark{display:flex;align-items:center;gap:10px;z-index:3;position:relative;}
+  .brandmark .wm{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#aebfce;}
+  .brandmark .wm b{color:#fff;}
+  .cover .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--cyan-l);font-weight:600;margin-top:30px;z-index:3;position:relative;}
+  .cover h1{font-size:50px;line-height:1.02;margin-top:12px;max-width:150mm;z-index:3;position:relative;
+    letter-spacing:-1px;}
+  .cover .sub{font-size:14.5px;color:#c7d6e3;margin-top:14px;max-width:140mm;font-weight:400;
+    line-height:1.55;z-index:3;position:relative;font-family:var(--sans);}
+  .chips{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;z-index:3;position:relative;}
+  .chip{background:rgba(143,214,232,.08);border:1px solid rgba(143,214,232,.28);
+    padding:5px 12px;border-radius:5px;font-size:9.5px;color:#dbe7f0;font-family:var(--mono);
+    letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px;}
+  .chip .tn{color:var(--cyan-l);font-weight:700;}
+  .verdict{z-index:3;position:relative;margin-top:24px;display:flex;align-items:stretch;gap:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(143,214,232,.22);
+    border-radius:10px;padding:18px 22px;max-width:158mm;}
+  .verdict .big{font-family:var(--serif);font-size:62px;font-weight:700;line-height:.9;
+    color:#fff;align-self:center;}
+  .verdict .vsep{width:1px;background:rgba(143,214,232,.25);}
+  .verdict .vtext{font-size:11.5px;color:#c7d6e3;line-height:1.5;align-self:center;}
+  .verdict .vtext .vh{font-family:var(--serif);color:#fff;font-size:16px;font-weight:700;
+    display:block;margin-bottom:5px;letter-spacing:-.2px;}
+  .verdict .vtext b{color:var(--cyan-l);}
+  .statstrip{z-index:3;position:relative;display:flex;gap:0;margin-top:18px;max-width:158mm;
+    border:1px solid rgba(143,214,232,.18);border-radius:8px;overflow:hidden;}
+  .statstrip .s{flex:1;padding:11px 14px;background:rgba(255,255,255,.03);}
+  .statstrip .s+.s{border-left:1px solid rgba(143,214,232,.16);}
+  .statstrip .s .v{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;line-height:1;}
+  .statstrip .s .l{font-family:var(--mono);font-size:7.6px;letter-spacing:.6px;color:#9fb3c6;
+    text-transform:uppercase;margin-top:5px;}
+  .cover .spacer{flex:1;}
+  .cover .meta{display:flex;gap:28px;flex-wrap:wrap;z-index:3;position:relative;}
+  .cover .meta div{font-family:var(--mono);font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#8ba0b5;}
+  .cover .meta b{display:block;color:#fff;font-size:11.5px;margin-top:3px;font-family:var(--sans);
+    letter-spacing:0;text-transform:none;font-weight:600;}
+  .skyline{position:absolute;right:0;bottom:34mm;width:175mm;z-index:1;opacity:.6;pointer-events:none;}
+
+  /* ── layout shells ── */
+  .grid{display:grid;gap:11px;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g2{grid-template-columns:1fr 1fr;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+
+  /* ── section header: numbered tile + architect scale-rule ── */
+  .sec-head{display:flex;align-items:center;gap:11px;position:relative;
+    padding-bottom:9px;margin-bottom:14px;}
+  .sec-head .no{font-family:var(--serif);font-weight:700;font-size:14px;color:#fff;
+    width:27px;height:27px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(155deg,#1c4664,#0d2742);
+    border-top:1.5px solid var(--navy-hi);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28);}
+  .sec-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:
+      linear-gradient(var(--navy),var(--navy)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--navy) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+  .sec-head::before{content:"";position:absolute;left:0;bottom:0;width:46px;height:6px;z-index:1;
+    background:
+      linear-gradient(var(--clay),var(--clay)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--clay) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+
+  /* ── badges / pills ── */
+  .grade{display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);
+    width:36px;height:36px;border-radius:8px;color:#fff;font-weight:700;font-size:18px;}
+  .gA{background:var(--gA);}.gB{background:var(--gB);}.gC{background:var(--gC);}
+  .gD{background:var(--gD);}.gF{background:var(--gF);}
+  .sev{display:inline-block;padding:2px 7px;border-radius:4px;color:#fff;font-weight:700;
+    font-size:8.5px;letter-spacing:.4px;white-space:nowrap;font-family:var(--sans);}
+  .s-crit{background:var(--crit);}.s-high{background:var(--high);}
+  .s-med{background:var(--med);}.s-low{background:var(--low);}
+  .pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:8.5px;font-weight:600;
+    font-family:var(--mono);letter-spacing:.3px;white-space:nowrap;}
+  .p-ok{background:#dcfce7;color:#166534;}
+  .p-eff{background:#e0f3f8;color:var(--cyan-d);}
+
+  .cd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:3px;vertical-align:middle;}
+  .cv{background:#16a34a;}.ci{background:#f59e0b;}.ca{background:#94a3b8;}
+  .st{font-weight:700;font-size:8px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:var(--mono);letter-spacing:.2px;}
+  .st-now{background:#fee2e2;color:#991b1b;}
+  .st-sch{background:#e0f3f8;color:var(--cyan-d);}
+  .st-acc{background:#eef2f6;color:#475569;}
+  .res{color:#15803d;font-weight:700;}
+
+  /* ── tables ── */
+  table{width:100%;border-collapse:collapse;font-size:9.3px;}
+  th{background:var(--navy);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:8.4px;
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;}
+  td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:nth-child(even) td{background:var(--panel);}
+  .num{text-align:center;font-weight:700;}
+  .score-cell{font-weight:800;text-align:center;font-family:var(--mono);}
+
+  /* ── KPI strip ── */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:6px 0 2px;}
+  .kpi{background:var(--navy);color:#fff;border-radius:8px;padding:14px 15px;position:relative;overflow:hidden;
+    border-top:2px solid var(--navy-hi);}
+  .kpi .n{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;letter-spacing:-.5px;}
+  .kpi .l{font-family:var(--mono);font-size:8px;color:#b6cadb;margin-top:7px;letter-spacing:.3px;
+    line-height:1.5;text-transform:uppercase;}
+  .kpi.cyan{background:var(--cyan-d);border-top-color:var(--cyan-l);}
+  .kpi.amber{background:#b45309;border-top-color:#f59e0b;}
+  .kpi.slate{background:#3f5063;border-top-color:#7c93a8;}
+
+  .dim{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:8.7px;}
+  .dim .lab{width:80px;color:var(--slate);flex:none;font-family:var(--mono);font-size:8px;}
+  .dim .bar{flex:1;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+  .dim .bar i{display:block;height:100%;border-radius:4px;}
+  .dim .v{width:26px;text-align:right;font-weight:700;color:var(--slate);font-family:var(--mono);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:8.6px;color:var(--slate);font-family:var(--mono);}
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  ul.tight{margin:.2em 0 .6em;padding-left:15px;}
+  ul.tight li{margin-bottom:3px;}
+  ul.tight li::marker{color:var(--cyan);}
+  .callout{border-left:4px solid var(--cyan);background:#ecf8fb;border-radius:0 6px 6px 0;padding:10px 13px;font-size:9.6px;}
+  .callout.warn{border-color:var(--med);background:#fffbeb;}
+  .callout.risk{border-color:var(--high);background:#fef2f2;}
+  .callout b{color:var(--navy);}
+  .tag{font-family:var(--mono);font-size:7.8px;color:var(--muted);font-weight:600;letter-spacing:.6px;text-transform:uppercase;}
+
+  /* ── pull-quote (editorial pacing device) ── */
+  .pq{font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--navy);
+    border-left:4px solid var(--clay);padding:4px 0 4px 20px;margin:18px 0;max-width:165mm;font-style:italic;}
+  .pq b{color:var(--clay-d);font-style:normal;}
+
+  /* insight mini-cards */
+  .ins{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;border-top:2px solid var(--clay-l);}
+  .ins .ih{font-family:var(--mono);font-size:8.4px;text-transform:uppercase;letter-spacing:.8px;color:var(--clay-d);font-weight:700;margin-bottom:5px;}
+  .ins p{font-size:9.4px;margin:0;color:var(--slate);}
+
+  /* ── TOC ── */
+  .toc{font-size:12px;}
+  .toc a{display:flex;align-items:baseline;color:var(--ink);padding:8px 0;border-bottom:1px dotted #cbd5e1;}
+  .toc .tn{width:28px;color:var(--clay-d);font-weight:700;flex:none;font-family:var(--mono);}
+  .toc .tt{flex:1;font-family:var(--serif);font-size:13px;}
+  .toc .tp{color:var(--muted);font-weight:700;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="brandmark">
+    <svg width="30" height="30" viewBox="0 0 60 60" aria-hidden="true">
+      <!-- isometric logomark: three stacked service-blocks -->
+      <polygon points="30,6 46,15 30,24 14,15" fill="#8fd6e8" fill-opacity=".9"/>
+      <polygon points="14,15 30,24 30,36 14,27" fill="#2ba6c9" fill-opacity=".85"/>
+      <polygon points="46,15 30,24 30,36 46,27" fill="#1a7f9c" fill-opacity=".9"/>
+      <polygon points="20,33 30,39 30,49 20,43" fill="#c2603d" fill-opacity=".9"/>
+      <polygon points="40,33 30,39 30,49 40,43" fill="#9f4a2c" fill-opacity=".9"/>
+      <polygon points="30,30 40,36 30,42 20,36" fill="#e6a589" fill-opacity=".95"/>
+    </svg>
+    <div class="wm"><b>CARTWRIGHT</b> · SAMPLE</div>
+  </div>
+
+  <!-- line-art incident waveform fills the lower band: calm → error spike → recovery -->
+  <svg class="skyline" viewBox="0 0 600 200" fill="none" aria-hidden="true">
+    <g stroke="#8fd6e8" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">
+      <!-- faint baseline grid -->
+      <line x1="0" y1="150" x2="600" y2="150" stroke="#8fd6e8" stroke-opacity=".18"/>
+      <line x1="0" y1="110" x2="600" y2="110" stroke="#8fd6e8" stroke-opacity=".10"/>
+      <line x1="0" y1="70" x2="600" y2="70" stroke="#8fd6e8" stroke-opacity=".10"/>
+      <!-- detection / mitigation markers -->
+      <line x1="250" y1="30" x2="250" y2="175" stroke="#c2603d" stroke-opacity=".30" stroke-dasharray="4 5"/>
+      <line x1="430" y1="30" x2="430" y2="175" stroke="#2ba6c9" stroke-opacity=".30" stroke-dasharray="4 5"/>
+      <!-- error-rate curve: flat, then a failover storm spike, then recovery -->
+      <path d="M0,150 L120,150 L180,148 C220,146 235,120 250,60 C262,34 275,44 290,80
+               C305,116 320,130 345,132 C380,135 405,118 430,96 C470,60 500,146 540,150 L600,150"
+            fill="none" stroke="#c2603d" stroke-opacity=".55" stroke-width="1.6"/>
+      <!-- a fainter secondary signal (retry volume) trailing the primary -->
+      <path d="M0,158 L150,158 L200,156 C240,152 258,138 278,104 C300,70 322,86 348,110
+               C378,138 410,132 440,120 C480,104 515,152 552,158 L600,158"
+            fill="none" stroke="#8fd6e8" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="2 4"/>
+    </g>
+  </svg>
+
+  <div class="kicker">Blameless Post-Incident Review · SEV1</div>
+  <h1>Checkout API Outage — Aurora Failover Storm</h1>
+  <div class="sub">A blameless reconstruction of a 1&nbsp;h&nbsp;19&nbsp;m checkout outage — timeline, trigger&nbsp;vs.&nbsp;root cause, scored contributing factors, a graded response, and an owned prevention roadmap. Focus is on systems and decisions, never people.</div>
+  <div class="chips">
+    <span class="chip"><span class="tn">SEV1</span> Checkout API · payment path</span>
+    <span class="chip"><span class="tn">·</span> Duration 1 h 19 m · MTTM 45 m</span>
+    <span class="chip"><span class="tn">·</span> Blameless review · roles only</span>
+  </div>
+  <div class="verdict">
+    <div class="big">SEV1</div>
+    <div class="vsep"></div>
+    <div class="vtext">
+      <span class="vh">Major customer-facing checkout outage</span>
+      A routine Aurora minor-version patch triggered an unexpected failover; the checkout service had no connection-pool backpressure and an aggressive retry policy, so a ~30-second DB blip amplified into a 45-minute self-sustaining overload.
+      <b>Recoverable in ≈ 45&nbsp;min once engaged — but preventable with a day of guardrail work.</b>
+    </div>
+  </div>
+  <div class="statstrip">
+    <div class="s"><div class="v">14:22</div><div class="l">Detected (alert acked)</div></div>
+    <div class="s"><div class="v">45 m</div><div class="l">Time to mitigate · MTTM</div></div>
+    <div class="s"><div class="v">1 h 19 m</div><div class="l">Total to recovery · MTTR</div></div>
+    <div class="s"><div class="v">~18%</div><div class="l">Checkout traffic failed</div></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div>Facilitated by<b>Incident review facilitator (SRE)</b></div>
+    <div>Incident date<b>04 July 2026</b></div>
+    <div>Method<b>Blameless review · read-only artefacts</b></div>
+    <div>Sources<b>Alerts · metrics · logs · deploy log · comms</b></div>
+  </div>
+</div>
+
+<!-- ============ TOC ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">·</div><h2>Contents</h2></div>
+<div class="toc">
+  <a href="#s-exec"><span class="tn">01</span><span class="tt">Executive summary &amp; response scorecard</span><span class="tp">3</span></a>
+  <a href="#s-method"><span class="tn">02</span><span class="tt">How to read this review — SEV, scoring &amp; blameless principles</span><span class="tp">4</span></a>
+  <a href="#s-time"><span class="tn">03</span><span class="tt">Incident timeline — detection → mitigation → recovery</span><span class="tp">5</span></a>
+  <a href="#s-impact"><span class="tn">04</span><span class="tt">Impact analysis &amp; blast radius</span><span class="tp">6</span></a>
+  <a href="#s-rca"><span class="tn">05</span><span class="tt">Root cause analysis — trigger vs. root cause</span><span class="tp">7</span></a>
+  <a href="#s-cf"><span class="tn">06</span><span class="tt">Contributing factors — technical / process / organizational</span><span class="tp">8</span></a>
+  <a href="#s-wwp"><span class="tn">07</span><span class="tt">What went well / what went poorly</span><span class="tp">9</span></a>
+  <a href="#s-actions"><span class="tn">08</span><span class="tt">Action items &amp; prevention roadmap</span><span class="tp">10</span></a>
+  <a href="#s-appx"><span class="tn">09</span><span class="tt">Appendix — evidence, comms log &amp; integrity statement</span><span class="tp">11</span></a>
+</div>
+<div class="callout" style="margin-top:18px;">
+  <b>How this review is framed.</b> This is a <b>blameless post-incident review</b>. Every event is attributed to <b>systems, signals, defaults and decisions-made-with-the-information-available</b> — never to an individual. People appear only as <b>roles</b> (Payments on-call lead, SRE, DB team). The goal is not to find who erred but to find <b>which guardrails were missing</b> so the same trigger cannot cascade again. The incident, company, metrics and figures below are entirely <b>synthetic</b>. Navigation: this contents list and all section headers are clickable; the PDF carries bookmarks and page numbers.
+</div>
+
+<!-- ============ EXECUTIVE SUMMARY ============ -->
+<div class="page"></div>
+<div id="s-exec" class="sec-head"><div class="no">1</div><h2>Executive Summary</h2></div>
+
+<p>At <b>14:11 on 04 July</b>, a routine <b>Aurora PostgreSQL minor-version patch</b> triggered an unexpected writer failover on the checkout database. The failover itself lasted only ~30 seconds — a healthy service should have ridden it out. Instead, the checkout service's <b>connection pool exhausted with no backpressure</b>, and an <b>aggressive, un-capped retry policy with no circuit breaker</b> turned the brief blip into a <b>self-sustaining retry storm</b>. Roughly <b>18% of checkout attempts failed</b> (peaking near 34%) until retries were throttled and pools recycled at <b>15:07</b>, with full recovery by <b>15:41</b>. <b>The patch was the trigger; the root cause was the missing backpressure and retry guardrails.</b> The fix is small and cheap; the avoided repeat is not.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">SEV1</div><div class="l">Severity<br>Major checkout outage</div></div>
+  <div class="kpi amber"><div class="n">45m</div><div class="l">Time to mitigate<br>MTTM · MTTA ~2m · MTTR 1h19m</div></div>
+  <div class="kpi cyan"><div class="n">18%</div><div class="l">Checkout traffic failed<br>peak ~34% at 14:20</div></div>
+  <div class="kpi slate"><div class="n">46%</div><div class="l">Monthly error budget<br>burned in 79 min</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:13px;">
+  <div class="card avoid">
+    <h4>Response-readiness scorecard</h4>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <svg width="150" height="150" viewBox="0 0 145 150">
+        <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+        <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+        <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+        <polygon points="70,41.4 108.6,57.5 95.1,104.5 47.4,101.1 50.2,63.6" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+        <g font-size="7.5" font-weight="700" fill="#475569" font-family="Consolas,monospace">
+          <text x="70" y="13" text-anchor="middle">D</text>
+          <text x="123" y="54">R</text>
+          <text x="103" y="123">M</text>
+          <text x="30" y="123">C</text>
+          <text x="8" y="54">P</text>
+        </g>
+      </svg>
+      <div style="font-size:9px;flex:1;">
+        <div class="dim"><span class="lab">Detection</span><div class="bar"><i style="width:55%;background:var(--gD)"></i></div><span class="v">55</span></div>
+        <div class="dim"><span class="lab">Response</span><div class="bar"><i style="width:78%;background:var(--gB)"></i></div><span class="v">78</span></div>
+        <div class="dim"><span class="lab">Mitigation</span><div class="bar"><i style="width:82%;background:var(--gB)"></i></div><span class="v">82</span></div>
+        <div class="dim"><span class="lab">Comms</span><div class="bar"><i style="width:74%;background:var(--gC)"></i></div><span class="v">74</span></div>
+        <div class="dim"><span class="lab">Prevention</span><div class="bar"><i style="width:40%;background:var(--gF)"></i></div><span class="v">40</span></div>
+        <p style="margin-top:7px;color:var(--muted);font-size:8.2px;font-family:var(--mono);line-height:1.6;">Composite <b>66 / 100 · grade C</b> — how well the <i>response</i> went, not system posture. Strong once engaged; weak on detection lag &amp; pre-incident guardrails.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card avoid">
+    <h4>Contributing factors by severity</h4>
+    <svg width="100%" height="138" viewBox="0 0 320 138" font-family="Consolas,monospace">
+      <g font-size="9.5" fill="#334155">
+        <text x="0" y="20">CRITICAL</text><rect x="74" y="10" width="30" height="14" rx="2" fill="#7f1d1d"/><text x="110" y="21" font-weight="700">1</text>
+        <text x="0" y="48">HIGH</text><rect x="74" y="38" width="90" height="14" rx="2" fill="#dc2626"/><text x="170" y="49" font-weight="700">3</text>
+        <text x="0" y="76">MEDIUM</text><rect x="74" y="66" width="120" height="14" rx="2" fill="#d97706"/><text x="200" y="77" font-weight="700">4</text>
+        <text x="0" y="104">LOW</text><rect x="74" y="94" width="30" height="14" rx="2" fill="#2563eb"/><text x="110" y="105" font-weight="700">1</text>
+      </g>
+      <line x1="74" y1="118" x2="300" y2="118" stroke="#cbd5e1"/>
+      <text x="74" y="132" font-size="8" fill="#64748b">0</text><text x="270" y="132" font-size="8" fill="#64748b">count</text>
+    </svg>
+    <div class="legend" style="margin-top:4px;">
+      <span><i class="sw" style="background:var(--crit)"></i>Critical</span>
+      <span><i class="sw" style="background:var(--high)"></i>High</span>
+      <span><i class="sw" style="background:var(--med)"></i>Medium</span>
+      <span><i class="sw" style="background:var(--low)"></i>Low</span>
+    </div>
+    <p style="margin-top:8px;font-size:9px;color:var(--slate)">9 contributing factors across <b>technical</b> (4), <b>process</b> (3) and <b>organizational</b> (2). The single Critical is the un-capped retry policy — the amplifier that turned a blip into an outage.</p>
+  </div>
+</div>
+
+<div class="card avoid" style="margin-top:11px;">
+  <h4>Impact × Effort — which prevention work to do first</h4>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <svg width="368" height="232" viewBox="0 0 380 244" font-family="Consolas,monospace">
+      <rect x="44" y="12" width="156" height="100" rx="3" fill="#ecfdf5"/>
+      <rect x="200" y="12" width="156" height="100" rx="3" fill="#eef7fb"/>
+      <rect x="44" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+      <rect x="200" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+      <text x="50" y="26" font-size="8.5" font-weight="700" fill="#15803d">QUICK WINS — DO FIRST</text>
+      <text x="206" y="26" font-size="8.5" font-weight="700" fill="#1a7f9c">STRATEGIC — PLAN IN</text>
+      <text x="50" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">FILL-INS</text>
+      <text x="206" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">LOWER PRIORITY</text>
+      <line x1="44" y1="212" x2="356" y2="212" stroke="#334155"/>
+      <line x1="44" y1="12" x2="44" y2="212" stroke="#334155"/>
+      <line x1="200" y1="12" x2="200" y2="212" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <line x1="44" y1="112" x2="356" y2="112" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <text x="200" y="232" text-anchor="middle" font-size="8.5" fill="#475569">EFFORT  →  (low → high)</text>
+      <text x="16" y="112" text-anchor="middle" font-size="8.5" fill="#475569" transform="rotate(-90 16 112)">IMPACT  →</text>
+      <g font-size="7" font-weight="700">
+        <!-- quick wins: high impact / low effort -->
+        <circle cx="150" cy="44" r="12" fill="#7f1d1d" opacity=".9"/><text x="150" y="47" text-anchor="middle" fill="#fff">01</text>
+        <circle cx="96" cy="52" r="10.5" fill="#dc2626" opacity=".9"/><text x="96" y="55" text-anchor="middle" fill="#fff">02</text>
+        <circle cx="112" cy="86" r="9.5" fill="#dc2626" opacity=".9"/><text x="112" y="89" text-anchor="middle" fill="#fff">04</text>
+        <!-- strategic: high impact / high effort -->
+        <circle cx="252" cy="52" r="10.5" fill="#dc2626" opacity=".9"/><text x="252" y="55" text-anchor="middle" fill="#fff">03</text>
+        <circle cx="312" cy="72" r="9" fill="#d97706" opacity=".92"/><text x="312" y="75" text-anchor="middle" fill="#fff">07</text>
+        <!-- fill-ins: low impact / low effort -->
+        <circle cx="96" cy="152" r="8" fill="#2563eb" opacity=".82"/><text x="96" y="155" text-anchor="middle" fill="#fff">10</text>
+        <circle cx="140" cy="182" r="8" fill="#2563eb" opacity=".82"/><text x="140" y="185" text-anchor="middle" fill="#fff">09</text>
+        <!-- lower priority: needs a window -->
+        <circle cx="244" cy="150" r="9" fill="#d97706" opacity=".9"/><text x="244" y="153" text-anchor="middle" fill="#fff">07b</text>
+        <circle cx="300" cy="160" r="9" fill="#d97706" opacity=".84"/><text x="300" y="163" text-anchor="middle" fill="#fff">05</text>
+        <circle cx="252" cy="188" r="9" fill="#d97706" opacity=".84"/><text x="252" y="191" text-anchor="middle" fill="#fff">06</text>
+        <circle cx="308" cy="190" r="9" fill="#d97706" opacity=".8"/><text x="308" y="193" text-anchor="middle" fill="#fff">08</text>
+      </g>
+    </svg>
+    <div style="font-size:9px;flex:1;">
+      <p style="margin-bottom:6px;"><b>Read it like this:</b> bubbles top-left are bargains — they collapse the recurrence risk for almost no effort. Ship those first.</p>
+      <ul class="tight">
+        <li><b>AI-01</b> Circuit breaker on checkout→DB</li>
+        <li><b>AI-02</b> Capped retry w/ backoff + jitter</li>
+        <li><b>AI-04</b> Tighten checkout 5xx alert (done)</li>
+        <li><b>AI-03</b> Connection-pool backpressure</li>
+        <li><b>AI-07</b> Failover-aware health checks</li>
+      </ul>
+      <small>Bubble size &amp; colour = recurrence severity (L×I). IDs map to the action-item table.</small>
+    </div>
+  </div>
+</div>
+
+<div class="callout risk avoid" style="margin-top:11px;">
+  <b>Root cause in one line.</b> A survivable ~30-second Aurora failover became a 45-minute outage because the checkout service had <b>no connection-pool backpressure and no circuit breaker</b> on an aggressive retry path — <b>the patch was only the trigger</b>. Blast radius stayed on the payment path (cart, catalog, search, account were unaffected). <b>Do-not-wait fixes:</b> <b>AI-01</b> circuit breaker · <b>AI-02</b> capped retries + jitter · <b>AI-03</b> pool backpressure · <b>AI-04</b> alert tuning <i>(already shipped)</i> — <b>≈ one engineer-week</b> removes the amplifier and cuts future detection lag from ~8&nbsp;min to under 1.
+</div>
+
+<!-- ============ HOW TO READ ============ -->
+<div class="page"></div>
+<div id="s-method" class="sec-head"><div class="no">2</div><h2>How to Read This Review</h2></div>
+<div class="grid g3">
+  <div class="card avoid">
+    <h4>Incident severity (SEV)</h4>
+    <p>The incident is classified on a <b>SEV scale</b> — how bad the <i>event</i> was, shown on the cover in place of a grade.</p>
+    <table>
+      <tr><th>SEV</th><th>Meaning</th></tr>
+      <tr><td class="num">SEV1</td><td><span class="sev s-crit">CRITICAL</span> major customer-facing outage / data loss</td></tr>
+      <tr><td class="num">SEV2</td><td><span class="sev s-high">HIGH</span> significant degradation</td></tr>
+      <tr><td class="num">SEV3</td><td><span class="sev s-med">MODERATE</span> partial / minor impact</td></tr>
+      <tr><td class="num">SEV4</td><td><span class="sev s-low">MINOR</span> negligible customer impact</td></tr>
+    </table>
+    <p style="font-size:8.4px;color:var(--muted);font-family:var(--mono)">This event: SEV1.</p>
+  </div>
+  <div class="card avoid">
+    <h4>Action-item priority</h4>
+    <p>Each action item is scored <b>Likelihood(recurrence) × Impact</b> (1–5 each) = a <b>1–25</b> priority.</p>
+    <table>
+      <tr><th>Score</th><th>Priority</th></tr>
+      <tr><td class="num">20–25</td><td><span class="sev s-crit">CRITICAL</span></td></tr>
+      <tr><td class="num">12–19</td><td><span class="sev s-high">HIGH</span></td></tr>
+      <tr><td class="num">6–11</td><td><span class="sev s-med">MEDIUM</span></td></tr>
+      <tr><td class="num">1–5</td><td><span class="sev s-low">LOW</span></td></tr>
+    </table>
+    <p style="font-size:8.4px;color:var(--muted);font-family:var(--mono)">Same band applies to contributing-factor severity (how much it amplified the incident).</p>
+  </div>
+  <div class="card avoid">
+    <h4>Confidence flag</h4>
+    <p>A coloured dot beside each item ID shows <b>how certain</b> the evidence is:</p>
+    <p style="margin:5px 0"><span class="cd cv"></span> <b>Verified</b> — observed in logs / metrics / alerts</p>
+    <p style="margin:5px 0"><span class="cd ci"></span> <b>Inferred</b> — from config / deploy log, not directly traced</p>
+    <p style="margin:5px 0"><span class="cd ca"></span> <b>Assumed</b> — reasonable, needs confirmation</p>
+    <p style="font-size:8.4px;color:var(--muted);font-family:var(--mono)">Most timeline facts are Verified from telemetry.</p>
+  </div>
+</div>
+
+<div class="grid g2 avoid" style="margin-top:11px;">
+  <div class="panel">
+    <h4>Blameless principles — non-negotiable</h4>
+    <p>This review assumes <b>everyone acted reasonably with the information they had at the time</b>. We name systems, signals, defaults and decisions-in-context — <b>never individuals</b>, and never "human error". People appear as <b>roles</b>.</p>
+    <p style="margin:4px 0"><span class="st st-now">Systems, not people</span> &nbsp;a missing guardrail is a system gap</p>
+    <p style="margin:4px 0"><span class="st st-sch">Trigger ≠ cause</span> &nbsp;the fix targets the cause, not the trigger</p>
+    <p style="margin:4px 0"><span class="st st-acc">Learn, don't blame</span> &nbsp;the output is guardrails, not fault</p>
+  </div>
+  <div class="panel">
+    <h4>Response-readiness radar &amp; axes</h4>
+    <p>The exec scorecard is a 5-axis <b>radar</b> grading <b>how the response went</b> — a bigger terracotta shape = a stronger response. Axes are abbreviated:</p>
+    <p class="mono" style="font-size:9px;line-height:1.9">D = Detection · R = Response · M = Mitigation<br>C = Communication · P = Prevention (pre-incident)</p>
+    <p style="font-size:8.6px;color:var(--muted)">The outer pentagon is 100; the inner guide ring is 50. This 0–100/grade number is used <b>only</b> for the response — there are no per-area posture grades in a post-mortem. Durations (MTTA/MTTM/MTTR) are defined in the timeline.</p>
+  </div>
+</div>
+
+<div class="callout" style="margin-top:11px;">
+  <b>Evidence base.</b> <i>(Synthetic sample — the narrative illustrates the methodology; all data is fictional.)</i> The timeline was reconstructed <b>read-only</b> from the alerting system, the metrics store (error rate, latency, DB connections, failover events), application logs (error signatures + retry volume), the deploy/change log, the incident channel transcript, and the runbook that was actually opened. <b>No system was modified during the reconstruction.</b> Durations are measured from telemetry; the revenue figure is an illustrative estimate, not a booked loss.
+</div>
+
+<!-- ============ TIMELINE ============ -->
+<div class="page"></div>
+<div id="s-time" class="sec-head"><div class="no">3</div><h2>Incident Timeline</h2></div>
+<p>All times <b>04 July 2026, local</b>. Impact began at the failover (14:11) but the first alert did not fire until 14:22 — an <b>~8-minute detection lag</b> attributable to a loose alert threshold (CF-P1), not to any responder. Once engaged, ack → mitigation was decisive.</p>
+
+<div class="grid g3 avoid" style="margin-bottom:11px;">
+  <div class="ins"><div class="ih">MTTA · detect → ack</div><p><b>~2 min</b> (14:22 alert → 14:24 ack). Fast once the signal fired.</p></div>
+  <div class="ins"><div class="ih">MTTM · detect → mitigate</div><p><b>45 min</b> (14:22 → 15:07). Retry throttle + pool recycle restored checkout.</p></div>
+  <div class="ins"><div class="ih">MTTR · detect → full recovery</div><p><b>1 h 19 m</b> (14:22 → 15:41). Backlog drained, pools rebalanced.</p></div>
+</div>
+
+<table>
+  <tr><th style="width:52px">Time</th><th>Event</th><th style="width:150px">Actor / system</th><th style="width:70px">Phase</th></tr>
+  <tr><td class="mono">14:08</td><td><b>Aurora minor-version patch applied</b> to the checkout writer (scheduled maintenance) <span class="cd cv"></span></td><td>DB automation (change log)</td><td><span class="st st-acc">Change</span></td></tr>
+  <tr><td class="mono">14:11</td><td><b>Unexpected writer failover</b> — writer endpoint flips to a replica; ~30s of write unavailability</td><td>Aurora cluster</td><td><span class="st st-acc">Trigger</span></td></tr>
+  <tr><td class="mono">14:12</td><td>Checkout <b>connection pool saturates</b> — held connections to the old writer hang; no max-wait/backpressure</td><td>Checkout service</td><td><span class="st st-now">Impact</span></td></tr>
+  <tr><td class="mono">14:14</td><td>Checkout <b>5xx error rate climbs</b>; clients begin retrying immediately (no backoff)</td><td>Checkout service / gateway</td><td><span class="st st-now">Impact</span></td></tr>
+  <tr><td class="mono">14:18</td><td><b>Retry storm</b> — retry volume ~5× baseline; the newly-promoted writer also saturates</td><td>Checkout service / Aurora</td><td><span class="st st-now">Impact</span></td></tr>
+  <tr><td class="mono">14:22</td><td><b>First alert fires &amp; is acked</b> (checkout 5xx &gt; threshold) — <b>DETECTION</b>; ~8 min after onset</td><td>Alerting → Payments on-call lead</td><td><span class="st st-now">Detect</span></td></tr>
+  <tr><td class="mono">14:24</td><td>On-call <b>acknowledges</b> and opens an incident (initially SEV2)</td><td>Payments on-call lead</td><td><span class="st st-sch">Ack</span></td></tr>
+  <tr><td class="mono">14:31</td><td><b>Escalated to SEV1</b>; DB team and SRE paged; status page updated</td><td>Incident commander (SRE)</td><td><span class="st st-sch">Escalate</span></td></tr>
+  <tr><td class="mono">14:39</td><td>Runbook opened — found <b>stale</b> (references pre-Aurora topology); team pivots to live telemetry</td><td>DB team · runbook</td><td><span class="st st-sch">Diagnose</span></td></tr>
+  <tr><td class="mono">14:52</td><td><b>Root signal identified</b>: DB recovered by ~14:12, but the <b>retry storm</b> is sustaining the overload — not the database</td><td>SRE + DB team</td><td><span class="st st-sch">Diagnose</span></td></tr>
+  <tr><td class="mono">14:58</td><td><b>Mitigation applied</b>: retries throttled at the gateway, checkout pool recycled, non-critical load shed</td><td>SRE + Checkout on-call</td><td><span class="st st-sch">Mitigate</span></td></tr>
+  <tr><td class="mono">15:07</td><td><b>Error rate returns to baseline</b> — checkout serving normally — <b>MITIGATED</b> (MTTM 45m)</td><td>Checkout service</td><td><span class="st st-now">Mitigated</span></td></tr>
+  <tr><td class="mono">15:20</td><td>Connection pools <b>rebalanced</b> across replicas; retry throttle eased gradually</td><td>SRE</td><td><span class="st st-acc">Recover</span></td></tr>
+  <tr><td class="mono">15:41</td><td><b>Backlog drained, all metrics nominal</b> — <b>RECOVERED</b> (MTTR 1h19m); incident closed, review scheduled</td><td>Incident commander</td><td><span class="st st-acc">Recover</span></td></tr>
+</table>
+<small style="display:block;margin-top:6px"><span class="cd cv"></span> Verified from telemetry / transcript. Actors are <b>roles</b>, never individuals. Detection lag (14:11 → 14:22) is a <b>system</b> gap (loose threshold), addressed by AI-04 — already shipped.</small>
+
+<!-- ============ IMPACT ANALYSIS ============ -->
+<div class="page"></div>
+<div id="s-impact" class="sec-head"><div class="no">4</div><h2>Impact Analysis &amp; Blast Radius</h2></div>
+<div class="grid g2">
+  <div class="card avoid">
+    <h4>Customer · SLA · financial · reputation</h4>
+    <table>
+      <tr><th>Dimension</th><th>Impact over 14:11–15:41</th></tr>
+      <tr><td><b>Customer</b></td><td>~18% of checkout attempts failed (peak ~34% at 14:20); browse/cart unaffected — carts persisted</td></tr>
+      <tr><td><b>Volume</b></td><td>≈ 4,700 failed checkout attempts; most recoverable on retry after 15:07</td></tr>
+      <tr><td><b>SLA / SLO</b></td><td>Checkout availability SLO 99.9%/mo → <b>~46% of the monthly error budget burned</b> in 79 min <span class="sev s-med" style="background:#d97706">AT RISK</span></td></tr>
+      <tr><td><b>Financial</b></td><td>Est. <b>$95k–140k</b> GMV deferred/lost <small>(illustrative — rate × failed-attempt assumptions)</small></td></tr>
+      <tr><td><b>Reputation</b></td><td>Elevated support contacts &amp; some social mentions during the window; no data loss, no PII exposure</td></tr>
+    </table>
+    <div class="callout" style="margin-top:8px;font-size:9px">
+      <b>Read:</b> impact was <b>sharp but contained</b> — a high-failure-rate window on a single path, fully reversible, with <b>no data loss</b>. The financial figure is dominated by <i>deferred</i> revenue (carts survived) rather than permanently lost sales.
+    </div>
+  </div>
+  <div class="card avoid">
+    <h4>Blast radius — what degraded, what held</h4>
+    <svg width="100%" height="196" viewBox="0 0 340 200" font-family="-apple-system,Helvetica,Arial,sans-serif">
+      <rect x="6" y="10" width="150" height="180" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <rect x="184" y="10" width="150" height="180" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+      <text x="81" y="28" text-anchor="middle" font-size="8.5" font-weight="700" fill="#b91c1c" font-family="Consolas,monospace">IMPACTED</text>
+      <text x="259" y="28" text-anchor="middle" font-size="8.5" font-weight="700" fill="#15803d" font-family="Consolas,monospace">UNAFFECTED</text>
+      <g font-size="8.5">
+        <rect x="18" y="40" width="126" height="34" rx="5" fill="#fff" stroke="#fecaca"/>
+        <text x="26" y="56" font-weight="700" fill="#7f1d1d">Checkout API</text><text x="26" y="68" fill="#475569">~18% failed · epicentre</text>
+        <rect x="18" y="82" width="126" height="34" rx="5" fill="#fff" stroke="#fed7aa"/>
+        <text x="26" y="98" font-weight="700" fill="#b45309">Payment authorization</text><text x="26" y="110" fill="#475569">degraded downstream</text>
+        <rect x="18" y="124" width="126" height="34" rx="5" fill="#fff" stroke="#fed7aa"/>
+        <text x="26" y="140" font-weight="700" fill="#b45309">Order confirmation</text><text x="26" y="152" fill="#475569">delayed / queued</text>
+      </g>
+      <g font-size="8.5" fill="#334155">
+        <rect x="196" y="40" width="126" height="22" rx="4" fill="#fff" stroke="#a7f3d0"/><text x="204" y="55">Catalog / browse <tspan font-weight="700" fill="#16a34a">✓</tspan></text>
+        <rect x="196" y="66" width="126" height="22" rx="4" fill="#fff" stroke="#a7f3d0"/><text x="204" y="81">Search <tspan font-weight="700" fill="#16a34a">✓</tspan></text>
+        <rect x="196" y="92" width="126" height="22" rx="4" fill="#fff" stroke="#a7f3d0"/><text x="204" y="107">Cart (persisted) <tspan font-weight="700" fill="#16a34a">✓</tspan></text>
+        <rect x="196" y="118" width="126" height="22" rx="4" fill="#fff" stroke="#a7f3d0"/><text x="204" y="133">Account / auth <tspan font-weight="700" fill="#16a34a">✓</tspan></text>
+        <rect x="196" y="144" width="126" height="22" rx="4" fill="#fff" stroke="#a7f3d0"/><text x="204" y="159">CDN / static <tspan font-weight="700" fill="#16a34a">✓</tspan></text>
+      </g>
+      <text x="81" y="182" text-anchor="middle" font-size="7.6" fill="#94a3b8">shared DB cluster = checkout only</text>
+      <text x="259" y="182" text-anchor="middle" font-size="7.6" fill="#94a3b8">separate data paths held</text>
+    </svg>
+    <small style="display:block;margin-top:2px">Isolation worked: only services on the checkout DB cluster were hit. Payment auth &amp; order confirmation degraded as downstream dependents, not independently.</small>
+  </div>
+</div>
+<div class="pq">A 30-second database blip should never have become a 45-minute outage. What turned one into the other wasn't the failover — it was the <b>absence of a brake</b>.</div>
+
+<!-- ============ ROOT CAUSE ANALYSIS ============ -->
+<div class="page"></div>
+<div id="s-rca" class="sec-head"><div class="no">5</div><h2>Root Cause Analysis</h2></div>
+<p>The causal chain below traces the incident from trigger to effect. The <b>trigger</b> (the patch-induced failover) was routine and expected to be survivable; the <b>root cause</b> is the pair of missing guardrails in the checkout service that let a brief dependency blip become a self-sustaining overload.</p>
+
+<div class="card avoid" style="margin-top:6px;padding-top:16px;">
+<svg width="100%" height="220" viewBox="0 0 720 220" font-family="-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c2603d"/></marker>
+  </defs>
+  <!-- 5-step causal chain -->
+  <!-- box 1: trigger -->
+  <rect x="8" y="60" width="126" height="82" rx="7" fill="#fff7ed" stroke="#f5c9a8"/>
+  <text x="16" y="52" font-size="8" font-weight="700" fill="#9f4a2c" font-family="Consolas,monospace">TRIGGER</text>
+  <text x="71" y="86" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">Minor-version</text>
+  <text x="71" y="99" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">patch applied</text>
+  <text x="71" y="116" text-anchor="middle" font-size="8" fill="#475569">Aurora writer</text>
+  <text x="71" y="127" text-anchor="middle" font-size="8" fill="#475569">(routine)</text>
+  <!-- box 2 -->
+  <rect x="156" y="60" width="126" height="82" rx="7" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="219" y="82" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">Unexpected</text>
+  <text x="219" y="95" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">failover</text>
+  <text x="219" y="112" text-anchor="middle" font-size="8" fill="#475569">writer flips;</text>
+  <text x="219" y="123" text-anchor="middle" font-size="8" fill="#475569">~30s blip</text>
+  <!-- box 3: root -->
+  <rect x="304" y="60" width="126" height="82" rx="7" fill="#fef2f2" stroke="#fca5a5"/>
+  <text x="312" y="52" font-size="8" font-weight="700" fill="#b91c1c" font-family="Consolas,monospace">ROOT CAUSE</text>
+  <text x="367" y="82" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">Pool exhausts</text>
+  <text x="367" y="99" text-anchor="middle" font-size="8" fill="#475569">no backpressure,</text>
+  <text x="367" y="110" text-anchor="middle" font-size="8" fill="#475569">no max-wait —</text>
+  <text x="367" y="121" text-anchor="middle" font-size="8" fill="#475569">connections hang</text>
+  <!-- box 4: root -->
+  <rect x="452" y="60" width="126" height="82" rx="7" fill="#fef2f2" stroke="#fca5a5"/>
+  <text x="460" y="52" font-size="8" font-weight="700" fill="#b91c1c" font-family="Consolas,monospace">ROOT CAUSE</text>
+  <text x="515" y="82" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2742">Retry storm</text>
+  <text x="515" y="99" text-anchor="middle" font-size="8" fill="#475569">aggressive retries,</text>
+  <text x="515" y="110" text-anchor="middle" font-size="8" fill="#475569">no circuit breaker</text>
+  <text x="515" y="121" text-anchor="middle" font-size="8" fill="#475569">→ self-amplifying</text>
+  <!-- box 5: effect -->
+  <rect x="600" y="60" width="112" height="82" rx="7" fill="#0d2742" stroke="#0a1d33"/>
+  <text x="608" y="52" font-size="8" font-weight="700" fill="#9f4a2c" font-family="Consolas,monospace">EFFECT</text>
+  <text x="656" y="86" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">45-min</text>
+  <text x="656" y="99" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">outage</text>
+  <text x="656" y="116" text-anchor="middle" font-size="8" fill="#c7d6e3">18% checkout</text>
+  <text x="656" y="127" text-anchor="middle" font-size="8" fill="#c7d6e3">failed</text>
+  <!-- arrows -->
+  <line x1="134" y1="101" x2="154" y2="101" stroke="#c2603d" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="282" y1="101" x2="302" y2="101" stroke="#c2603d" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="430" y1="101" x2="450" y2="101" stroke="#c2603d" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="578" y1="101" x2="598" y2="101" stroke="#c2603d" stroke-width="2" marker-end="url(#ar)"/>
+  <g font-size="7.4" fill="#94a3b8" font-family="Consolas,monospace" text-anchor="middle">
+    <text x="144" y="97">why?</text><text x="292" y="97">why?</text><text x="440" y="97">why?</text><text x="588" y="97">so</text>
+  </g>
+  <text x="360" y="168" text-anchor="middle" font-size="8.4" fill="#475569">The database recovered within ~30s (box 2). Everything after it (boxes 3–4) is the checkout service amplifying its own failure — that is where the fix belongs.</text>
+</svg>
+</div>
+
+<div class="grid g3 avoid" style="margin-top:13px;">
+  <div class="ins">
+    <div class="ih">Trigger, not cause</div>
+    <p>The patch and its failover were routine and short-lived. Blaming the patch would fix nothing — the next failover (planned or not) would cascade the same way.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">The real cause</div>
+    <p>Checkout lacked <span class="mono">two</span> standard guardrails: pool <b>backpressure</b> (bound the wait, fail fast) and a <b>circuit breaker</b> with capped, jittered retries. Together they would have contained the blip.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">Why it self-sustained</div>
+    <p>Immediate un-capped retries meant the recovered writer was hit with a backlog larger than steady-state — the system kept knocking itself down until retries were throttled by hand.</p>
+  </div>
+</div>
+
+<div class="callout risk" style="margin-top:11px;">
+  <b>Root cause, stated plainly.</b> A brief, survivable database failover became a 45-minute outage because the checkout service had <b>no connection-pool backpressure and no circuit breaker on an aggressive retry path</b>. This is a <b>systemic design gap</b>, present long before 04 July and independent of who was on call. The remediation (AI-01/02/03) targets exactly this gap.
+</div>
+
+<!-- ============ CONTRIBUTING FACTORS ============ -->
+<div class="page"></div>
+<div id="s-cf" class="sec-head"><div class="no">6</div><h2>Contributing Factors</h2></div>
+<p>Factors that <b>caused, amplified, or prolonged</b> the incident, grouped by category and scored by severity (how much each contributed). None of these are individual failings — each is a property of a <b>system, default, or process</b>.</p>
+<table>
+  <tr><th style="width:46px">ID</th><th>Contributing factor</th><th style="width:56px">Severity</th><th>How it amplified / prolonged the incident</th></tr>
+  <tr><td colspan="4" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--slate);font-weight:700;padding:4px 8px;">Technical</td></tr>
+  <tr><td>CF-T2<span class="cd cv"></span></td><td><b>Aggressive, un-capped retry policy</b> — immediate retries, no backoff/jitter, no circuit breaker</td><td><span class="sev s-crit">CRIT</span></td><td>The primary amplifier: turned a 30s blip into a self-sustaining storm that outlived the DB recovery</td></tr>
+  <tr><td>CF-T1<span class="cd cv"></span></td><td><b>No connection-pool backpressure</b> — no max-wait, unbounded queue on a failing dependency</td><td><span class="sev s-high">HIGH</span></td><td>Pool exhausted instead of failing fast; requests piled up waiting on dead connections</td></tr>
+  <tr><td>CF-T3<span class="cd cv"></span></td><td><b>No fast-fail health check</b> tied to writer-endpoint changes</td><td><span class="sev s-high">HIGH</span></td><td>Checkout kept routing to a saturating endpoint; slower to shed load automatically</td></tr>
+  <tr><td>CF-T4<span class="cd ci"></span></td><td><b>Failover behaviour under minor-version patch not well-modelled</b> — single-writer dependency</td><td><span class="sev s-med">MED</span></td><td>The failover was more disruptive than assumed; no rehearsed expectation of a writer flip</td></tr>
+  <tr><td colspan="4" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--slate);font-weight:700;padding:4px 8px;">Process</td></tr>
+  <tr><td>CF-P1<span class="cd cv"></span></td><td><b>Alert threshold too loose</b> — 5xx &gt; 5% sustained 5 min before firing</td><td><span class="sev s-high">HIGH</span></td><td>~8-minute detection lag; the storm was well established before anyone was paged</td></tr>
+  <tr><td>CF-P2<span class="cd cv"></span></td><td><b>Runbook stale</b> — referenced the pre-Aurora topology; unusable during the incident</td><td><span class="sev s-med">MED</span></td><td>Responders diagnosed from raw telemetry instead of a trusted procedure — added minutes</td></tr>
+  <tr><td>CF-P3<span class="cd ci"></span></td><td><b>Patch applied in business hours</b> with no canary / failover-impact review</td><td><span class="sev s-med">MED</span></td><td>Peak-traffic exposure; a survivable failover happened at the worst possible time</td></tr>
+  <tr><td colspan="4" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--slate);font-weight:700;padding:4px 8px;">Organizational</td></tr>
+  <tr><td>CF-O1<span class="cd ci"></span></td><td><b>No clear owner</b> of the checkout↔data resilience path (gap between app &amp; DB teams)</td><td><span class="sev s-med">MED</span></td><td>Backpressure/breaker work sat in nobody's backlog; the guardrail gap persisted unowned</td></tr>
+  <tr><td>CF-O2<span class="cd ca"></span></td><td><b>SEV-declaration hesitancy</b> — started SEV2, escalated to SEV1 ~7 min later</td><td><span class="sev s-low">LOW</span></td><td>Minor delay engaging the DB team; the escalation criteria were ambiguous, not a personal call</td></tr>
+</table>
+<small style="display:block;margin-top:6px"><span class="cd cv"></span> Verified &nbsp; <span class="cd ci"></span> Inferred (CF-T4 from deploy notes · CF-P3 from change policy · CF-O1 from ownership map) &nbsp; <span class="cd ca"></span> Assumed. Severity = contribution to the incident, framed blamelessly as a system/process property.</small>
+
+<div class="callout warn" style="margin-top:11px;">
+  <b>Pattern.</b> The technical factors <b>caused</b> the outage; the process factors <b>prolonged</b> it (late detection, no runbook); the organizational factors <b>let the gap persist</b> (unowned resilience path). Fixing only the code leaves the detection lag and the ownership gap — the roadmap addresses all three layers.
+</div>
+
+<!-- ============ WHAT WENT WELL / POORLY ============ -->
+<div class="page"></div>
+<div id="s-wwp" class="sec-head"><div class="no">7</div><h2>What Went Well / What Went Poorly</h2></div>
+<p>A blameless review names both. The response, <b>once engaged</b>, was fast and correct — that is worth stating as plainly as the gaps.</p>
+<div class="grid g2">
+  <div class="card avoid" style="border-top:2px solid var(--ok);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--ok);transform:rotate(45deg);display:inline-block;"></span>&nbsp;What went well <span class="pill p-ok">keep doing</span></h4>
+    <ul class="tight">
+      <li><b>Fast acknowledgement</b> — MTTA ~2 min once the alert fired; on-call engaged immediately.</li>
+      <li><b>Correct diagnosis under pressure</b> — the team distinguished "DB down" from "retry storm sustaining load" (14:52) rather than chasing the database.</li>
+      <li><b>Decisive, low-risk mitigation</b> — throttle + pool recycle + load shed; no risky failback attempts.</li>
+      <li><b>Blast radius stayed contained</b> — service isolation held; catalog, cart, search, account were unaffected.</li>
+      <li><b>Clear comms</b> — status page updated at escalation; internal channel kept a clean decision log.</li>
+      <li><b>No data loss</b> — carts persisted; the incident was fully reversible.</li>
+    </ul>
+  </div>
+  <div class="card avoid" style="border-top:2px solid var(--high);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--high);transform:rotate(45deg);display:inline-block;"></span>&nbsp;What went poorly <span class="pill" style="background:#fee2e2;color:#991b1b;">fix</span></h4>
+    <ul class="tight">
+      <li><b>Detection lag ~8 min</b> — the loose alert threshold (CF-P1) let the storm establish before paging.</li>
+      <li><b>No guardrails</b> — the absence of backpressure + circuit breaker (CF-T1/T2) is what made the incident possible at all.</li>
+      <li><b>Stale runbook</b> — the opened runbook (CF-P2) was unusable; diagnosis fell back to raw telemetry.</li>
+      <li><b>Business-hours patch, no canary</b> — a survivable failover landed at peak traffic (CF-P3).</li>
+      <li><b>Escalation hesitancy</b> — ~7 min at SEV2 before SEV1 (CF-O2); criteria were ambiguous.</li>
+      <li><b>Unowned resilience path</b> — the guardrail gap had no backlog home (CF-O1).</li>
+    </ul>
+  </div>
+</div>
+<div class="grid g3 avoid" style="margin-top:11px;">
+  <div class="ins"><div class="ih">The system worked as built</div><p>Isolation, comms and mitigation all performed. The failures were <b>missing capabilities</b>, not botched execution.</p></div>
+  <div class="ins"><div class="ih">Diagnosis was the hard part</div><p>Recognising the DB had already recovered — and the app was hurting itself — is a genuinely non-obvious call the team got right.</p></div>
+  <div class="ins"><div class="ih">Every "poorly" has an action</div><p>Each item on the right maps to an action item overleaf. Nothing is left as a lesson without an owner.</p></div>
+</div>
+
+<!-- ============ ACTION ITEMS & ROADMAP ============ -->
+<div class="page"></div>
+<div id="s-actions" class="sec-head"><div class="no">8</div><h2>Action Items &amp; Prevention Roadmap</h2></div>
+<p>Ten action items, each with an owning <b>role</b>, a recurrence priority (<span class="mono">L×I</span>), a due-window, and status. Grouped <b>Now / Next / Later</b> by urgency. <small>Priority = Likelihood(recurrence) × Impact. Dot = confidence.</small></p>
+<table>
+  <tr><th style="width:46px">ID</th><th>Action item</th><th style="width:52px">Priority</th><th class="num" style="width:52px">L×I</th><th style="width:118px">Owner (role)</th><th style="width:52px">Due</th><th style="width:74px">Status</th></tr>
+  <tr><td colspan="7" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:#991b1b;font-weight:700;padding:4px 8px;">Now — do not wait (≈ 1 engineer-week)</td></tr>
+  <tr><td>AI-01<span class="cd cv"></span></td><td><b>Add a circuit breaker</b> on the checkout→Aurora dependency (open on error/timeout, half-open probe)</td><td><span class="sev s-crit">CRIT</span></td><td class="score-cell">20</td><td>Checkout service team</td><td>1 week</td><td><span class="st st-sch">In progress</span></td></tr>
+  <tr><td>AI-02<span class="cd cv"></span></td><td><b>Replace the retry policy</b> with capped exponential backoff + jitter + a hard attempt ceiling</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16</td><td>Checkout service team</td><td>1 week</td><td><span class="st st-sch">In progress</span></td></tr>
+  <tr><td>AI-03<span class="cd cv"></span></td><td><b>Add connection-pool backpressure</b> — bounded max-wait, fail-fast, bounded queue depth</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16</td><td>Checkout service team</td><td>1 week</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td>AI-04<span class="cd cv"></span></td><td><b>Tighten the checkout 5xx alert</b> — lower threshold, 1-min window, add rate-of-change trigger</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">15</td><td>SRE</td><td>3 days</td><td><span class="st" style="background:#dcfce7;color:#166534;">Done</span></td></tr>
+  <tr><td colspan="7" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--cyan-d);font-weight:700;padding:4px 8px;">Next — this quarter</td></tr>
+  <tr><td>AI-07<span class="cd ci"></span></td><td><b>Failover-aware health checks</b> + faster writer-endpoint reconnection handling</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12</td><td>DB team</td><td>4 weeks</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td>AI-05<span class="cd cv"></span></td><td><b>Rewrite &amp; validate the checkout DB-failover runbook</b>; add a quarterly game-day</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>SRE + DB team</td><td>3 weeks</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td>AI-06<span class="cd cv"></span></td><td><b>Move DB minor-version patching</b> to a low-traffic window; require a canary/failover test</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>DB team</td><td>3 weeks</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td>AI-08<span class="cd ci"></span></td><td><b>Chaos drill</b> — load-test checkout against a simulated writer failover to prove the guardrails</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>SRE</td><td>5 weeks</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td colspan="7" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--slate);font-weight:700;padding:4px 8px;">Later — hygiene &amp; ownership</td></tr>
+  <tr><td>AI-09<span class="cd ci"></span></td><td><b>Assign explicit ownership</b> of the checkout↔data resilience path (RACI)</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6</td><td>Eng leadership</td><td>6 weeks</td><td><span class="st st-acc">Open</span></td></tr>
+  <tr><td>AI-10<span class="cd ca"></span></td><td><b>Refine SEV-declaration guidance</b> — auto-SEV1 criteria for checkout-path outages</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4</td><td>Incident program</td><td>6 weeks</td><td><span class="st st-acc">Open</span></td></tr>
+</table>
+<small style="display:block;margin-top:6px"><b>Now</b> 4 items · <b>Next</b> 4 items · <b>Later</b> 2 items. The four "Now" items remove the amplifier and cut detection lag; AI-04 is already shipped. Owners are <b>roles</b>, assigned to teams, not named individuals.</small>
+
+<h3 style="margin-top:16px;">Prevention value — the asymmetry</h3>
+<table>
+  <tr><th>Prevention</th><th>Cost to build</th><th>What a repeat would cost*</th></tr>
+  <tr><td><b>Circuit breaker + capped retries + backpressure</b> (AI-01/02/03)</td><td>≈ 1 engineer-week, no new infra</td><td>Another SEV1 checkout outage — <b>$95k–140k GMV per hour-scale event</b>, plus error-budget burn</td></tr>
+  <tr><td><b>Alert tuning</b> (AI-04, shipped)</td><td>Config only, hours</td><td>Detection lag stays ~8 min → longer every future incident</td></tr>
+  <tr><td><b>Runbook + game-day + patch policy</b> (AI-05/06/08)</td><td>≈ 2–3 days, recurring drill</td><td>Slow, ad-hoc diagnosis on the next failover; peak-hours exposure</td></tr>
+</table>
+<small>* Illustrative framing, not a booked figure. The point is the <b>asymmetry</b>: ≈ one engineer-week of guardrails against an open-ended repeat of a SEV1.</small>
+
+<div class="callout" style="margin-top:13px;">
+  <b>Bottom line.</b> This was a <b>preventable SEV1</b> caused by missing standard guardrails, not by anyone's error. The response, once engaged, was <b>fast and correct</b> — mitigation in 45 minutes with no data loss. <b>≈ one engineer-week</b> of work (circuit breaker, capped retries, pool backpressure) removes the amplifier entirely, and the already-shipped alert tuning cuts future detection lag from ~8 minutes to under one. The remaining items close the process and ownership gaps so the same trigger cannot cascade again.
+</div>
+
+<div class="pq">The incident was reversible in 45 minutes. Making it <b>impossible</b> takes about a week — that asymmetry, not the outage, is the headline.</div>
+
+<!-- ============ APPENDIX ============ -->
+<div class="page"></div>
+<div id="s-appx" class="sec-head"><div class="no">9</div><h2>Appendix — Evidence, Comms Log &amp; Integrity</h2></div>
+<div class="grid g2">
+  <div class="panel avoid">
+    <h4>Evidence — log / metric / alert samples</h4>
+    <ul class="tight">
+      <li>Change log: <span class="mono">aurora-checkout · minor-version patch · 14:08</span></li>
+      <li>DB event: <span class="mono">FailoverEvent writer→replica-2 · 14:11:07</span></li>
+      <li>Metric: checkout <span class="mono">db_pool_active = max</span> from 14:12; <span class="mono">wait_queue</span> unbounded</li>
+      <li>Log signature: <span class="mono">ConnPoolTimeout</span> ×↑, then <span class="mono">retry attempt=n</span> (no cap)</li>
+      <li>Metric: retry volume ~<b>5×</b> baseline 14:18–14:58</li>
+      <li>Alert: <span class="mono">checkout-5xx &gt; 5% (5m)</span> fired 14:22 — onset ~14:14</li>
+      <li>Metric: 5xx back to baseline 15:07; backlog cleared 15:41</li>
+    </ul>
+  </div>
+  <div class="panel avoid">
+    <h4>Comms &amp; decision log (roles only)</h4>
+    <table>
+      <tr><th style="width:44px">Time</th><th>Entry</th></tr>
+      <tr><td class="mono">14:24</td><td>Incident opened (SEV2) — Payments on-call lead</td></tr>
+      <tr><td class="mono">14:31</td><td>Escalated SEV1; status page updated — Incident commander</td></tr>
+      <tr><td class="mono">14:39</td><td>Runbook stale, pivoting to telemetry — DB team</td></tr>
+      <tr><td class="mono">14:52</td><td>"DB is fine; retries are the problem" — SRE</td></tr>
+      <tr><td class="mono">14:58</td><td>Throttle + pool recycle applied — SRE</td></tr>
+      <tr><td class="mono">15:07</td><td>Checkout recovered; monitoring — Incident cmdr</td></tr>
+      <tr><td class="mono">15:41</td><td>Closed; review scheduled — Incident cmdr</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Contributing factor → framework mapping · for reliability / audit readers</h4>
+  <table>
+    <tr><th style="width:80px">Factor</th><th>Resilience principle</th><th>AWS Well-Architected</th></tr>
+    <tr><td>CF-T1, CF-T2</td><td>Backpressure &amp; circuit breaking; retry with backoff + jitter</td><td>REL05 — Mitigate dependency failures</td></tr>
+    <tr><td>CF-T3, CF-T4</td><td>Fail-fast health checks; graceful failover handling</td><td>REL11 — Withstand component failures</td></tr>
+    <tr><td>CF-P1</td><td>Detect degradation quickly (tight, actionable alerts)</td><td>OPS08 — Utilise workload observability</td></tr>
+    <tr><td>CF-P2, CF-P3</td><td>Current runbooks; safe change / canary practices</td><td>OPS06 / REL08 — Deploy &amp; change management</td></tr>
+    <tr><td>CF-O1, CF-O2</td><td>Clear ownership; unambiguous severity/escalation criteria</td><td>OPS02 — Roles &amp; responsibilities</td></tr>
+  </table>
+  <small>Mapping is indicative, to anchor factors to recognised reliability practice; it is not a formal attestation.</small>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Method, integrity &amp; blameless statement</h4>
+  <p style="margin:0 0 .5em;">This review was reconstructed on <b>05 July 2026</b> from read-only artefacts: the alerting system, the metrics store, application logs, the deploy/change log, the incident-channel transcript, and the runbook that was opened during the incident. <b>No system was created, modified, or restarted during the reconstruction; no secrets or customer data were read or printed.</b> Durations (MTTA/MTTM/MTTR) are measured from telemetry; the revenue figure is an illustrative estimate, not a booked loss.</p>
+  <p style="margin:0 0 .5em;"><b>Blameless commitment.</b> Every event here is attributed to systems, signals, defaults, and decisions made with the information available at the time — <b>never to any individual</b>. All actors are named as roles. This document exists to strengthen guardrails, not to assign fault; it must not be used in any performance or disciplinary context.</p>
+  <p style="margin:0;"><b>Synthetic-data notice.</b> Cartwright, the incident, the timeline, the metrics, the revenue figures, and all action items are <b>entirely fictional</b> and created solely to illustrate the report format. Any resemblance to a real company, system, or event is coincidental.</p>
+</div>
+
+</body>
+</html>

@@ -14,3 +14,9 @@
   reference implementation (loop, tasks, rules, subagents) under `templates/`.
 - `assessment-report` skill — scored gap/risk assessment reports as branded PDFs. Ships
   with a fully synthetic (fictional data) worked example under `report-types/gap-risk/`.
+- `assessment-report` — five new report types, each a `type.md` spec + a full synthetic,
+  rendered-and-verified `example.html` on the shared blueprint design system:
+  `security-review` (OWASP/CIS/NIST threat-centric posture), `cost-review` (FinOps,
+  Savings×Effort), `due-diligence` (tech DD with a RAG verdict, Likelihood×Deal-impact),
+  `architecture-review` (Well-Architected 6-pillar), and `post-incident` (blameless
+  post-mortem: SEV, timeline, root-cause chain, action items).

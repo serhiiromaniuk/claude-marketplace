@@ -1,0 +1,998 @@
+<!-- SYNTHETIC SAMPLE: the target (Loomly Labs), acquirer (Meridian Capital), all findings, financials, license/IP exposures, team facts and costs are fictional and for illustration only. Not a real diligence of any real company. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meridian Capital — Technical Due-Diligence: Loomly Labs</title>
+<style>
+  :root{
+    /* ── blueprint identity ─────────────────────────────── */
+    --ink:#0c1726; --navy:#0d2742; --navy-2:#0a1d33; --navy-hi:#356084;
+    --slate:#334155; --muted:#475569;          /* darkened for WCAG AA on white */
+    --line:#e2e8f0; --panel:#f7f9fb; --panel2:#eef2f6;
+    --cyan:#2ba6c9; --cyan-d:#1a7f9c; --cyan-l:#8fd6e8;   /* architectural cyan */
+    --clay:#c2603d; --clay-d:#9f4a2c; --clay-l:#e6a589;   /* terracotta rooftops */
+    /* severity — unchanged, carries meaning */
+    --crit:#7f1d1d; --high:#dc2626; --med:#d97706; --low:#2563eb; --ok:#16a34a;
+    /* grade bands — unchanged */
+    --gA:#16a34a; --gB:#65a30d; --gC:#d97706; --gD:#ea580c; --gF:#b91c1c;
+    /* type system */
+    --serif:Georgia,"Liberation Serif","DejaVu Serif","Times New Roman",serif;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--ink);font-size:10.5px;line-height:1.5;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @page{ size:A4; margin:13mm 12mm 15mm 12mm; }
+
+  /* ── type voices ── */
+  h1,h2,h3{font-family:var(--serif);margin:0 0 .35em;line-height:1.15;font-weight:700;}
+  h2{font-size:21px;color:var(--navy);letter-spacing:-.3px;}
+  h3{font-size:14px;color:var(--navy);}
+  h4{font-family:var(--mono);font-size:8.7px;color:#3f5063;text-transform:uppercase;
+    letter-spacing:1.1px;font-weight:600;margin:0 0 .5em;display:flex;align-items:center;gap:6px;}
+  h4::before{content:"";width:6px;height:6px;background:var(--clay);transform:rotate(45deg);
+    flex:none;display:inline-block;}              /* recurring city-tile glyph */
+  h4.plain::before{display:none;}
+  p{margin:0 0 .6em;}
+  a{color:var(--cyan-d);text-decoration:none;}
+  .mono{font-family:var(--mono);font-size:9px;}
+  small{font-size:9px;color:var(--muted);}
+  .footer{display:none;}
+  .page{break-before:page;}
+  .avoid{break-inside:avoid;}
+
+  /* ── COVER ─────────────────────────────────────────────── */
+  .cover{height:244mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
+    padding:17mm 16mm 14mm;position:relative;overflow:hidden;
+    background:
+      repeating-linear-gradient(30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(-30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
+      linear-gradient(155deg,#0a1d33 0%,#0d2742 48%,#10324a 100%);}
+  .cover::after{content:"";position:absolute;right:-55mm;top:-55mm;width:150mm;height:150mm;
+    border-radius:50%;background:radial-gradient(circle,rgba(43,166,201,.30),transparent 70%);}
+  .brandmark{display:flex;align-items:center;gap:10px;z-index:3;position:relative;}
+  .brandmark .wm{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#aebfce;}
+  .brandmark .wm b{color:#fff;}
+  .cover .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--cyan-l);font-weight:600;margin-top:30px;z-index:3;position:relative;}
+  .cover h1{font-size:50px;line-height:1.02;margin-top:12px;max-width:150mm;z-index:3;position:relative;
+    letter-spacing:-1px;}
+  .cover .sub{font-size:14.5px;color:#c7d6e3;margin-top:14px;max-width:140mm;font-weight:400;
+    line-height:1.55;z-index:3;position:relative;font-family:var(--sans);}
+  .chips{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;z-index:3;position:relative;}
+  .chip{background:rgba(143,214,232,.08);border:1px solid rgba(143,214,232,.28);
+    padding:5px 12px;border-radius:5px;font-size:9.5px;color:#dbe7f0;font-family:var(--mono);
+    letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px;}
+  .chip .tn{color:var(--cyan-l);font-weight:700;}
+  .verdict{z-index:3;position:relative;margin-top:24px;display:flex;align-items:stretch;gap:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(143,214,232,.22);
+    border-radius:10px;padding:18px 22px;max-width:158mm;}
+  .verdict .big{font-family:var(--serif);font-size:62px;font-weight:700;line-height:.9;
+    color:#fff;align-self:center;}
+  .verdict .vsep{width:1px;background:rgba(143,214,232,.25);}
+  .verdict .vtext{font-size:11.5px;color:#c7d6e3;line-height:1.5;align-self:center;}
+  .verdict .vtext .vh{font-family:var(--serif);color:#fff;font-size:16px;font-weight:700;
+    display:block;margin-bottom:5px;letter-spacing:-.2px;}
+  .verdict .vtext b{color:var(--cyan-l);}
+  .statstrip{z-index:3;position:relative;display:flex;gap:0;margin-top:18px;max-width:158mm;
+    border:1px solid rgba(143,214,232,.18);border-radius:8px;overflow:hidden;}
+  .statstrip .s{flex:1;padding:11px 14px;background:rgba(255,255,255,.03);}
+  .statstrip .s+.s{border-left:1px solid rgba(143,214,232,.16);}
+  .statstrip .s .v{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;line-height:1;}
+  .statstrip .s .l{font-family:var(--mono);font-size:7.6px;letter-spacing:.6px;color:#9fb3c6;
+    text-transform:uppercase;margin-top:5px;}
+  .cover .spacer{flex:1;}
+  .cover .meta{display:flex;gap:28px;flex-wrap:wrap;z-index:3;position:relative;}
+  .cover .meta div{font-family:var(--mono);font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#8ba0b5;}
+  .cover .meta b{display:block;color:#fff;font-size:11.5px;margin-top:3px;font-family:var(--sans);
+    letter-spacing:0;text-transform:none;font-weight:600;}
+  .skyline{position:absolute;right:0;bottom:34mm;width:175mm;z-index:1;opacity:.6;pointer-events:none;}
+
+  /* ── layout shells ── */
+  .grid{display:grid;gap:11px;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g2{grid-template-columns:1fr 1fr;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+
+  /* ── section header: numbered tile + architect scale-rule ── */
+  .sec-head{display:flex;align-items:center;gap:11px;position:relative;
+    padding-bottom:9px;margin-bottom:14px;}
+  .sec-head .no{font-family:var(--serif);font-weight:700;font-size:14px;color:#fff;
+    width:27px;height:27px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(155deg,#1c4664,#0d2742);
+    border-top:1.5px solid var(--navy-hi);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28);}
+  .sec-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:
+      linear-gradient(var(--navy),var(--navy)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--navy) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+  .sec-head::before{content:"";position:absolute;left:0;bottom:0;width:46px;height:6px;z-index:1;
+    background:
+      linear-gradient(var(--clay),var(--clay)) left bottom/100% 2px no-repeat,
+      repeating-linear-gradient(90deg,var(--clay) 0 1px,transparent 1px 13px) left bottom/100% 6px no-repeat;}
+
+  /* ── badges / pills ── */
+  .grade{display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);
+    width:36px;height:36px;border-radius:8px;color:#fff;font-weight:700;font-size:18px;}
+  .gA{background:var(--gA);}.gB{background:var(--gB);}.gC{background:var(--gC);}
+  .gD{background:var(--gD);}.gF{background:var(--gF);}
+  .sev{display:inline-block;padding:2px 7px;border-radius:4px;color:#fff;font-weight:700;
+    font-size:8.5px;letter-spacing:.4px;white-space:nowrap;font-family:var(--sans);}
+  .s-crit{background:var(--crit);}.s-high{background:var(--high);}
+  .s-med{background:var(--med);}.s-low{background:var(--low);}
+  .pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:8.5px;font-weight:600;
+    font-family:var(--mono);letter-spacing:.3px;white-space:nowrap;}
+  .p-ok{background:#dcfce7;color:#166534;}
+  .p-eff{background:#e0f3f8;color:var(--cyan-d);}
+
+  .cd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:3px;vertical-align:middle;}
+  .cv{background:#16a34a;}.ci{background:#f59e0b;}.ca{background:#94a3b8;}
+  .st{font-weight:700;font-size:8px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:var(--mono);letter-spacing:.2px;}
+  .st-now{background:#fee2e2;color:#991b1b;}
+  .st-sch{background:#e0f3f8;color:var(--cyan-d);}
+  .st-acc{background:#eef2f6;color:#475569;}
+  .res{color:#15803d;font-weight:700;}
+
+  /* ── tables ── */
+  table{width:100%;border-collapse:collapse;font-size:9.3px;}
+  th{background:var(--navy);color:#fff;text-align:left;padding:6px 8px;font-weight:600;font-size:8.4px;
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;}
+  td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:nth-child(even) td{background:var(--panel);}
+  .num{text-align:center;font-weight:700;}
+  .score-cell{font-weight:800;text-align:center;font-family:var(--mono);}
+
+  /* ── KPI strip ── */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:6px 0 2px;}
+  .kpi{background:var(--navy);color:#fff;border-radius:8px;padding:14px 15px;position:relative;overflow:hidden;
+    border-top:2px solid var(--navy-hi);}
+  .kpi .n{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;letter-spacing:-.5px;}
+  .kpi .l{font-family:var(--mono);font-size:8px;color:#b6cadb;margin-top:7px;letter-spacing:.3px;
+    line-height:1.5;text-transform:uppercase;}
+  .kpi.cyan{background:var(--cyan-d);border-top-color:var(--cyan-l);}
+  .kpi.amber{background:#b45309;border-top-color:#f59e0b;}
+  .kpi.slate{background:#3f5063;border-top-color:#7c93a8;}
+
+  .dim{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:8.7px;}
+  .dim .lab{width:80px;color:var(--slate);flex:none;font-family:var(--mono);font-size:8px;}
+  .dim .bar{flex:1;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+  .dim .bar i{display:block;height:100%;border-radius:4px;}
+  .dim .v{width:26px;text-align:right;font-weight:700;color:var(--slate);font-family:var(--mono);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:8.6px;color:var(--slate);font-family:var(--mono);}
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  ul.tight{margin:.2em 0 .6em;padding-left:15px;}
+  ul.tight li{margin-bottom:3px;}
+  ul.tight li::marker{color:var(--cyan);}
+  .callout{border-left:4px solid var(--cyan);background:#ecf8fb;border-radius:0 6px 6px 0;padding:10px 13px;font-size:9.6px;}
+  .callout.warn{border-color:var(--med);background:#fffbeb;}
+  .callout.risk{border-color:var(--high);background:#fef2f2;}
+  .callout b{color:var(--navy);}
+  .tag{font-family:var(--mono);font-size:7.8px;color:var(--muted);font-weight:600;letter-spacing:.6px;text-transform:uppercase;}
+
+  /* ── pull-quote (editorial pacing device) ── */
+  .pq{font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--navy);
+    border-left:4px solid var(--clay);padding:4px 0 4px 20px;margin:18px 0;max-width:165mm;font-style:italic;}
+  .pq b{color:var(--clay-d);font-style:normal;}
+
+  /* insight mini-cards */
+  .ins{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;border-top:2px solid var(--clay-l);}
+  .ins .ih{font-family:var(--mono);font-size:8.4px;text-transform:uppercase;letter-spacing:.8px;color:var(--clay-d);font-weight:700;margin-bottom:5px;}
+  .ins p{font-size:9.4px;margin:0;color:var(--slate);}
+
+  /* ── TOC ── */
+  .toc{font-size:12px;}
+  .toc a{display:flex;align-items:baseline;color:var(--ink);padding:8px 0;border-bottom:1px dotted #cbd5e1;}
+  .toc .tn{width:28px;color:var(--clay-d);font-weight:700;flex:none;font-family:var(--mono);}
+  .toc .tt{flex:1;font-family:var(--serif);font-size:13px;}
+  .toc .tp{color:var(--muted);font-weight:700;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="brandmark">
+    <svg width="30" height="30" viewBox="0 0 60 60" aria-hidden="true">
+      <!-- isometric logomark: three stacked domain-blocks -->
+      <polygon points="30,6 46,15 30,24 14,15" fill="#8fd6e8" fill-opacity=".9"/>
+      <polygon points="14,15 30,24 30,36 14,27" fill="#2ba6c9" fill-opacity=".85"/>
+      <polygon points="46,15 30,24 30,36 46,27" fill="#1a7f9c" fill-opacity=".9"/>
+      <polygon points="20,33 30,39 30,49 20,43" fill="#c2603d" fill-opacity=".9"/>
+      <polygon points="40,33 30,39 30,49 40,43" fill="#9f4a2c" fill-opacity=".9"/>
+      <polygon points="30,30 40,36 30,42 20,36" fill="#e6a589" fill-opacity=".95"/>
+    </svg>
+    <div class="wm"><b>MERIDIAN</b> · SAMPLE</div>
+  </div>
+
+  <!-- line-art isometric skyline fills the lower band -->
+  <svg class="skyline" viewBox="0 0 600 200" fill="none" aria-hidden="true">
+    <g stroke="#8fd6e8" stroke-width="1.1" stroke-linejoin="round">
+      <polygon points="90,95 130,115 90,135 50,115" fill="#2ba6c9" fill-opacity=".10"/>
+      <polygon points="50,115 90,135 90,175 50,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="130,115 90,135 90,175 130,155" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="160,40 206,63 160,86 114,63" fill="#c2603d" fill-opacity=".16"/>
+      <polygon points="114,63 160,86 160,172 114,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="206,63 160,86 160,172 206,149" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="255,70 297,91 255,112 213,91" fill="#8fd6e8" fill-opacity=".14"/>
+      <polygon points="213,91 255,112 255,176 213,155" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="297,91 255,112 255,176 297,155" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="350,30 388,49 350,68 312,49" fill="#2ba6c9" fill-opacity=".12"/>
+      <polygon points="312,49 350,68 350,168 312,149" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="388,49 350,68 350,168 388,149" fill="#0a1d33" fill-opacity=".12"/>
+      <polygon points="430,85 474,107 430,129 386,107" fill="#c2603d" fill-opacity=".12"/>
+      <polygon points="386,107 430,129 430,173 386,151" fill="#0a1d33" fill-opacity=".25"/>
+      <polygon points="474,107 430,129 430,173 474,151" fill="#0a1d33" fill-opacity=".12"/>
+    </g>
+  </svg>
+
+  <div class="kicker">Technical Due-Diligence · Confidential</div>
+  <h1>Loomly Labs — Technical Due-Diligence</h1>
+  <div class="sub">A data-room and management-interview review of the acquisition target's engineering — architecture, code health, security, IP, team and operations — scored against Meridian's investment thesis, with an overall RAG verdict and a costed value-creation plan.</div>
+  <div class="chips">
+    <span class="chip"><span class="tn">TGT</span> Loomly Labs · B2B workflow SaaS · Series B</span>
+    <span class="chip"><span class="tn">ACQ</span> Meridian Capital · control buyout</span>
+    <span class="chip"><span class="tn">SCP</span> Tech DD · 6 domains · 24 findings</span>
+  </div>
+  <div class="verdict">
+    <div class="big">C</div>
+    <div class="vsep"></div>
+    <div class="vtext">
+      <span class="vh">Investability: <b style="color:#f2b45c">AMBER</b> — proceed with conditions · 63 / 100</span>
+      A real product with sticky revenue, but a scaling-ceiling monolith, a fragile revenue-critical billing module, incomplete SOC&nbsp;2, copyleft-license exposure, and a bus-factor-of-one architect.
+      <b>Fixable post-close — but condition 2 items at signing and chip ≈ $2.5–3.5M off enterprise value.</b>
+    </div>
+  </div>
+  <div class="statstrip">
+    <div class="s"><div class="v">6</div><div class="l">Domains assessed</div></div>
+    <div class="s"><div class="v">24</div><div class="l">Findings · 2 crit / 5 high</div></div>
+    <div class="s"><div class="v">2</div><div class="l">Deal-breakers to condition</div></div>
+    <div class="s"><div class="v">≈$3M</div><div class="l">Price-chip range</div></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div>Prepared by<b>Meridian Capital — Technical DD</b></div>
+    <div>Date<b>4 July 2026</b></div>
+    <div>Method<b>Data-room + management interviews</b></div>
+    <div>Sources<b>Data room · Code sample · Interviews</b></div>
+  </div>
+</div>
+
+<!-- ============ TOC ============ -->
+<div class="page"></div>
+<div class="sec-head"><div class="no">·</div><h2>Contents</h2></div>
+<div class="toc">
+  <a href="#s-exec"><span class="tn">01</span><span class="tt">Executive Summary &amp; investability dashboard</span><span class="tp">3</span></a>
+  <a href="#s-method"><span class="tn">02</span><span class="tt">How to read this report — RAG, scoring &amp; materiality</span><span class="tp">4</span></a>
+  <a href="#s-arch"><span class="tn">03</span><span class="tt">Company &amp; technology overview</span><span class="tp">5</span></a>
+  <a href="#s-d1"><span class="tn">04</span><span class="tt">Domain 01 — Architecture &amp; Scalability</span><span class="tp">6</span></a>
+  <a href="#s-d2"><span class="tn">05</span><span class="tt">Domain 02 — Code Quality &amp; Technical Debt</span><span class="tp">7</span></a>
+  <a href="#s-d3"><span class="tn">06</span><span class="tt">Domain 03 — Security &amp; Compliance</span><span class="tp">8</span></a>
+  <a href="#s-d4"><span class="tn">07</span><span class="tt">Domain 04 — Data &amp; IP</span><span class="tp">9</span></a>
+  <a href="#s-d5"><span class="tn">08</span><span class="tt">Domain 05 — Engineering Team &amp; Process</span><span class="tp">10</span></a>
+  <a href="#s-d6"><span class="tn">09</span><span class="tt">Domain 06 — Operations, Reliability &amp; Cost</span><span class="tp">11</span></a>
+  <a href="#s-reg"><span class="tn">10</span><span class="tt">Consolidated risk register (residual &amp; deal-impact)</span><span class="tp">12</span></a>
+  <a href="#s-plan"><span class="tn">11</span><span class="tt">Value-creation plan &amp; remediation roadmap</span><span class="tp">13</span></a>
+  <a href="#s-appx"><span class="tn">12</span><span class="tt">Appendix — evidence &amp; standards mapping</span><span class="tp">14</span></a>
+</div>
+<div class="callout" style="margin-top:18px;">
+  <b>How this diligence was run.</b> This is a <b>synthetic sample</b>; the target, acquirer, findings and financials are fictional. In the modelled engagement, evidence came from a <b>read-only data room</b> (architecture docs, a sampled code snapshot, SOC&nbsp;2 workpapers, an SBOM, cloud-cost exports, org chart) and <b>management interviews</b> with the CTO, lead architect and head of security. <b>No access to the target's production systems was taken and nothing was modified.</b> Each finding carries a <b>confidence flag</b>, a <b>Likelihood × Deal-impact</b> score with a <b>residual</b> after remediation, and a <b>deal-impact stance</b> (deal-breaker / price-chip / post-close). Navigation: this contents list and all section headers are clickable; the PDF carries bookmarks and page numbers.
+</div>
+
+<!-- ============ EXECUTIVE SUMMARY ============ -->
+<div class="page"></div>
+<div id="s-exec" class="sec-head"><div class="no">1</div><h2>Executive Summary</h2></div>
+
+<p>Loomly Labs is a <b>40-person, Series&nbsp;B B2B workflow-automation SaaS</b> with genuine product-market fit — <b>$8.4M ARR</b>, <b>112% net revenue retention</b> and <b>72% gross margin</b>. The technology <b>works and the economics are attractive</b>, but diligence surfaced <b>24 findings</b> — two critical, five high — concentrated in a scaling-ceiling monolith, a fragile revenue-critical billing module, and organizational key-person risk. The verdict is <b>Amber: proceed with conditions</b>. None of the findings is a walk-away, but two must be <b>contractually conditioned at signing</b> and the cluster of value-erosion items supports a <b>price chip</b>.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">C</div><div class="l">Investability<br>63 / 100 — AMBER</div></div>
+  <div class="kpi amber"><div class="n">24</div><div class="l">Findings<br>2 Crit · 5 High · 13 Med · 4 Low</div></div>
+  <div class="kpi cyan"><div class="n">$8.4M</div><div class="l">ARR · 112% NRR<br>72% gross margin</div></div>
+  <div class="kpi slate"><div class="n">≈$3M</div><div class="l">Recommended price chip<br>+ $1.9M value-creation spend</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:13px;">
+  <div class="card avoid">
+    <h4>Composite Diligence Score</h4>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <svg width="138" height="138" viewBox="0 0 160 160">
+        <circle cx="80" cy="80" r="64" fill="none" stroke="#e8edf2" stroke-width="18"/>
+        <circle cx="80" cy="80" r="64" fill="none" stroke="#d97706" stroke-width="18"
+          stroke-linecap="round" stroke-dasharray="253 402" transform="rotate(-90 80 80)"/>
+        <text x="80" y="76" text-anchor="middle" font-size="42" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">63</text>
+        <text x="80" y="98" text-anchor="middle" font-size="10" fill="#475569" font-family="Consolas,monospace" letter-spacing="1">OUT OF 100</text>
+      </svg>
+      <div style="font-size:9px;flex:1;">
+        <div class="dim"><span class="lab">Scalability</span><div class="bar"><i style="width:71%;background:var(--gB)"></i></div><span class="v">71</span></div>
+        <div class="dim"><span class="lab">Maintainab.</span><div class="bar"><i style="width:52%;background:var(--gD)"></i></div><span class="v">52</span></div>
+        <div class="dim"><span class="lab">Sec/Compl.</span><div class="bar"><i style="width:63%;background:var(--gC)"></i></div><span class="v">63</span></div>
+        <div class="dim"><span class="lab">Team/Proc.</span><div class="bar"><i style="width:58%;background:var(--gC)"></i></div><span class="v">58</span></div>
+        <div class="dim"><span class="lab">Cost/Ops</span><div class="bar"><i style="width:66%;background:var(--gC)"></i></div><span class="v">66</span></div>
+        <p style="margin-top:7px;color:var(--muted);font-size:8.2px;font-family:var(--mono);line-height:1.6;">Composite weighted by materiality to thesis — Arch 25% · Debt 20% · Security 15% · Data&amp;IP 15% · Team 15% · Ops 10%.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card avoid">
+    <h4>Findings by Severity</h4>
+    <svg width="100%" height="138" viewBox="0 0 320 138" font-family="Consolas,monospace">
+      <g font-size="9.5" fill="#334155">
+        <text x="0" y="20">CRITICAL</text><rect x="74" y="10" width="40" height="14" rx="2" fill="#7f1d1d"/><text x="120" y="21" font-weight="700">2</text>
+        <text x="0" y="48">HIGH</text><rect x="74" y="38" width="100" height="14" rx="2" fill="#dc2626"/><text x="180" y="49" font-weight="700">5</text>
+        <text x="0" y="76">MEDIUM</text><rect x="74" y="66" width="200" height="14" rx="2" fill="#d97706"/><text x="280" y="77" font-weight="700">13</text>
+        <text x="0" y="104">LOW</text><rect x="74" y="94" width="80" height="14" rx="2" fill="#2563eb"/><text x="160" y="105" font-weight="700">4</text>
+      </g>
+      <line x1="74" y1="118" x2="300" y2="118" stroke="#cbd5e1"/>
+      <text x="74" y="132" font-size="8" fill="#64748b">0</text><text x="276" y="132" font-size="8" fill="#64748b">count</text>
+    </svg>
+    <div class="legend" style="margin-top:4px;">
+      <span><i class="sw" style="background:var(--crit)"></i>Critical</span>
+      <span><i class="sw" style="background:var(--high)"></i>High</span>
+      <span><i class="sw" style="background:var(--med)"></i>Medium</span>
+      <span><i class="sw" style="background:var(--low)"></i>Low</span>
+    </div>
+  </div>
+</div>
+
+<div class="card avoid" style="margin-top:11px;">
+  <h4>Likelihood × Deal-impact — what moves the price or the terms</h4>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <svg width="368" height="232" viewBox="0 0 380 244" font-family="Consolas,monospace">
+      <rect x="44" y="12" width="156" height="100" rx="3" fill="#fff7ed"/>
+      <rect x="200" y="12" width="156" height="100" rx="3" fill="#fef2f2"/>
+      <rect x="44" y="112" width="156" height="100" rx="3" fill="#fafafa"/>
+      <rect x="200" y="112" width="156" height="100" rx="3" fill="#eef7fb"/>
+      <text x="50" y="26" font-size="8.5" font-weight="700" fill="#b45309">PRICE CHIPS — NEGOTIATE</text>
+      <text x="206" y="26" font-size="8.5" font-weight="700" fill="#b91c1c">CONDITIONS TO CLOSE</text>
+      <text x="50" y="126" font-size="8.5" font-weight="700" fill="#94a3b8">MONITOR</text>
+      <text x="206" y="126" font-size="8.5" font-weight="700" fill="#1a7f9c">POST-CLOSE FIXES</text>
+      <line x1="44" y1="212" x2="356" y2="212" stroke="#334155"/>
+      <line x1="44" y1="12" x2="44" y2="212" stroke="#334155"/>
+      <line x1="200" y1="12" x2="200" y2="212" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <line x1="44" y1="112" x2="356" y2="112" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+      <text x="200" y="232" text-anchor="middle" font-size="8.5" fill="#475569">LIKELIHOOD  →  (low → high)</text>
+      <text x="16" y="112" text-anchor="middle" font-size="8.5" fill="#475569" transform="rotate(-90 16 112)">DEAL-IMPACT  →</text>
+      <g font-size="7" font-weight="700">
+        <!-- price chips: high impact, lower likelihood -->
+        <circle cx="92" cy="40" r="12" fill="#7f1d1d" opacity=".9"/><text x="92" y="43" text-anchor="middle" fill="#fff">DEBT1</text>
+        <circle cx="150" cy="46" r="12" fill="#7f1d1d" opacity=".9"/><text x="150" y="49" text-anchor="middle" fill="#fff">TEAM1</text>
+        <circle cx="104" cy="80" r="10.5" fill="#dc2626" opacity=".9"/><text x="104" y="83" text-anchor="middle" fill="#fff">IP1</text>
+        <circle cx="158" cy="88" r="10.5" fill="#dc2626" opacity=".9"/><text x="158" y="91" text-anchor="middle" fill="#fff">OPS1</text>
+        <!-- conditions: high impact, high likelihood -->
+        <circle cx="238" cy="46" r="10.5" fill="#dc2626" opacity=".9"/><text x="238" y="49" text-anchor="middle" fill="#fff">SEC1</text>
+        <circle cx="300" cy="52" r="10.5" fill="#dc2626" opacity=".9"/><text x="300" y="55" text-anchor="middle" fill="#fff">ARCH1</text>
+        <circle cx="262" cy="86" r="10.5" fill="#dc2626" opacity=".88"/><text x="262" y="89" text-anchor="middle" fill="#fff">DEBT2</text>
+        <circle cx="318" cy="92" r="9" fill="#d97706" opacity=".9"/><text x="318" y="95" text-anchor="middle" fill="#fff">SEC2</text>
+        <!-- monitor: low impact, low likelihood -->
+        <circle cx="92" cy="152" r="7.5" fill="#2563eb" opacity=".8"/><text x="92" y="155" text-anchor="middle" fill="#fff">IP4</text>
+        <circle cx="128" cy="182" r="7.5" fill="#2563eb" opacity=".78"/><text x="128" y="185" text-anchor="middle" fill="#fff">SEC4</text>
+        <!-- post-close: lower impact, higher likelihood -->
+        <circle cx="240" cy="150" r="9" fill="#d97706" opacity=".85"/><text x="240" y="153" text-anchor="middle" fill="#fff">DEBT4</text>
+        <circle cx="300" cy="156" r="9" fill="#d97706" opacity=".82"/><text x="300" y="159" text-anchor="middle" fill="#fff">OPS3</text>
+        <circle cx="252" cy="188" r="9" fill="#d97706" opacity=".8"/><text x="252" y="191" text-anchor="middle" fill="#fff">TEAM2</text>
+        <circle cx="316" cy="190" r="7.5" fill="#2563eb" opacity=".78"/><text x="316" y="193" text-anchor="middle" fill="#fff">OPS4</text>
+      </g>
+    </svg>
+    <div style="font-size:9px;flex:1;">
+      <p style="margin-bottom:6px;"><b>Read it like this:</b> the <b>y-axis is impact to the deal</b>, not to operations. Top-right = high-impact &amp; likely → <b>condition at close</b>. Top-left = high-impact but manageable → <b>chip the price / add escrow</b>.</p>
+      <ul class="tight">
+        <li><b>ARCH-01</b> Monolith scaling ceiling</li>
+        <li><b>DEBT-01</b> Fragile billing module</li>
+        <li><b>SEC-01</b> SOC&nbsp;2 incomplete</li>
+        <li><b>IP-01</b> AGPL/GPL exposure</li>
+        <li><b>TEAM-01</b> Architect bus-factor of one</li>
+        <li><b>OPS-01</b> Single-region, no DR</li>
+      </ul>
+      <small>Bubble size &amp; colour = severity. IDs map to the register.</small>
+    </div>
+  </div>
+</div>
+
+<div class="grid g3 avoid" style="margin-top:11px;">
+  <div class="panel">
+    <h4>Top deal risks</h4>
+    <ul class="tight">
+      <li><b>Scaling ceiling</b> — monolith caps growth near the thesis's target scale</li>
+      <li><b>Billing debt</b> — revenue-critical module, ~8% test coverage</li>
+      <li><b>SOC&nbsp;2 gap</b> — Type&nbsp;I only; blocks enterprise pipeline</li>
+      <li><b>Copyleft IP</b> — AGPL/GPL linked into the shipped backend</li>
+      <li><b>Key-person</b> — one architect owns core engine + deploys</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Upside &amp; strengths</h4>
+    <ul class="tight">
+      <li><b>Sticky revenue</b> — 112% NRR, low logo churn</li>
+      <li><b>Clean modern stack</b> where it counts (React, Postgres, AWS)</li>
+      <li><b>Real moat</b> — 620 customers, deep workflow integrations</li>
+      <li><b>Extractable services</b> — clear seams once billing is fixed</li>
+      <li><b>Cost headroom</b> — margin improves with rightsizing</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Deal actions &amp; cost</h4>
+    <div class="dim"><span class="lab">Condition</span><div class="bar"><i style="width:20%;background:var(--high)"></i></div><span class="v">2</span></div>
+    <div class="dim"><span class="lab">Price-chip</span><div class="bar"><i style="width:55%;background:var(--med)"></i></div><span class="v">7</span></div>
+    <div class="dim"><span class="lab">Post-close</span><div class="bar"><i style="width:90%;background:var(--cyan-d)"></i></div><span class="v">15</span></div>
+    <p style="margin-top:8px;font-size:9px;"><b>≈ $1.9M</b> value-creation spend over 18 mo (Day-1 <b>$0.18M</b> · 100-day <b>$0.64M</b> · Year-1 <b>$1.05M</b>), plus a recommended <b>≈$2.5–3.5M</b> price chip against the ~$3.3M of quantifiable value at risk.</p>
+  </div>
+</div>
+
+<!-- ============ HOW TO READ ============ -->
+<div class="page"></div>
+<div id="s-method" class="sec-head"><div class="no">2</div><h2>How to Read This Report</h2></div>
+<div class="grid g3">
+  <div class="card avoid">
+    <h4>Risk score</h4>
+    <p>Each finding is <b>Likelihood × Deal-impact</b> (1–5 each) = a <b>1–25 score</b>. Deal-impact = harm to the <i>deal</i>: value erosion, integration cost, closing risk.</p>
+    <table>
+      <tr><th>Score</th><th>Severity</th></tr>
+      <tr><td class="num">20–25</td><td><span class="sev s-crit">CRITICAL</span></td></tr>
+      <tr><td class="num">12–19</td><td><span class="sev s-high">HIGH</span></td></tr>
+      <tr><td class="num">6–11</td><td><span class="sev s-med">MEDIUM</span></td></tr>
+      <tr><td class="num">1–5</td><td><span class="sev s-low">LOW</span></td></tr>
+    </table>
+  </div>
+  <div class="card avoid">
+    <h4>Diligence-maturity grade</h4>
+    <p>0–100 across 5 dimensions → letter band. A <b>maturity</b> scale, not academic: "C" = fair.</p>
+    <table>
+      <tr><th>Band</th><th>Grade</th></tr>
+      <tr><td class="num">85–100</td><td><span class="grade gA" style="width:21px;height:21px;font-size:11px">A</span> Strong</td></tr>
+      <tr><td class="num">70–84</td><td><span class="grade gB" style="width:21px;height:21px;font-size:11px">B</span> Good</td></tr>
+      <tr><td class="num">55–69</td><td><span class="grade gC" style="width:21px;height:21px;font-size:11px">C</span> Fair</td></tr>
+      <tr><td class="num">40–54</td><td><span class="grade gD" style="width:21px;height:21px;font-size:11px">D</span> Weak</td></tr>
+      <tr><td class="num">&lt;40</td><td><span class="grade gF" style="width:21px;height:21px;font-size:11px">F</span> Critical</td></tr>
+    </table>
+  </div>
+  <div class="card avoid">
+    <h4>RAG investability verdict</h4>
+    <p>The cover carries one overall call, anchored on the composite + deal-breaker count:</p>
+    <p style="margin:5px 0"><span class="sw" style="background:#16a34a;width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:middle"></span> <b>Green</b> — proceed</p>
+    <p style="margin:5px 0"><span class="sw" style="background:#d97706;width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:middle"></span> <b>Amber</b> — proceed with conditions</p>
+    <p style="margin:5px 0"><span class="sw" style="background:#b91c1c;width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:middle"></span> <b>Red</b> — do not proceed / renegotiate</p>
+    <p style="font-size:8.4px;color:var(--muted);font-family:var(--mono)">Loomly = Amber (63/100, 2 conditions).</p>
+  </div>
+</div>
+
+<div class="grid g2 avoid" style="margin-top:11px;">
+  <div class="panel">
+    <h4>Confidence, residual &amp; deal-impact stance</h4>
+    <p>A coloured dot on each finding ID shows evidence certainty: <span class="cd cv"></span> <b>Verified</b> (data-room doc / code sample), <span class="cd ci"></span> <b>Inferred</b> (management interview / docs, not confirmed), <span class="cd ca"></span> <b>Assumed</b> (needs confirmation). The register shows each score as <b>now → after remediation</b> (e.g. <span class="mono">20 <span class="res">→8</span></span>). Each finding also carries a <b>deal-impact stance</b>:</p>
+    <p style="margin:4px 0"><span class="st st-now">Deal-breaker</span> &nbsp;resolve or condition before close</p>
+    <p style="margin:4px 0"><span class="st st-sch">Price-chip</span> &nbsp;quantifiable erosion — negotiate price / escrow</p>
+    <p style="margin:4px 0"><span class="st st-acc">Post-close</span> &nbsp;absorb into the value-creation plan</p>
+  </div>
+  <div class="panel">
+    <h4>Radar axes &amp; materiality to the deal</h4>
+    <p>Each domain page carries a 5-axis <b>radar</b> — a bigger terracotta shape = healthier. Axes are abbreviated:</p>
+    <p class="mono" style="font-size:9px;line-height:1.9">S = Scalability · M = Maintainability · C = Security/Compliance<br>T = Team &amp; Process · O = Cost / Ops</p>
+    <p style="font-size:8.6px;color:var(--muted)"><b>Materiality note:</b> a finding is only a deal-breaker if it threatens the <b>investment thesis</b> (scale the product, sell up-market). A scary-but-immaterial issue is scored as post-close. The composite weights each domain by that materiality.</p>
+  </div>
+</div>
+
+<div class="callout" style="margin-top:11px;">
+  <b>Evidence base.</b> <i>(Synthetic sample — the narrative illustrates the methodology; all data is fictional.)</i> Findings came from a <b>read-only data room</b> (architecture &amp; scaling docs, a sampled code snapshot with SBOM, SOC&nbsp;2 Type&nbsp;I report + Type&nbsp;II gap workpapers, DPAs, cloud-cost exports, org chart) and <b>management interviews</b> with the CTO, lead architect and head of security. <b>No access to the target's production was taken; nothing was created, modified, or deleted.</b> Financials are as-represented by management, not independently audited here. Scores and costs are diligence estimates to prioritise the deal discussion, not a formal valuation.
+</div>
+
+<!-- ============ COMPANY & TECH OVERVIEW ============ -->
+<div class="page"></div>
+<div id="s-arch" class="sec-head"><div class="no">3</div><h2>Company &amp; Technology Overview</h2></div>
+<p>Loomly Labs sells a <b>B2B workflow-automation platform</b> — a visual builder plus a run-time engine that executes multi-step automations against ~40 third-party integrations. The product is a <b>single Ruby-on-Rails monolith</b> (Rails 6.1) with a React front-end, backed by <b>one shared PostgreSQL</b> using a <b>shared-schema multi-tenancy</b> model. It runs on AWS in <b>a single region (us-east-1)</b>. 620 customers, 40 FTE, $8.4M ARR.</p>
+<div class="card avoid" style="margin-top:6px;padding-top:18px;">
+<svg width="100%" height="272" viewBox="0 0 720 278" font-family="-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c2603d"/></marker>
+    <marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
+  </defs>
+  <!-- callout arc: the scaling ceiling sits at the shared DB -->
+  <path d="M470,150 C 560,120 560,120 540,96" fill="none" stroke="#c2603d" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+  <rect x="486" y="4" width="220" height="17" rx="8" fill="#c2603d"/>
+  <text x="596" y="16" text-anchor="middle" font-size="8.4" font-weight="700" fill="#fff" font-family="Consolas,monospace">SCALING CEILING: SHARED DB + SYNC JOBS</text>
+
+  <!-- clients -->
+  <rect x="10" y="46" width="180" height="210" rx="8" fill="#eef7fb" stroke="#bfdbfe"/>
+  <text x="100" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">Clients</text>
+  <text x="100" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace">web + API + integrations</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="26" y="94" width="148" height="40" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="110" font-weight="700">SPA · React 18</text><text x="34" y="124" fill="#475569">+ legacy AngularJS (admin)</text>
+    <rect x="26" y="140" width="148" height="40" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="156" font-weight="700">Public REST API</text><text x="34" y="170" fill="#475569">~40 SaaS integrations</text>
+    <rect x="26" y="186" width="148" height="40" rx="5" fill="#fff" stroke="#e2e8f0"/>
+    <text x="34" y="202" font-weight="700">Inbound webhooks</text><text x="34" y="216" fill="#475569">event triggers</text>
+  </g>
+
+  <!-- monolith -->
+  <rect x="210" y="46" width="240" height="210" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="330" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">Rails 6.1 Monolith</text>
+  <text x="330" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace">single deploy unit · ECS</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="226" y="94" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="234" y="109">Workflow builder + <tspan font-weight="700" fill="#16a34a">run-time engine ✓</tspan></text>
+    <rect x="226" y="120" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="234" y="135">Billing module (<tspan font-weight="700" fill="#dc2626">legacy · 8% cov</tspan>)</text>
+    <rect x="226" y="146" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="234" y="161">Sidekiq jobs · <tspan font-weight="700" fill="#dc2626">synchronous heavy</tspan></text>
+    <rect x="226" y="172" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="234" y="187">Auth · RBAC · <tspan font-weight="700" fill="#dc2626">no org SSO</tspan></text>
+    <rect x="226" y="200" width="208" height="22" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="234" y="215">AGPL PDF lib · <tspan font-weight="700" fill="#dc2626">GPL parser</tspan></text>
+  </g>
+
+  <!-- data / infra -->
+  <rect x="470" y="46" width="240" height="210" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="590" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d2742" font-family="Georgia,'Liberation Serif',serif">Data &amp; Infra · AWS</text>
+  <text x="590" y="82" text-anchor="middle" font-size="8.5" fill="#475569" font-family="Consolas,monospace"><tspan font-weight="700" fill="#dc2626">us-east-1 only</tspan> · ~$71k/mo</text>
+  <g font-size="8.5" fill="#334155">
+    <rect x="486" y="94" width="208" height="24" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="110">RDS Postgres · <tspan font-weight="700" fill="#dc2626">shared schema</tspan></text>
+    <rect x="486" y="122" width="208" height="24" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="138">tenant_id row isolation · <tspan font-weight="700" fill="#dc2626">noisy-neighbor</tspan></text>
+    <rect x="486" y="150" width="208" height="24" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="166">Redis · S3 · ALB (encrypted ✓)</text>
+    <rect x="486" y="178" width="208" height="24" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="194">Backups nightly · <tspan font-weight="700" fill="#dc2626">restore untested</tspan></text>
+    <rect x="486" y="206" width="208" height="24" rx="4" fill="#fff" stroke="#e2e8f0"/><text x="494" y="222"><tspan font-weight="700" fill="#dc2626">No DR runbook · no 2nd region</tspan></text>
+  </g>
+  <line x1="190" y1="150" x2="208" y2="150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <line x1="450" y1="150" x2="468" y2="150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar2)"/>
+</svg>
+<small>Single Rails deploy unit against one shared Postgres in one region. Green = healthy; red = the diligence findings. The revenue-critical billing module and synchronous heavy jobs sit inside the same monolith and share the same database.</small>
+</div>
+
+<div class="grid g3 avoid" style="margin-top:13px;">
+  <div class="ins">
+    <div class="ih">Team shape · 40 FTE</div>
+    <p>Eng 22 (incl. 1 lead architect, 4 senior, 12 mid/junior, 3 QA-light, 2 SRE) · Product 5 · Design 3 · GTM 8 · G&amp;A 2. <b>One architect</b> owns the engine + deploy pipeline.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">Key-person concentration</div>
+    <p>Bus-factor <b>1</b> on the workflow engine, billing internals and the release process. Departure risk is the single largest organizational exposure to the thesis.</p>
+  </div>
+  <div class="ins">
+    <div class="ih">Thesis fit</div>
+    <p>The moat (620 customers, 112% NRR, deep integrations) is real; the constraint is that the current architecture <b>caps growth</b> near Meridian's target scale without re-platforming spend.</p>
+  </div>
+</div>
+
+<div class="pq">Loomly's problem is not that the technology is bad — it is that <b>the parts that make money and the parts that carry the most risk live in the same box</b>, owned by one person.</div>
+
+<!-- ============ DOMAIN 01 — ARCHITECTURE ============ -->
+<div class="page"></div>
+<div id="s-d1" class="sec-head"><div class="no">4</div><h2>Domain 01 — Architecture &amp; Scalability</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gB">B</span><div><b style="font-size:17px;font-family:var(--serif)">74</b><small> / 100</small><br><span class="tag">Good — scaling caps</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,29 102.7,57.5 83.7,89.9 51.7,95.2 33.5,55.5" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · data room + interview</h4>
+    <ul class="tight">
+      <li><b>Rails 6.1 monolith</b>, single ECS service, ~180k LOC</li>
+      <li>One shared <b>Postgres</b>; shared-schema multi-tenancy</li>
+      <li>Sidekiq for jobs; <b>heavy work runs synchronously</b></li>
+      <li>Load-tested to ~<b>5k concurrent tenants</b> before DB contention</li>
+      <li>Clear module seams (engine / builder / billing / auth)</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Coherent domain model; extraction seams exist</li>
+      <li>Stateless app tier — horizontally scalable to the DB limit</li>
+      <li>Modern React SPA; sensible API surface</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~2 quarters</span> extract billing + engine to services, move heavy jobs async, read-replicas / partition tenancy. Year-1 value-creation item.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>ARCH-01<span class="cd cv"></span></td><td><b>Scaling ceiling</b> — shared Postgres + shared-schema tenancy contends at ~5k tenants; thesis targets ~15k</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>Growth plan needs a re-platform spend before it can be executed</td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>ARCH-02<span class="cd cv"></span></td><td><b>Synchronous heavy jobs</b> — long automations block workers; latency spikes under load</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Perf degrades exactly as the customer base scales up</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>ARCH-03<span class="cd ci"></span></td><td><b>Noisy-neighbor risk</b> — no per-tenant isolation or quotas on the shared DB</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">4</td><td class="score-cell">12</td><td>One large tenant can degrade all; blocks selling to bigger logos</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>ARCH-04<span class="cd cv"></span></td><td><b>No service boundaries</b> — single deploy unit; every change ships the whole app</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Slower delivery; harder team scaling post-close</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (load-test report, arch docs, code sample) &nbsp; <span class="cd ci"></span> Inferred (ARCH-03: from schema review + interview, not load-proven) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout warn" style="margin-top:11px;">
+  <b>Materiality.</b> The architecture is <b>good for today and caps tomorrow</b>. ARCH-01 is the one architecture item material enough to <b>condition</b>: the growth thesis assumes ~15k tenants, and the platform contends at ~5k. The fix is well-understood (async jobs, read-replicas, extract two services) — a Year-1 program, not a rewrite — which is why it chips the price rather than breaking the deal.
+</div>
+
+<!-- ============ DOMAIN 02 — CODE QUALITY / DEBT ============ -->
+<div class="page"></div>
+<div id="s-d2" class="sec-head"><div class="no">5</div><h2>Domain 02 — Code Quality &amp; Technical Debt</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gD">D</span><div><b style="font-size:17px;font-family:var(--serif)">52</b><small> / 100</small><br><span class="tag">Weak — heavy debt</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,42 92.9,60.7 79.9,86.9 51.7,95.2 37.2,56.9" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · code sample + SBOM</h4>
+    <ul class="tight">
+      <li>Overall test coverage <b>~34%</b>; core engine ~48%</li>
+      <li>Billing module <b>~8% coverage</b>, high churn, tightly coupled</li>
+      <li>Two front-end frameworks — React + <b>legacy AngularJS</b></li>
+      <li><b>340 open</b> dependency alerts; Rails 6.1 nears EOL</li>
+      <li>CI runs but <b>no integration tests</b> on the workflow engine</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Readable, idiomatic Rails in newer modules</li>
+      <li>Linting + CI gate in place; PR reviews enforced</li>
+      <li>Engine core is the best-tested part of the app</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~$0.5M</span> billing rewrite + test harness (100-day) · dep upgrades &amp; Rails 7 (Year-1) · retire AngularJS.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>DEBT-01<span class="cd cv"></span></td><td><b>Fragile billing module</b> — revenue-critical, ~8% coverage, last rewritten 2019, one owner</td><td><span class="sev s-crit">CRIT</span></td><td class="num">4</td><td class="num">5</td><td class="score-cell">20</td><td>A billing defect hits <b>cash + trust</b>; blocks pricing changes the thesis needs</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>DEBT-02<span class="cd cv"></span></td><td><b>Thin test coverage</b> (~34%) — no integration tests on the workflow engine</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>Every change carries regression risk; slows the post-close roadmap</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>DEBT-04<span class="cd cv"></span></td><td><b>Dependency &amp; EOL debt</b> — 340 open alerts; Rails 6.1 approaching end-of-life</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Rising security &amp; upgrade cost; forced-migration risk within 12 mo</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>DEBT-03<span class="cd cv"></span></td><td><b>Dual front-end frameworks</b> — React + legacy AngularJS admin (EOL)</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Double maintenance; harder hiring; slower feature velocity</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (coverage report, SBOM, code sample) &nbsp; <span class="cd ci"></span> Inferred &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout risk" style="margin-top:11px;">
+  <b>The debt that touches cash.</b> <b>DEBT-01</b> is the report's clearest price-chip: the module that <b>bills every customer</b> is the least-tested, most-coupled, single-owner code in the estate. It is not a deal-breaker — the fix is a scoped rewrite with a test harness (~$0.5M, first 100 days) — but the value at risk and the retention dependency on one engineer justify chipping the price and structuring an escrow.
+</div>
+
+<!-- ============ DOMAIN 03 — SECURITY & COMPLIANCE ============ -->
+<div class="page"></div>
+<div id="s-d3" class="sec-head"><div class="no">6</div><h2>Domain 03 — Security &amp; Compliance</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gC">C</span><div><b style="font-size:17px;font-family:var(--serif)">64</b><small> / 100</small><br><span class="tag">Fair — SOC 2 gap</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,35 99.5,58.4 83.7,89.9 52.6,94.4 31.5,56.1" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · workpapers + interview</h4>
+    <ul class="tight">
+      <li><b>SOC 2 Type I</b> achieved; <b>Type II in progress</b>, ~5 mo out</li>
+      <li>Encryption at rest + in transit ✓; sensible RBAC</li>
+      <li>Secrets in env vars; <b>some in git history</b></li>
+      <li><b>No pen-test in 18 mo</b>; no bug-bounty</li>
+      <li>MFA optional; <b>no org SSO/SAML</b> for the admin console</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Encryption + network hygiene are in good shape</li>
+      <li>Named security owner; Type I already banked</li>
+      <li>Vuln backlog is triaged, not ignored</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~$0.35M</span> finish Type II (Day-1 program) · secrets manager + history purge · pen-test · enforce MFA/SSO.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>SEC-01<span class="cd cv"></span></td><td><b>SOC 2 Type II incomplete</b> — Type I only; access-review &amp; logging controls not yet operating</td><td><span class="sev s-high">HIGH</span></td><td class="num">4</td><td class="num">4</td><td class="score-cell">16</td><td>Blocks the enterprise sales motion central to the thesis</td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>SEC-02<span class="cd cv"></span></td><td><b>Weak secrets handling</b> — env-var secrets, credentials found in git history</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">4</td><td class="score-cell">12</td><td>Breach risk; a leak during transition would damage the asset</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>SEC-03<span class="cd ci"></span></td><td><b>No recent pen-test</b> (18 mo) and no bug-bounty program</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Unknown exploitable surface; enterprise buyers will ask</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>SEC-04<span class="cd cv"></span></td><td><b>MFA optional; no org SSO/SAML</b> on admin console</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">2</td><td class="score-cell">4</td><td>Account-takeover exposure; a table-stakes enterprise ask</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (Type I report, git-history scan, config) &nbsp; <span class="cd ci"></span> Inferred (SEC-03: from interview, no report on file) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout warn" style="margin-top:11px;">
+  <b>Materiality.</b> Security is <b>fair, not broken</b> — encryption and RBAC are sound. The one item material enough to <b>condition</b> is <b>SEC-01</b>: the thesis is to sell up-market, and enterprise buyers gate on SOC&nbsp;2 Type II. Loomly is ~5 months from it; conditioning completion (or an escrow tied to the report) de-risks the growth plan directly.
+</div>
+
+<!-- ============ DOMAIN 04 — DATA & IP ============ -->
+<div class="page"></div>
+<div id="s-d4" class="sec-head"><div class="no">7</div><h2>Domain 04 — Data &amp; IP</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gC">C</span><div><b style="font-size:17px;font-family:var(--serif)">58</b><small> / 100</small><br><span class="tag">Fair — license risk</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,40 96.3,59.6 81.6,88 53.2,93.1 34.4,56.5" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · SBOM + legal data room</h4>
+    <ul class="tight">
+      <li>SBOM: <b>1 AGPL-3.0</b> PDF lib + <b>1 GPL-2.0</b> parser in backend</li>
+      <li>~90% of deps permissive (MIT/Apache) ✓</li>
+      <li><b>3 early contractors</b> with no IP-assignment / CLA on file</li>
+      <li>DPAs with 2 of 5 sub-processors <b>missing/stale</b></li>
+      <li>Customer PII replicated into an analytics warehouse, <b>unclassified</b></li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Core IP is company-owned; founders' assignments clean</li>
+      <li>Dependency tree mostly permissive-licensed</li>
+      <li>EU data resident; base GDPR posture in place</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~$0.2M</span> replace AGPL/GPL libs (Day-1) · retro IP assignments · complete DPAs · classify warehouse PII.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>IP-01<span class="cd cv"></span></td><td><b>Copyleft exposure</b> — AGPL-3.0 PDF lib + GPL-2.0 parser linked into the distributed backend</td><td><span class="sev s-high">HIGH</span></td><td class="num">3</td><td class="num">5</td><td class="score-cell">15</td><td>Potential source-disclosure obligation on proprietary code</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>IP-02<span class="cd ci"></span></td><td><b>IP-assignment gap</b> — 3 early contractors with no CLA / assignment on file</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">4</td><td class="score-cell">12</td><td>Ownership challenge risk on part of the codebase</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>IP-03<span class="cd cv"></span></td><td><b>DPA / sub-processor gaps</b> — 2 of 5 processor agreements missing or stale</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>GDPR compliance &amp; enterprise-procurement friction</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>IP-04<span class="cd ci"></span></td><td><b>Unclassified PII</b> in the analytics warehouse; no data-classification policy</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">3</td><td class="score-cell">6</td><td>Retention/erasure risk; harder to prove GDPR compliance</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (SBOM, license scan, contracts) &nbsp; <span class="cd ci"></span> Inferred (IP-02: HR records incomplete · IP-04: from interview) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout risk" style="margin-top:11px;">
+  <b>The IP item to price.</b> <b>IP-01</b> is scored HIGH on deal-impact because copyleft <b>linked into a distributed backend</b> can, in the worst case, trigger a source-disclosure obligation on proprietary code. Likelihood is moderate (the components are replaceable), so it is a <b>price-chip with a reps-&amp;-warranties / indemnity ask</b>, not a walk-away — but counsel should confirm the linkage before close.
+</div>
+
+<!-- ============ DOMAIN 05 — TEAM & PROCESS ============ -->
+<div class="page"></div>
+<div id="s-d5" class="sec-head"><div class="no">8</div><h2>Domain 05 — Engineering Team &amp; Process</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gC">C</span><div><b style="font-size:17px;font-family:var(--serif)">60</b><small> / 100</small><br><span class="tag">Fair — key-person</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,38 97.2,61.2 81.6,88 51.7,95.2 33.5,55.5" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · org chart + interview</h4>
+    <ul class="tight">
+      <li><b>22 engineers</b>: 1 lead architect, 4 senior, ~12 mid/junior, 2 SRE</li>
+      <li><b>Bus-factor 1</b> on engine, billing internals &amp; deploys</li>
+      <li>No documented onboarding; <b>tribal knowledge</b></li>
+      <li>Releases <b>manual</b>, gated by one person; QA is light</li>
+      <li>3 senior roles open <b>&gt;6 mo</b>; hiring pipeline thin</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Low attrition; engaged, product-minded team</li>
+      <li>PR review culture; healthy code-review norms</li>
+      <li>Architect is strong — the risk is concentration, not skill</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~$0.4M</span> retention package + knowledge-transfer (Day-1) · CI/CD automation · onboarding docs · backfill hiring.</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>TEAM-01<span class="cd cv"></span></td><td><b>Key-person risk</b> — one architect owns the workflow engine, billing internals and the deploy pipeline (bus-factor 1)</td><td><span class="sev s-crit">CRIT</span></td><td class="num">4</td><td class="num">5</td><td class="score-cell">20</td><td>Departure would stall the roadmap &amp; imperil the thesis</td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>TEAM-02<span class="cd cv"></span></td><td><b>Tribal knowledge</b> — no onboarding docs, thin runbooks</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Slow ramp for new hires; integration friction post-close</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>TEAM-03<span class="cd cv"></span></td><td><b>Manual release process</b> — deploys gated by one person; QA light, no formal gate</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">3</td><td class="score-cell">9</td><td>Delivery bottleneck; change-failure risk as team grows</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>TEAM-04<span class="cd ci"></span></td><td><b>Thin hiring pipeline</b> — 3 senior roles open &gt;6 months</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">3</td><td class="score-cell">6</td><td>Capacity to execute the value-creation plan is constrained</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (org chart, commit-ownership analysis, interview) &nbsp; <span class="cd ci"></span> Inferred (TEAM-04: recruiter notes) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout risk" style="margin-top:11px;">
+  <b>The organizational condition.</b> <b>TEAM-01</b> is co-critical with DEBT-01 and, importantly, <b>compounds it</b> — the same person who owns the fragile billing code owns the deploy path. This is the second item to <b>condition at close</b>: a <b>retention package + a mandated knowledge-transfer plan</b> should be a signing condition, with a portion of consideration tied to the architect's continued tenure through the transition.
+</div>
+
+<!-- ============ DOMAIN 06 — OPS, RELIABILITY & COST ============ -->
+<div class="page"></div>
+<div id="s-d6" class="sec-head"><div class="no">9</div><h2>Domain 06 — Operations, Reliability &amp; Cost</h2></div>
+<div class="grid g3 avoid" style="grid-template-columns:0.95fr 1.05fr 1fr;">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px;">
+      <span class="grade gC">C</span><div><b style="font-size:17px;font-family:var(--serif)">66</b><small> / 100</small><br><span class="tag">Fair — DR gap</span></div>
+    </div>
+    <svg width="100%" height="150" viewBox="0 0 145 150">
+      <polygon points="70,18 119.5,53.9 100.6,112.1 39.4,112.1 20.5,53.9" fill="none" stroke="#cfe3ea" stroke-width="1.2"/>
+      <polygon points="70,44 94.75,61.95 85.3,91.05 54.7,91.05 45.25,61.95" fill="none" stroke="#e3eef2"/>
+      <g stroke="#dbe7ec"><line x1="70" y1="70" x2="70" y2="18"/><line x1="70" y1="70" x2="119.5" y2="53.9"/><line x1="70" y1="70" x2="100.6" y2="112.1"/><line x1="70" y1="70" x2="39.4" y2="112.1"/><line x1="70" y1="70" x2="20.5" y2="53.9"/></g>
+      <polygon points="70,36 97.9,61.5 81.6,88 54.7,91.05 30.4,57.2" fill="#c2603d" fill-opacity="0.32" stroke="#c2603d" stroke-width="2" stroke-linejoin="round"/>
+      <g font-size="8" font-weight="700" fill="#475569" font-family="Consolas,monospace"><text x="70" y="13" text-anchor="middle">S</text><text x="126" y="54">M</text><text x="103" y="123">C</text><text x="33" y="123">T</text><text x="8" y="54">O</text></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <h4>Inventory · cost export + interview</h4>
+    <ul class="tight">
+      <li>AWS <b>single region (us-east-1)</b>; multi-AZ within region</li>
+      <li><b>No DR runbook</b>; failover never rehearsed</li>
+      <li>Nightly backups exist; <b>restore never tested</b></li>
+      <li>Cloud spend <b>~$71k/mo</b>, rising <b>~9%/qtr</b></li>
+      <li>Observability thin — <b>no SLOs</b>, reactive alerting, no on-call rota</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>Strengths</h4>
+    <ul class="tight">
+      <li>Multi-AZ + encrypted storage baseline is sound</li>
+      <li>IaC (Terraform) covers most of the estate</li>
+      <li>72% gross margin — <b>cost headroom</b> once rightsized</li>
+    </ul>
+    <h4 style="margin-top:8px;">Remediation</h4>
+    <p><span class="pill p-eff">~$0.25M</span> DR runbook + restore drill (100-day) · SLOs &amp; on-call · rightsizing (self-funding, ~15% saving).</p>
+  </div>
+</div>
+
+<table style="margin-top:11px;">
+  <tr><th style="width:52px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:24px">L</th><th class="num" style="width:26px">DI</th><th class="num" style="width:34px">Score</th><th style="width:150px">Deal impact</th><th style="width:60px">Stance</th></tr>
+  <tr><td>OPS-01<span class="cd cv"></span></td><td><b>Single-region, no DR</b> — us-east-1 only, no runbook, failover never tested</td><td><span class="sev s-high">HIGH</span></td><td class="num">3</td><td class="num">5</td><td class="score-cell">15</td><td>A region outage = extended downtime; enterprise SLAs unmeetable</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>OPS-02<span class="cd cv"></span></td><td><b>Untested recovery</b> — backups exist but no restore drill; no BCP</td><td><span class="sev s-med">MED</span></td><td class="num">3</td><td class="num">4</td><td class="score-cell">12</td><td>Recovery time is unproven; data-loss exposure unknown</td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>OPS-03<span class="cd cv"></span></td><td><b>Rising cloud cost</b> — ~$71k/mo, +9%/qtr; over-provisioned RDS + idle envs</td><td><span class="sev s-med">MED</span></td><td class="num">4</td><td class="num">3</td><td class="score-cell">12</td><td>Margin drag; but ~15% is recoverable — upside once fixed</td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>OPS-04<span class="cd ci"></span></td><td><b>Thin observability</b> — no SLOs, reactive alerting, no on-call rotation</td><td><span class="sev s-low">LOW</span></td><td class="num">2</td><td class="num">3</td><td class="score-cell">6</td><td>Incidents found late; harder to run at the target scale</td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small><span class="cd cv"></span> Verified (Terraform, cost export, config) &nbsp; <span class="cd ci"></span> Inferred (OPS-04: from interview) &nbsp; <span class="cd ca"></span> Assumed</small>
+
+<div class="callout warn" style="margin-top:11px;">
+  <b>DR is a price-chip; cost is upside.</b> <b>OPS-01/02</b> mean Loomly can protect data day-to-day but cannot prove it can <b>stay up</b> through a region event — a real gap against the enterprise SLAs the thesis needs, hence a price-chip plus a First-100-days restore drill. Conversely <b>OPS-03</b> is <b>value-creation, not just risk</b>: rightsizing an over-provisioned estate recovers ~15% of a $71k/mo bill — margin the deal model can bank.
+</div>
+
+<!-- ============ RISK REGISTER ============ -->
+<div class="page"></div>
+<div id="s-reg" class="sec-head"><div class="no">10</div><h2>Consolidated Risk Register</h2></div>
+<p>All 24 findings, ranked by current deal-risk score. <b>Score</b> shows <span class="mono">now <span class="res">→ residual</span></span> after remediation. <b>Deal-impact</b> is the stance: <span class="st st-now">Condition</span> resolve/condition at close · <span class="st st-sch">Price-chip</span> negotiate value · <span class="st st-acc">Post-close</span> absorb into the plan. <small>ID prefix: ARCH · DEBT · SEC · IP · TEAM · OPS · dot = confidence.</small></p>
+<table>
+  <tr><th style="width:64px">ID</th><th>Finding</th><th style="width:50px">Severity</th><th class="num" style="width:58px">Score</th><th style="width:88px">Deal-impact</th></tr>
+  <tr><td>DEBT-01<span class="cd cv"></span></td><td>Fragile revenue-critical billing module</td><td><span class="sev s-crit">CRIT</span></td><td class="score-cell">20 <span class="res">→8</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>TEAM-01<span class="cd cv"></span></td><td>Architect key-person risk (bus-factor 1)</td><td><span class="sev s-crit">CRIT</span></td><td class="score-cell">20 <span class="res">→8</span></td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>ARCH-01<span class="cd cv"></span></td><td>Monolith scaling ceiling vs. thesis scale</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→6</span></td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>DEBT-02<span class="cd cv"></span></td><td>Thin test coverage (~34%), no engine integ. tests</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→6</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>SEC-01<span class="cd cv"></span></td><td>SOC 2 Type II incomplete (Type I only)</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16 <span class="res">→4</span></td><td><span class="st st-now">Condition</span></td></tr>
+  <tr><td>IP-01<span class="cd cv"></span></td><td>AGPL/GPL copyleft in distributed backend</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">15 <span class="res">→5</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>OPS-01<span class="cd cv"></span></td><td>Single-region, no DR runbook</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">15 <span class="res">→5</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>ARCH-02<span class="cd cv"></span></td><td>Synchronous heavy jobs block workers</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→4</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>ARCH-03<span class="cd ci"></span></td><td>Noisy-neighbor on shared DB (no quotas)</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→6</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>DEBT-04<span class="cd cv"></span></td><td>340 dep alerts; Rails 6.1 near EOL</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→3</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>SEC-02<span class="cd cv"></span></td><td>Secrets in env vars &amp; git history</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→3</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>IP-02<span class="cd ci"></span></td><td>3 contractors, no IP assignment on file</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→4</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>TEAM-02<span class="cd cv"></span></td><td>Tribal knowledge; no onboarding docs</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→4</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>OPS-02<span class="cd cv"></span></td><td>Untested restore; no BCP</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→4</span></td><td><span class="st st-sch">Price-chip</span></td></tr>
+  <tr><td>OPS-03<span class="cd cv"></span></td><td>Rising cloud cost; over-provisioned</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12 <span class="res">→6</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>ARCH-04<span class="cd cv"></span></td><td>No service boundaries (single deploy)</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→6</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>DEBT-03<span class="cd cv"></span></td><td>Dual front-end frameworks (AngularJS)</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→4</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>SEC-03<span class="cd ci"></span></td><td>No pen-test in 18 mo; no bug-bounty</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→4</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>IP-03<span class="cd cv"></span></td><td>DPA / sub-processor gaps</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→4</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>TEAM-03<span class="cd cv"></span></td><td>Manual release; one-person deploy gate</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9 <span class="res">→4</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>IP-04<span class="cd ci"></span></td><td>Unclassified PII in analytics warehouse</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6 <span class="res">→2</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>TEAM-04<span class="cd ci"></span></td><td>Thin hiring pipeline (3 senior roles open)</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6 <span class="res">→3</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>OPS-04<span class="cd ci"></span></td><td>Thin observability; no SLOs / on-call</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6 <span class="res">→3</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+  <tr><td>SEC-04<span class="cd cv"></span></td><td>MFA optional; no org SSO/SAML</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4 <span class="res">→2</span></td><td><span class="st st-acc">Post-close</span></td></tr>
+</table>
+<small style="display:block;margin-top:6px"><span class="st st-now">Condition</span> 3 items · <span class="st st-sch">Price-chip</span> 9 items · <span class="st st-acc">Post-close</span> 12 items — the two co-critical items (DEBT-01, TEAM-01) plus SEC-01 and ARCH-01 anchor the conditions; the price-chip cluster underpins the ≈$2.5–3.5M adjustment.</small>
+
+<!-- ============ VALUE-CREATION PLAN & ROADMAP ============ -->
+<div class="page"></div>
+<div id="s-plan" class="sec-head"><div class="no">11</div><h2>Value-Creation Plan &amp; Remediation Roadmap</h2></div>
+<p>Remediation is modest against the deal size, and much of it is <b>value-creation, not just risk-removal</b>. Value at risk is quantified below; rates are left as named variables so the deal team can plug in its own model. The recommended structure: <b>condition</b> two items at signing, <b>chip</b> the price for the value-erosion cluster, and fund an <b>18-month value-creation program</b>.</p>
+<table>
+  <tr><th>Value-at-risk area</th><th>Exposure today</th><th>Illustrative value at risk*</th><th>After remediation</th></tr>
+  <tr><td><b>Billing &amp; key-person</b><br>(DEBT-01, TEAM-01)</td><td>Fragile, single-owner code that bills every customer</td><td><b>V<sub>bill</sub></b> ≈ 1 revenue-affecting incident × MRR-at-risk + retention cost</td><td>Rewrite + test harness + retained/backed-up ownership → stable</td></tr>
+  <tr><td><b>Scaling &amp; enterprise gate</b><br>(ARCH-01, SEC-01)</td><td>Platform caps at ~5k tenants; SOC 2 Type II ~5 mo out</td><td><b>V<sub>growth</sub></b> = delayed up-market ARR × N quarters × gross margin</td><td>Async + read-replicas + Type II → thesis unblocked</td></tr>
+  <tr><td><b>IP &amp; compliance</b><br>(IP-01, IP-02)</td><td>Copyleft in backend; contractor assignment gaps</td><td><b>V<sub>ip</sub></b> = remediation + worst-case indemnity (bounded by R&amp;W)</td><td>Replace libs + retro assignments → clean chain of title</td></tr>
+  <tr><td><b>Resilience &amp; cost</b><br>(OPS-01, OPS-03)</td><td>No DR; +9%/qtr cloud spend, over-provisioned</td><td>DR gap vs. SLA penalties; cost drag ≈ $85k/yr recoverable (upside)</td><td>DR runbook + drill; rightsize → ~15% saving banked</td></tr>
+</table>
+<small>* Illustrative framing, not a valuation. The headline: ≈<b>$3.3M</b> quantifiable value at risk supports the ≈<b>$2.5–3.5M</b> price chip; the ≈<b>$1.9M</b> program spend is small against it.</small>
+
+<h3 style="margin-top:16px;">Phased Roadmap</h3>
+<div class="grid g3 avoid">
+  <div class="card" style="border-top:2px solid var(--ok);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--ok);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Day-1 — Stabilize <span class="pill p-eff">~$0.18M</span></h4>
+    <p class="tag">Condition-driven · protect the asset</p>
+    <ul class="tight">
+      <li><b>TEAM-01</b> Retention + knowledge-transfer</li>
+      <li><b>SEC-01</b> Kick off SOC 2 Type II close-out</li>
+      <li><b>IP-01</b> Scope AGPL/GPL replacement</li>
+      <li><b>SEC-02</b> Rotate leaked secrets; add vault</li>
+    </ul>
+  </div>
+  <div class="card" style="border-top:2px solid var(--cyan);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--cyan);transform:rotate(45deg);display:inline-block;"></span>&nbsp;First 100 days <span class="pill p-eff">~$0.64M</span></h4>
+    <p class="tag">De-risk revenue &amp; recovery</p>
+    <ul class="tight">
+      <li><b>DEBT-01</b> Billing rewrite + test harness</li>
+      <li><b>DEBT-02</b> Coverage on the engine</li>
+      <li><b>OPS-01/02</b> DR runbook + restore drill</li>
+      <li><b>IP-02/03</b> Retro assignments + DPAs</li>
+    </ul>
+  </div>
+  <div class="card" style="border-top:2px solid var(--clay);">
+    <h4 class="plain"><span style="width:6px;height:6px;background:var(--clay);transform:rotate(45deg);display:inline-block;"></span>&nbsp;Year-1 — Scale <span class="pill p-eff">~$1.05M</span></h4>
+    <p class="tag">Execute the growth thesis</p>
+    <ul class="tight">
+      <li><b>ARCH-01/02/03</b> Async, read-replicas, extract services</li>
+      <li><b>DEBT-03/04</b> Rails 7; retire AngularJS</li>
+      <li><b>OPS-03/04</b> Rightsize; SLOs + on-call</li>
+      <li><b>TEAM-02/03</b> CI/CD, onboarding, backfill</li>
+    </ul>
+  </div>
+</div>
+<div class="callout" style="margin-top:13px;">
+  <b>Recommendation.</b> <b>Proceed — Amber, with conditions.</b> Loomly is a genuine asset (112% NRR, real moat) whose risks are <b>concentrated, understood and fixable</b>. Make <b>TEAM-01</b> (architect retention + KT) and <b>SEC-01</b> (SOC 2 Type II) signing conditions, take <b>ARCH-01</b> as a conditioned re-platform plan, chip <b>≈$2.5–3.5M</b> for the value-erosion cluster (billing, IP, DR), and fund the <b>≈$1.9M</b> 18-month value-creation program. That path moves the asset from <b>"C / Amber"</b> toward <b>"B / Green"</b> and unblocks the up-market growth thesis.
+</div>
+
+<div class="pq">The risks are <b>concentrated, understood and fixable</b> — which is exactly why this is a price to negotiate, not a deal to walk away from.</div>
+
+<!-- ============ APPENDIX ============ -->
+<div class="page"></div>
+<div id="s-appx" class="sec-head"><div class="no">12</div><h2>Appendix — Evidence &amp; Standards Mapping</h2></div>
+<div class="grid g2">
+  <div class="panel avoid">
+    <h4>Deal &amp; company reference</h4>
+    <table>
+      <tr><th>Item</th><th>Value</th></tr>
+      <tr><td>Target</td><td class="mono">Loomly Labs, Inc. (fictional)</td></tr>
+      <tr><td>Acquirer</td><td class="mono">Meridian Capital (fictional)</td></tr>
+      <tr><td>Stage / structure</td><td class="mono">Series B · control buyout</td></tr>
+      <tr><td>ARR · NRR · margin</td><td class="mono">$8.4M · 112% · 72%</td></tr>
+      <tr><td>Customers · headcount</td><td class="mono">620 · 40 FTE (22 eng)</td></tr>
+      <tr><td>Cloud spend</td><td class="mono">~$71k/mo · us-east-1</td></tr>
+    </table>
+  </div>
+  <div class="panel avoid">
+    <h4>Data-room &amp; evidence — examples</h4>
+    <ul class="tight">
+      <li>Architecture &amp; load-test report (contends ~5k tenants)</li>
+      <li>Code snapshot + coverage report (34% overall, 8% billing)</li>
+      <li>SBOM / license scan (1 AGPL-3.0, 1 GPL-2.0 in backend)</li>
+      <li>SOC 2 <b>Type I</b> report + Type II gap workpapers</li>
+      <li>Org chart + commit-ownership analysis (bus-factor 1)</li>
+      <li>Cost export (~$71k/mo, +9%/qtr); Terraform state</li>
+    </ul>
+  </div>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Standards mapping · for compliance / IC readers</h4>
+  <table>
+    <tr><th style="width:88px">ID</th><th>SOC 2 (TSC)</th><th>ISO / IEC 27001</th><th>OSS-license / other</th></tr>
+    <tr><td>SEC-01</td><td>CC-wide — Type II operating effectiveness</td><td>A.5 / A.8 (policies, ops security)</td><td>—</td></tr>
+    <tr><td>SEC-02, SEC-04</td><td>CC6.1 / CC6.6 (logical access, secrets)</td><td>A.5.15 / A.8.5 (access, secrets mgmt)</td><td>—</td></tr>
+    <tr><td>IP-01</td><td>—</td><td>A.5.32 (IP rights)</td><td>AGPL-3.0 / GPL-2.0 copyleft review</td></tr>
+    <tr><td>IP-02</td><td>—</td><td>A.5.32 (IP rights)</td><td>Contributor IP assignment / CLA</td></tr>
+    <tr><td>IP-03, IP-04</td><td>P-series (privacy)</td><td>A.5.34 (PII), A.8.10</td><td>GDPR Art. 28 (processors), Art. 30</td></tr>
+    <tr><td>OPS-01, OPS-02</td><td>A1.2 / A1.3 (availability, recovery)</td><td>A.5.29 / A.8.13 (continuity, backup)</td><td>—</td></tr>
+    <tr><td>ARCH-01, DEBT-*</td><td>—</td><td>A.8.25 / A.8.28 (secure dev, coding)</td><td>Well-Architected REL/PERF (indicative)</td></tr>
+  </table>
+  <small>Mapping is indicative, to anchor findings to recognised frameworks; it is not a formal compliance attestation or legal opinion.</small>
+</div>
+
+<div class="panel avoid" style="margin-top:11px;">
+  <h4>Method &amp; integrity statement</h4>
+  <p style="margin:0;"><b>This is a synthetic sample: Loomly Labs, Meridian Capital, and every finding, financial, license exposure and cost herein are fictional and for illustration only.</b> The modelled diligence was performed via a <b>read-only data room</b> (architecture &amp; load-test docs, a sampled code snapshot with SBOM, SOC&nbsp;2 Type&nbsp;I report + Type&nbsp;II gap workpapers, DPAs, cloud-cost exports, org chart) and <b>management interviews</b> with the CTO, lead architect and head of security. <b>No access to the target's production systems was taken; no resource was created, modified, or deleted; no secrets or access keys were read or printed.</b> Financials are as-represented by management and were not independently audited. Scores, value-at-risk and costs are diligence estimates to prioritise the deal discussion, not a formal valuation or legal opinion.</p>
+</div>
+
+</body>
+</html>

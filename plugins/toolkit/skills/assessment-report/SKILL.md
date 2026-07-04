@@ -7,7 +7,7 @@ description: Produce polished, scored assessment reports as branded PDFs (and op
 
 Turn raw findings into a **dual-audience deliverable**: an executive dashboard for budget-holders plus detailed, evidence-backed sections for engineers — rendered as a clean, branded PDF and optionally published to Confluence.
 
-This skill is **general**. The visual language, scoring, and renderer are shared; the *shape* of a given report comes from a **report type** under `report-types/`. The first type is `gap-risk` (general scored gap/risk assessment, e.g. the Acme Widgets infra audit). Add new types over time without touching the engine.
+This skill is **general**. The visual language, scoring, and renderer are shared; the *shape* of a given report comes from a **report type** under `report-types/`. Available types: `gap-risk` (general scored gap/risk assessment), `security-review` (threat-centric OWASP/CIS/NIST posture), `cost-review` (FinOps/cloud-spend), `due-diligence` (tech/vendor DD with a RAG verdict), `architecture-review` (Well-Architected 6-pillar), and `post-incident` (blameless post-mortem). Add new types over time without touching the engine.
 
 ## When to use
 Trigger on requests like: "do a gap/risk analysis of X", "audit this AWS account / cloud setup", "security review report", "cost review", "vendor/tech due-diligence", "post-incident write-up", or "turn these findings into a stakeholder PDF". If the user just wants raw analysis with no document, you may skip the rendering steps.
@@ -57,8 +57,9 @@ The look is deliberate and ownable, not a generic corporate report. Three things
 - `assets/template.html` — design-system skeleton with one live example of every component.
 - `assets/STYLE.md` — design tokens (palette, type, spacing) + component catalog.
 - `assets/render.mjs` — the canonical renderer.
-- `report-types/README.md` — how report types work + the registry of available/planned types.
-- `report-types/gap-risk/` — the general gap/risk type (`type.md` spec + `example.html`, a full real report).
+- `report-types/README.md` — how report types work + the registry of available types.
+- `report-types/gap-risk/` — the general gap/risk type (`type.md` spec + `example.html`, a full worked report).
+- `report-types/{security-review,cost-review,due-diligence,architecture-review,post-incident}/` — the specialized types, each a `type.md` spec + a full synthetic `example.html`.
 - `reference/scoring.md` — scoring rubric.
 - `reference/discovery-playbook.md` — read-only data-gathering recipes.
 - `reference/confluence-publish.md` — publish + attach flow and its gotchas.
