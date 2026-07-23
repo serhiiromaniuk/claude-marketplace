@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0] - 2026-07-23
+
+### Changed
+- `agent-readiness` skill: the `templates/loop/loop.sh` harness now supports
+  long **unattended** runs — `--continuous` (only `DONE`/`BLOCKED` halt;
+  `GATE_FAILED`/missing-marker/transient errors retry with linear backoff,
+  bounded by a consecutive-failure cap), `--model` (pin the driver model), and
+  `--skip-permissions`. Supervised default behaviour is unchanged. Added an
+  optional `loop/env.sh` hook (sourced each iteration) so a project can put its
+  toolchain on `PATH` for the non-interactive child agents, and documented all
+  of it in `templates/loop/README.md`.
+
 ## [Unreleased]
 
 ### Added
