@@ -240,6 +240,13 @@ weaken one to pass it ("fix the work, never lower the thresholds").
   deploys, destructive infra, and irreversible external actions are **never**
   agent actions (golden rules #2/#3/#5). The agent reaches the boundary and
   **stops** (`<<LOOP:DONE>>` or `<<LOOP:BLOCKED>>`).
+- **Harmless local setup is NOT that boundary — don't over-block.** Full
+  permission means you MAY act without prompting. A **missing local tool** is not
+  a `<<LOOP:BLOCKED>>` reason: install it (via the project's sanctioned tool
+  setup) or run it via its **official Docker image** (`docker run …`) instead.
+  The gate is about **harm / irreversibility / external reach** — not "a binary
+  is absent" or "spinning a local container." Rule of thumb: **local + reversible
+  + harmless → just do it**; global / irreversible / external / secret → stop.
 
 ---
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0] - 2026-07-23
+
+### Added
+- `agent-readiness` loop template: anti-greeting preamble at the top of
+  `templates/loop/PROMPT.md` — blunt "EXECUTE THIS TURN, not a chat, act now;
+  terse style is not permission to skip work." Fixes an intermittent headless
+  misfire where the agent greets ("no task given, what you want?") instead of
+  executing (seen under terse/greeting plugins).
+- `templates/rules/AGENTS.md`: "harmless local setup is NOT the human-only
+  boundary" clause — a missing local tool is not a BLOCKED reason; install it or
+  run it via Docker. Boundary = harm/irreversibility/external reach, not "binary
+  absent." Stops agents over-blocking on trivial setup.
+
+
 ## [0.5.0] - 2026-07-23
 
 ### Fixed
