@@ -11,7 +11,7 @@
 #   loop/loop.sh --max-iterations 20
 #   loop/loop.sh --model opus                      # pin the driver model
 #   loop/loop.sh --skip-permissions               # no permission prompts (unattended)
-#   loop/loop.sh --continuous                      # only DONE/BLOCKED stop; retry the rest
+#   loop/loop.sh --continuous                      # DONE/BLOCKED/GATE_FAILED stop; retry transients
 #   loop/loop.sh --dry-run                         # show what would run, run nothing
 #   loop/loop.sh --prompt loop/PROMPT.md
 #
@@ -19,6 +19,12 @@
 #   tmux new -s loop
 #   loop/loop.sh --continuous --model opus --skip-permissions --max-iterations 1000
 #   # detach: Ctrl-b then d   ·   reattach: tmux attach -t loop
+#
+# CONFIG HYGIENE: run headless under a CLEAN CLAUDE_CONFIG_DIR with NO
+# interactive/greeting plugins. Such plugins inject prompts/hooks that make the
+# headless `claude -p` agent answer conversationally instead of executing
+# PROMPT.md (a "…Ready. What do you need?" reply with no marker). The repo's own
+# .claude/agents load regardless of config dir.
 #
 # Requires the `claude` CLI on PATH. Run from the repo root.
 
@@ -64,18 +70,14 @@ done
 MODEL_FLAG=(); [[ -n "$MODEL" ]] && MODEL_FLAG=(--model "$MODEL")
 
 # Completion markers the agent emits (rules/AGENTS.md §4).
-#   STOP_ALWAYS     => halt even in --continuous mode: the project goal is
-#                      reached (DONE) or a human is genuinely required (BLOCKED).
-#                      Never suppress these.
-#   STOP_SUPERVISED => also halt in the default (supervised) mode: a failed hard
-#                      gate. In --continuous mode this is retried so the loop can
-#                      fix the work next iteration (bounded by the 3-try escape
-#                      hatch -> BLOCKED).
-#   CONTINUE        => keep looping (a step done, or a phase finished+tagged and
-#                      the agent rolls into the next phase autonomously).
-STOP_ALWAYS=("<<LOOP:DONE>>" "<<LOOP:BLOCKED>>")
-STOP_SUPERVISED=("<<LOOP:GATE_FAILED>>")
-CONTINUE_MARKERS=("<<LOOP:CONTINUE>>" "<<LOOP:PHASE_COMPLETE>>" "<<LOOP:GATE_FAILED>>")
+#   STOP_ALWAYS => halt even in --continuous mode. All three need a human: DONE
+#                  (goal reached), BLOCKED (stuck / boundary), and GATE_FAILED (a
+#                  hard gate failed — often a real block the agent can't self-fix
+#                  in scope; do NOT spin on it, hand back). Never suppress these.
+#   CONTINUE    => keep looping (a step done, or a phase finished+tagged and the
+#                  agent rolls into the next phase autonomously).
+STOP_ALWAYS=("<<LOOP:DONE>>" "<<LOOP:BLOCKED>>" "<<LOOP:GATE_FAILED>>")
+CONTINUE_MARKERS=("<<LOOP:CONTINUE>>" "<<LOOP:PHASE_COMPLETE>>")
 
 echo ">> loop | repo=$REPO_ROOT | prompt=$PROMPT_FILE | max-iterations=$MAX_ITERS"
 echo ">> model=${MODEL:-<config default>} | perms=${PERM_FLAG[*]} | continuous=$CONTINUOUS"
@@ -89,7 +91,7 @@ command -v claude >/dev/null || { echo "claude CLI not on PATH" >&2; exit 1; }
 
 consec_fail=0
 for ((i = 1; i <= MAX_ITERS; i++)); do
-  echo ""; echo "==================== iteration $i / $MAX_ITERS ===================="
+  echo ""; echo "╭─────────── iteration $i/$MAX_ITERS · $(date '+%Y-%m-%d %H:%M:%S %Z') ───────────╮"
 
   # One fresh agent per iteration. Scope tools to what a step needs; widen only
   # if you trust the run. `auto` keeps a classifier in the loop for safety;
@@ -109,12 +111,9 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
   fi
   echo "$out"
 
-  # Hard terminals — always honoured; GATE_FAILED also stops in supervised mode.
+  # Hard terminals — always honoured (DONE / BLOCKED / GATE_FAILED).
   stop=""
   for m in "${STOP_ALWAYS[@]}"; do grep -qF "$m" <<<"$out" && stop="$m"; done
-  if [[ "$CONTINUOUS" -eq 0 ]]; then
-    for m in "${STOP_SUPERVISED[@]}"; do grep -qF "$m" <<<"$out" && stop="$m"; done
-  fi
   if [[ -n "$stop" ]]; then
     echo ""; echo ">> stop marker: $stop  (iteration $i). Handing back to a human."; exit 0
   fi

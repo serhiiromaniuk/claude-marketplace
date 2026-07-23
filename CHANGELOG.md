@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0] - 2026-07-23
+
+### Fixed
+- `agent-readiness` loop template (`templates/loop/loop.sh`): in `--continuous`
+  mode `<<LOOP:GATE_FAILED>>` now **stops** (was retried, which spun on a real
+  gate block instead of handing back). GATE_FAILED joins DONE/BLOCKED as an
+  always-stop terminal.
+
+### Added
+- Config-hygiene note in `loop.sh`: run headless under a CLEAN `CLAUDE_CONFIG_DIR`
+  with no interactive/greeting plugins (they make `claude -p` answer
+  conversationally with no marker).
+- Timestamp on each iteration banner.
+
 ## [0.4.0] - 2026-07-23
 
 ### Changed
