@@ -43,6 +43,18 @@ and stop with a marker. Be disciplined, not clever.
 - Paste the actual command output / evidence into `LOG.md`. Do not assert
   success you did not observe.
 
+## 4b. Independent review + verification — MANDATORY before every commit
+The writer is never its own grader. For **every** increment, before you commit:
+1. Spawn the **`verifier`** subagent (`agents/verifier.md`) in a fresh context. It
+   re-runs the project's check and reports PASS/FAIL **with evidence**. FAIL → fix
+   the work (never the threshold) and re-run this step.
+2. Spawn the **`reviewer`** subagent (`agents/reviewer.md`) on the diff in a fresh
+   context. Act on every CRITICAL/HIGH finding that affects correctness, safety,
+   or a stated rule before committing; record the disposition of each in `LOG.md`.
+
+Skipping either subagent is a loop violation. (`planner` is used earlier — at an
+objective's start — to write `PLAN.md`; it is not part of the per-commit gate.)
+
 ## 5. Record + commit
 - Append a timestamped `LOG.md` entry: what you did, the evidence, what's next.
 - Check the box for the step in `PLAN.md` (do NOT rewrite other steps).

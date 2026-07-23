@@ -284,6 +284,12 @@ Patterns: **parallelize independent reads**; **evaluator-optimizer** =
 `reviewer`/`verifier` checking the builder's output in a fresh context so the
 writer isn't its own grader. Keep the toolset small — more agents ≠ better.
 
+**Mandatory per increment (PROMPT.md §4b):** before **every** commit, spawn the
+`verifier` (re-run the check, report PASS/FAIL with evidence) then the `reviewer`
+(audit the diff vs the golden rules + correctness) in fresh contexts. Skipping
+either is a loop violation. `planner` runs earlier — at an objective's start — to
+write `PLAN.md`; it is not part of the per-commit gate.
+
 ### 8a. Parallelize independent work (the default — with guardrails)
 
 When a unit of work decomposes into **genuinely independent** sub-tasks — ones

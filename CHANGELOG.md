@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0] - 2026-07-23
+
+### Changed
+- `agent-readiness` skill: the loop template now **mandates** independent review
+  per increment (P5). `templates/loop/PROMPT.md` gains a `§4b` step — before every
+  commit, spawn the `verifier` (re-run the check, PASS/FAIL with evidence) then the
+  `reviewer` (audit the diff) in fresh contexts; skipping either is a loop
+  violation. `templates/rules/AGENTS.md` §8 reinforced to match (was framed as
+  optional delegation). Ensures repos scaffolded from the skill never skip the
+  evaluator-optimizer gate — the writer is never its own grader.
+
 ## [0.3.0] - 2026-07-23
 
 ### Changed
