@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0] - 2026-07-24
+
+### Added (antipattern guards)
+- **Single-instance lock** in `templates/loop/loop.sh` (flock) — refuses to start
+  if another loop is already running on the repo (two loops clobber each other).
+- `templates/loop/PROMPT.md`:
+  - §1: reconcile a **dirty tree first** — a non-clean tree means a prior
+    iteration was interrupted; verify+commit or restore before new work; never
+    leave orphan files.
+  - §5: **finish synchronously** — never background the check or defer the commit
+    ("commit follows"); expected ratchet/generated diffs are not gate failures.
+  - §7: **every turn MUST end with exactly one marker** — a markerless turn is a
+    failure; if you can't finish, emit BLOCKED/GATE_FAILED, never end silently.
+
+
 ## [0.7.0] - 2026-07-24
 
 ### Added

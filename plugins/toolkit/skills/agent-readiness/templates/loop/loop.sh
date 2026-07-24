@@ -33,6 +33,16 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Single-instance guard — two loops racing the same tree clobber each other's
+# commits. Refuse to start if one is already running on this repo. (flock is
+# best-effort; skipped where unavailable.)
+LOCK_DIR="$REPO_ROOT/.git"; [[ -d "$LOCK_DIR" ]] || LOCK_DIR="${TMPDIR:-/tmp}"
+exec 9>"$LOCK_DIR/.agent-loop.lock" 2>/dev/null || true
+if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+  echo ">> another loop is already running on this repo (lock: $LOCK_DIR/.agent-loop.lock). Refusing to start." >&2
+  exit 1
+fi
+
 # Optional: a project drops loop/env.sh to put its own toolchain on PATH (or set
 # any env) for every child agent. `claude -p` spawns NON-interactive shells that
 # don't source ~/.profile, so a user-space toolchain would otherwise be invisible

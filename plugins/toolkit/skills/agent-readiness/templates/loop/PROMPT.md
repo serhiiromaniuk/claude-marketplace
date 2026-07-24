@@ -15,8 +15,11 @@ and stop with a marker. Be disciplined, not clever.
 3. Read `loop/STATE.md` — the active task, the next step, iteration count, gate.
 4. Open the active task folder under `tasks/`: read `BRIEF.md`, `PLAN.md`, and
    the **tail** of `LOG.md`.
-5. Run `git status` — the tree must be clean and on the main branch before you
-   start (or the intended worktree, if doing parallel same-code work).
+5. Run `git status`. On the main branch (or the intended worktree). **If the
+   tree is NOT clean, a prior iteration was interrupted mid-increment — reconcile
+   BEFORE new work:** if the changes complete the last step, verify + commit
+   them; if clearly abandoned/partial, `git restore`/remove them. Never start a
+   new step on a dirty tree; never leave orphan files behind.
 
 ## 2. Respect the gates BEFORE doing anything (AGENTS.md §6)
 - Honour any open phase gate. If an earlier phase's gate has not passed, work
@@ -70,6 +73,12 @@ objective's start — to write `PLAN.md`; it is not part of the per-commit gate.
   ...`, `docs(<component>): ...`). Then push. Before committing, scan the staged
   diff for anything secret-like and for forbidden paths (env files, data/output
   dirs, generated artifacts).
+- **Finish synchronously — do NOT background the check or defer the commit.** Run
+  the verify/check to completion THIS turn (even if slow) and commit now; never
+  end a turn saying "commit follows" or "verify running in background."
+- **Expected diffs are not failures.** A committed testcount/coverage ratchet
+  file and committed generated code changing during an increment is normal —
+  stage and commit them; do not treat them as a gate failure or a reason to defer.
 
 ## 6. Escape hatch
 - If this same step has now failed **3 times** (check `LOG.md`), stop thrashing:
@@ -77,6 +86,12 @@ objective's start — to write `PLAN.md`; it is not part of the per-commit gate.
   `OUTCOME.md`, and emit `<<LOOP:BLOCKED>>`.
 
 ## 7. Stop with exactly one marker (last line of your output)
+**Every turn MUST end with exactly one marker as its LAST line — always, even on
+partial work or failure.** A turn with no marker is a loop failure (the harness
+counts it against you). If you cannot finish the increment this turn, do NOT
+"wait" or background it — emit `<<LOOP:BLOCKED>>` or `<<LOOP:GATE_FAILED>>` with
+the reason instead. Never end silently.
+
 - `<<LOOP:CONTINUE>>` — increment done, more steps remain in this phase.
 - `<<LOOP:PHASE_COMPLETE>>` — every step done AND the phase gate passed. Before
   emitting: write `OUTCOME.md`, then **tag the milestone** (`git tag <vX.Y-name>
