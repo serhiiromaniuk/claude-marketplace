@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0] - 2026-07-24
+
+### Added
+- `agent-readiness` loop template (`templates/loop/loop.sh`): rides out
+  session/usage/rate limits instead of dying. On a FAILED run matching a limit
+  signal (usage/rate limit, 429, overloaded, quota, "please try again"), it waits
+  `LIMIT_WAIT` (env, default 1800s) and retries the SAME iteration — no failure
+  count, no iteration consumed. Gated on non-zero exit so a successful iteration
+  whose output discusses rate-limiting never false-trips. Real errors keep the
+  5-strike backoff; DONE/BLOCKED/GATE_FAILED unchanged.
+
+
 ## [0.6.0] - 2026-07-23
 
 ### Added

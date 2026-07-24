@@ -51,6 +51,12 @@ DRY_RUN=0
 CONTINUOUS=0
 PERM_FLAG=(--permission-mode auto)   # default: supervised (classifier in the loop)
 MAX_CONSEC=5                         # stop after this many consecutive hard failures
+LIMIT_WAIT=${LIMIT_WAIT:-1800}       # seconds to wait out a usage/rate limit (default 30m)
+# Signals meaning "session/usage/rate limit" — expected, NOT a failure. Checked
+# ONLY on a failed run, so a successful iteration whose output happens to mention
+# rate-limiting/429 never false-trips. When seen: wait LIMIT_WAIT, retry the SAME
+# iteration (no failure count, no iteration consumed) — rides out multi-hour limits.
+LIMIT_RE='usage limit|rate limit|rate.?limited|429|Too Many Requests|quota|resets? at|Please try again|overloaded|capacity'
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -99,6 +105,13 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
   # AGENTS.md + the BLOCKED marker are the only guardrail.
   if ! out="$(claude -p "$(cat "$PROMPT_FILE")" "${MODEL_FLAG[@]}" "${PERM_FLAG[@]}" 2>&1)"; then
     echo "$out"
+    # Session/usage/rate limit — checked ONLY on a failed run, so a successful
+    # iteration mentioning rate-limiting/429 never trips it. Wait it out, retry
+    # the SAME iteration (no failure count, no iteration consumed).
+    if grep -qiE "$LIMIT_RE" <<<"$out"; then
+      echo ">> [$(date '+%Y-%m-%d %H:%M:%S %Z')] usage/rate limit detected — waiting ${LIMIT_WAIT}s, then retrying this iteration (not counted as a failure)."
+      sleep "$LIMIT_WAIT"; i=$((i - 1)); continue
+    fi
     if [[ "$CONTINUOUS" -eq 1 ]]; then
       consec_fail=$((consec_fail + 1))
       echo ">> claude exited non-zero (consecutive failures: $consec_fail/$MAX_CONSEC)."
