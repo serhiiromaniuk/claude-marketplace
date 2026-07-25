@@ -56,8 +56,13 @@ ls Makefile justfile Taskfile.yml package.json 2>/dev/null
 grep -nE '^check:|^test:|^lint:|"test"|"lint"' Makefile package.json 2>/dev/null       # single entrypoint
 grep -rilE 'make check|coverage|acceptance|never (lower|weaken)|threshold' CLAUDE.md AGENTS.md ralph 2>/dev/null
 find . -path '*/.github/workflows/*.yml' 2>/dev/null                                   # CI gate
+grep -rilE 'falsified|re-scope|wrong metric|budget|ratchet' CLAUDE.md AGENTS.md ralph decisions 2>/dev/null
+grep -rlE 'over (budget|the cap)|accepted (overage|breach)|OVER \(ADR\)' \
+  decisions adr docs/decisions tasks ralph loop 2>/dev/null | head        # repeatedly-excused gate?
 ```
-Single sanctioned entrypoint + steps name a check → 3; add hard un-lowerable thresholds + gate-failed protocol → 4.
+Single sanctioned entrypoint + steps name a check → 3; add hard un-lowerable thresholds + gate-failed protocol
++ a **falsified-metric path** → 4. If the last grep shows the *same* threshold excused ≥2 times, each time blaming
+an artifact another rule mandates, that gate is mis-scoped — cap P4 at 3 and cite `ratchets.md`'s scoping rule.
 
 **P5 Role-specialized subagents**
 ```bash

@@ -236,6 +236,33 @@ weaken one to pass it ("fix the work, never lower the thresholds").
   acceptance criteria otherwise), the agent itself tags the milestone and rolls
   into the next phase. A tag asserts the gate passed — so it is applied **only**
   on observed-green evidence, never to "make progress".
+- **When the gate is the wrong metric — the falsified-metric path.** Rare, and
+  never a shortcut. "Fix the work, never lower the threshold" assumes the
+  threshold measures what it claims to. Occasionally it does not, and then
+  *neither* legal move exists: the work is correct, and the number still cannot
+  be met. Do **not** grind the step, and do **not** touch the constant. All
+  three tests must hold before you may even propose a change:
+  1. **Replicated** — the same overage *shape* is already on record at **≥3
+     independent checkpoints** (prior `LOG.md` / decision entries), not just
+     today's step. One data point is a slow increment; three is a metric
+     measuring the wrong thing.
+  2. **Arithmetically unreachable** — show the sum. The threshold cannot be met
+     while also satisfying the project's *other* mandated requirements (classic
+     case: a volume cap that binds against per-feature tests the rules
+     themselves require). Compute it; asserting it does not count.
+  3. **Re-scope, never delete** — the proposal splits *what is counted* and
+     keeps a **hard gate on the portion moved out**. Any proposal whose net
+     effect is "this quantity is no longer measured" is a weakened check —
+     forbidden however it is framed.
+  Then **the increment is the decision record, not the edit**: write it up (an
+  ADR under `decisions/` if the repo has one, else a dated `LOG.md` entry) with
+  the measured numbers, **≥2 options**, and a recommendation; leave the gate and
+  the work exactly as verified; emit `<<LOOP:GATE_FAILED>>` naming the decision
+  needed. **A human edits the constant.** Why this exists: a gate no correct
+  work can pass stops the loop *every* iteration, and the third time you write
+  "the overage is entirely mandated test volume, the production code is lean" is
+  the loop telling you the metric is wrong — record that instead of re-deriving
+  it a fourth time.
 - **Human-only gate — permanent:** secrets / production credentials, production
   deploys, destructive infra, and irreversible external actions are **never**
   agent actions (golden rules #2/#3/#5). The agent reaches the boundary and

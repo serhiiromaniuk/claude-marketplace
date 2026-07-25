@@ -66,7 +66,11 @@ are met otherwise). The one boundary it never crosses on its own is the
 **Acceptance gate** (define the objective, measurable criteria for your key
 milestone here — e.g. all of: `<metric A ≥ threshold>`, `<metric B within
 bound>`, `<coverage ≥ 80%>`, `<N validation runs>`). Never weaken these; fix the
-work, not the threshold.
+work, not the threshold. State the **arithmetic** behind each number here — a
+threshold nobody can defend gets raised on reflex. In the rare case a threshold
+turns out to measure the wrong thing, it is re-scoped only via the
+falsified-metric path (`AGENTS.md` §6): a decision record and a human, never a
+self-applied edit.
 
 ---
 

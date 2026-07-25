@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.9.0] - 2026-07-25
+
+### Added (gate design — a wrong gate must not deadlock the loop)
+Found by running the loop: the templates said "never weaken a gate" in eight
+places but never said what to do when the **threshold itself** is the wrong
+metric. On a gate no correct work could pass, the loop's only moves were grind or
+violate — so it stopped and burned a human interrupt to discover something two
+earlier decision records had already implied.
+
+- `templates/rules/AGENTS.md` §6 — the **falsified-metric path**, with three
+  objective tests so it can't be used as a shortcut: the overage shape must be on
+  record at **≥3 independent checkpoints**, the threshold must be shown (by
+  arithmetic, not assertion) to be unreachable alongside the project's other
+  *mandated* requirements, and the fix must **re-scope what is counted while
+  keeping a hard gate on the portion moved out** — never stop measuring it. The
+  increment then becomes the **decision record** (numbers, ≥2 options, a
+  recommendation); a human edits the constant.
+- `templates/loop/PROMPT.md` §7 — same clause on the `GATE_FAILED` bullet, so the
+  loop hands back a *decision* instead of a discovery.
+- `templates/rules/RULES.md` — acceptance criteria now carry the arithmetic behind
+  each number, and point at AGENTS.md §6 for re-scoping.
+- `reference/ratchets.md` (new) — designing floors/ceilings that stay honest:
+  floor-vs-ceiling separation, the **scoping rule** (a ceiling counts only the
+  quantity it discourages — never bill rule-mandated artifacts to a budget
+  written for something else), four pre-install threshold sanity checks
+  (project to completion, name the axis, check against the other rules, prove
+  both arms fire), and the near-misses that are really weakened checks.
+- `rubric/rubric.md` + `reference/scan-playbook.md` — P4 level 4 now requires the
+  falsified-metric path, and **caps P4 at 3** when one threshold has been
+  individually excused ≥2 times blaming the same mandated artifact: that is a
+  mis-scoped gate, not repeated bad luck.
+
+
 ## [0.8.0] - 2026-07-24
 
 ### Added (antipattern guards)

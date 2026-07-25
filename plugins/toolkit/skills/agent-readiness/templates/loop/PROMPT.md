@@ -102,7 +102,13 @@ the reason instead. Never end silently.
 - `<<LOOP:DONE>>` — the whole project goal is reached: all phases done, final
   milestone tagged, everything verified. STOP.
 - `<<LOOP:GATE_FAILED>>` — a hard gate (acceptance criteria, coverage, golden
-  rule) failed. Explain in `LOG.md`. Do NOT lower the threshold.
+  rule) failed. Explain in `LOG.md`. Do NOT lower the threshold. **If the gate
+  itself is the wrong metric** — same overage shape on record at ≥3 checkpoints,
+  arithmetically unreachable alongside the project's other mandated
+  requirements, and fixable only by re-scoping *what is counted* while keeping a
+  hard gate on the part moved out — then this increment is the **decision
+  record** (measured numbers, ≥2 options, a recommendation), and this marker
+  names the decision needed. Never edit the constant yourself: AGENTS.md §6.
 - `<<LOOP:BLOCKED>>` — escape hatch tripped, or a step needs a human (e.g. a
   human-only boundary).
 

@@ -98,4 +98,5 @@ The reference implementation to install from is bundled at `templates/` (domain-
 - `rubric/rubric.md` — the 7 pillars, maturity anchors, weights, scoring → grade (the "shape").
 - `reference/scan-playbook.md` — read-only per-pillar detection recipes + integrity statement.
 - `reference/score-schema.md` — the `.agent-readiness/score.json` schema, diff/trend model, `report.md` shape.
+- `reference/ratchets.md` — designing floors/ceilings that can't deadlock the loop: the scoping rule, threshold sanity checks, and the falsified-metric path. Read for P4 audits and before installing any gate.
 - `templates/` — a domain-free reference implementation of an agent-operable repo (loop, tasks, rules, subagents, commands, Makefile). Both the rubric's benchmark and Mode 2's install source.
