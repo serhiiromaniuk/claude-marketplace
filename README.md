@@ -27,6 +27,7 @@ Installed with the `toolkit` plugin. Most auto-trigger by description; each is a
 | **assessment-report** | Turns findings into a scored, branded gap/risk assessment (executive dashboard + detail) rendered to PDF. |
 | **claude-in-chrome** | Reference for browser automation via the claude-in-chrome MCP (navigate, DOM, screenshots, console/network debugging, GIF recording). |
 | **glab** | GitLab CLI (`glab`) DevOps workflows — pipelines, merge requests, releases, CI/CD debugging. |
+| **verify-before-done** | Blocks "done / fixed / passing" claims that aren't backed by a command run in the current message — gate function, per-claim evidence table, rationalization guards. |
 | **_skill-template** | Copy-to-start template for authoring a new skill. |
 
 ## What's here

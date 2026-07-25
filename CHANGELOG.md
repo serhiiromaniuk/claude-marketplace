@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.0] - 2026-07-25
+
+### Added (evidence before completion claims)
+New skill `verify-before-done`, adapted from `verification-before-completion` in
+[obra/superpowers](https://github.com/obra/superpowers) (MIT, commit `3dcbd5c`)
+— the only file worth lifting from that framework after auditing it against this
+setup. Everything else there either couples to its own 279 KB skill tree,
+duplicates native functionality (`using-git-worktrees` vs the `EnterWorktree`
+tool), or defers to a different skill on the first line.
+
+- `plugins/toolkit/skills/verify-before-done/SKILL.md` — gate function
+  (identify → run → read → compare → claim), per-claim evidence table, stop
+  signals, rationalization table. Adds two rows the upstream skill lacks:
+  deploy health (probe, not `apply` exit 0) and the unattended-loop case.
+- Matters most for `agent-readiness`'s loop templates: a false completion claim
+  ends an unattended run early with nobody watching, so the marker protocol is
+  only as trustworthy as the evidence behind it.
+
+
 ## [0.9.1] - 2026-07-25
 
 ### Fixed (harness false-stop on its own narration)
