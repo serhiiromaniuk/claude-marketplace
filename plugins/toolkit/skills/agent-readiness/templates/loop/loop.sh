@@ -134,16 +134,24 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
   fi
   echo "$out"
 
+  # Dispatch on the LAST marker line only. The protocol (PROMPT.md §7) puts THE
+  # marker on the turn's last line; prose earlier in the turn may legitimately
+  # *mention* markers — recapping a prior iteration's stop (the §1 dirty-tree
+  # reconcile does exactly this), quoting the protocol — so a whole-output grep
+  # false-stops on the agent's own narration. If the last marker-bearing line
+  # somehow carries both kinds, stop wins (fail toward the human, never past one).
+  marker_line="$(grep -F '<<LOOP:' <<<"$out" | tail -n1 || true)"
+
   # Hard terminals — always honoured (DONE / BLOCKED / GATE_FAILED).
   stop=""
-  for m in "${STOP_ALWAYS[@]}"; do grep -qF "$m" <<<"$out" && stop="$m"; done
+  for m in "${STOP_ALWAYS[@]}"; do grep -qF "$m" <<<"$marker_line" && stop="$m"; done
   if [[ -n "$stop" ]]; then
     echo ""; echo ">> stop marker: $stop  (iteration $i). Handing back to a human."; exit 0
   fi
 
   # A recognized continue marker resets the failure counter.
   matched=""
-  for m in "${CONTINUE_MARKERS[@]}"; do grep -qF "$m" <<<"$out" && { matched="$m"; break; }; done
+  for m in "${CONTINUE_MARKERS[@]}"; do grep -qF "$m" <<<"$marker_line" && { matched="$m"; break; }; done
   if [[ -n "$matched" ]]; then
     consec_fail=0; echo ">> $matched — continuing."; continue
   fi

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.1] - 2026-07-25
+
+### Fixed (harness false-stop on its own narration)
+Found by running the loop: an iteration whose real last-line marker was
+`<<LOOP:CONTINUE>>` was halted as `<<LOOP:GATE_FAILED>>` because its §1
+dirty-tree reconcile recap *mentioned* the prior iteration's stop marker in
+prose, and `loop.sh` grepped the **entire** output for markers. The v0.8.0
+reconcile guidance makes such narration routine, so any recovered-from-stop run
+could false-stop on the very next iteration.
+
+- `templates/loop/loop.sh` — dispatch on the **last** `<<LOOP:`-bearing line
+  only (PROMPT.md §7 makes the last line authoritative). If that one line
+  carries both a stop and a continue marker (protocol violation), stop wins —
+  fail toward the human, never past one. No-marker handling unchanged.
+  Verified with an 8-case dispatch table: the observed failure shape, its
+  inverse (prose `CONTINUE`, final `BLOCKED`), all five markers, trailing blank
+  lines, no marker, both-on-one-line.
+- `templates/loop/README.md` — doc drift from v0.5.0 corrected: `GATE_FAILED`
+  **always** stops (the code's `STOP_ALWAYS` since 0.5.0); the README still
+  claimed it was retried under `--continuous`.
+
+
 ## [0.9.0] - 2026-07-25
 
 ### Added (gate design — a wrong gate must not deadlock the loop)

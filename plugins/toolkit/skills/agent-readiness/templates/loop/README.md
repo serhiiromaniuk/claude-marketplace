@@ -46,7 +46,7 @@ loop/loop.sh --continuous --model opus --skip-permissions --max-iterations 1000
 
 | Flag | Effect |
 |------|--------|
-| `--continuous` | Only `DONE`/`BLOCKED` halt. `GATE_FAILED`, a missing marker, and transient `claude` errors are **retried** with linear backoff, bounded by a consecutive-failure cap (5) so a broken auth/API doesn't burn the whole budget. |
+| `--continuous` | `DONE`/`BLOCKED`/`GATE_FAILED` still halt. A missing marker and transient `claude` errors are **retried** with linear backoff, bounded by a consecutive-failure cap (5) so a broken auth/API doesn't burn the whole budget. |
 | `--skip-permissions` | Passes `--dangerously-skip-permissions` — no permission prompts. ⚠️ Then the human-only boundary in `AGENTS.md` + the `BLOCKED` marker are the *only* guardrail; run it only where you're happy letting an agent act freely. |
 | `--model <m>` | Pins the driver model (e.g. `opus`) for deterministic runs instead of inheriting the config default. |
 
@@ -61,7 +61,7 @@ If the loop's child shells can't see your toolchain (verify fails with a spuriou
 | `<<LOOP:PHASE_COMPLETE>>` | all steps done **and** gate passed — agent tags the milestone + opens the next phase | **re-invokes** (rolls into the next phase) |
 | `<<LOOP:DONE>>` | the whole project goal is reached (all phases done, everything verified) | **stops** (always) |
 | `<<LOOP:BLOCKED>>` | escape hatch tripped (3 failed tries) or a step needs a human | **stops** (always) |
-| `<<LOOP:GATE_FAILED>>` | a hard gate failed (never weaken it) | **stops** supervised · **retries** under `--continuous` (self-fix next iteration; bounded by the 3-try hatch → `BLOCKED`) |
+| `<<LOOP:GATE_FAILED>>` | a hard gate failed (never weaken it) | **stops** (always — a failed gate needs a human decision, not a respin) |
 
 The loop tags milestones and rolls phase→phase on its own, so a single run with
 a high `--max-iterations` can carry the project a long way. Milestone tags are
