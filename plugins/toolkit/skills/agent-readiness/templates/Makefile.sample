@@ -51,6 +51,18 @@ check: lint typecheck test      ## lint + typecheck + test (run before committin
 clean:                          ## remove the environment and caches
 	rm -rf $(ENV) .*_cache .coverage htmlcov
 
+# ── Loop hygiene (control-plane prose budget) ─────────────────────────────
+# NOT dependencies of `check` on purpose: `check` is the correctness gate and must
+# never fail on prose style. loop/PROMPT.md §5 calls loop-hygiene in the agent's
+# own pre-commit sequence, which is what gives the warning a reader.
+.PHONY: where
+where:                          ## print the loop's position (loop/where.sh --human)
+	@./loop/where.sh --human
+
+.PHONY: loop-hygiene
+loop-hygiene:                   ## warn if the newest LOG entry / STATE.md / INDEX rows exceed their budgets
+	@./loop/entry-size-guard.sh
+
 # ── Project-specific targets ──────────────────────────────────────────────
 # Add run / build / validate / acceptance targets your project needs, e.g.:
 # .PHONY: build

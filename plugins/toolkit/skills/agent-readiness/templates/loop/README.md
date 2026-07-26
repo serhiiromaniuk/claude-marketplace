@@ -9,6 +9,16 @@ loop": re-feed a fresh agent the same prompt every iteration) is simple:
 > off, does **one** increment, verifies it, commits, and stops. The next
 > iteration picks up from the files.
 
+**The catch, and the counter-measure.** "Progress lives on disk" means every
+iteration *re-reads* it, so append-only control-plane files make the loop
+quadratically slower — measured at 12→200 min per iteration on one real project
+before the fix. So position is **computed**, not narrated: `where.sh` derives phase
+· task · step N/M · governing spec · tree state · the read list from the `PLAN.md`
+checkboxes, the `LOG.md` tail and `git status`, and the loop reads only the files it
+names. Detail is written **once**, in the task's `LOG.md`. `entry-size-guard.sh` is
+the ratchet that keeps it that way. See `reference/ratchets.md` §"Control-plane
+prose" in the `agent-readiness` skill for the numbers.
+
 Why it fits this repo: the work is long, gated, and correctness-sensitive. A
 fresh context per step avoids context rot, and the filesystem-as-memory model
 means a crash, a `/clear`, or a new day never loses progress.
@@ -17,8 +27,10 @@ means a crash, a `/clear`, or a new day never loses progress.
 
 | File | Role |
 |------|------|
-| `PROMPT.md` | The **invariant** prompt. Re-fed verbatim every iteration. Don't change it per-step — change `STATE.md` and the task's `PLAN.md` instead. |
-| `STATE.md` | The live pointer: active task folder, next step, iteration count, gate status. The first thing every iteration reads. |
+| `PROMPT.md` | The **invariant** prompt. Re-fed verbatim every iteration. Don't change it per-step — change the task's `PLAN.md` instead. |
+| `where.sh` | The **position oracle** — every iteration's first command. `--json` for the loop, `--human` (`make where`) for a person, `--read` for just the file list. Computes phase · task · step N/M · step title · governing spec + stub flag · gate · tree state · the read contract. |
+| `entry-size-guard.sh` | The prose ratchet (`make loop-hygiene`): LOG entry ≤40 lines, `STATE.md` ≤40 lines, ledger row ≤200 B. Warn-only, called from `PROMPT.md` §5 — deliberately **not** a dependency of the correctness gate. |
+| `STATE.md` | Only what no script can derive: the gate verdict, decisions not to relitigate, and carry-forwards aimed at a task with no folder yet. Changes on those events, **not** every iteration. |
 | `loop.sh` | The bounded harness. Runs `claude -p` with `PROMPT.md`, greps stdout for completion markers, stops on a marker or `--max-iterations`. |
 | `env.sh` *(optional)* | If present, sourced before each iteration — put your toolchain on `PATH` here (child `claude -p` shells are non-interactive and don't source `~/.profile`). Not created by default. |
 

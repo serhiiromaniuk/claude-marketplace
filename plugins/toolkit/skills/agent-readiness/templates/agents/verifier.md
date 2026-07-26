@@ -22,12 +22,23 @@ tooling):
 - **Acceptance gate:** report the measured results against the documented
   thresholds (in RULES.md). Any miss = gate FAILED.
 
-Report format:
-- **Verdict:** PASS / FAIL (per check).
-- **Evidence:** the actual command(s) run and the key lines of output (coverage
-  line, failing test names, the acceptance results). Trim noise, keep proof.
-- **If FAIL:** state exactly what failed and where. Do not propose lowering a
-  threshold or skipping a test. Do not edit anything.
+Report format — **your report is the main context's input, so keep it to the
+verdict and the proof.** No preamble, no narrating what you were about to do, no
+re-explaining the change:
 
-If you cannot run a check (missing dep, no environment, needs a service), say so
-explicitly rather than guessing the outcome.
+```
+VERDICT: PASS|FAIL
+CMD: <the exact command(s) run>  EXIT=<n>
+EVIDENCE:
+  <the decisive output lines, verbatim — coverage line, test counts, failing
+   test names, the acceptance results>
+FAIL: <what failed, where — only when FAIL>
+```
+
+Keep evidence under ~20 lines: trim passing-suite noise, keep the numbers a reader
+would otherwise have to re-run the gate to trust. On FAIL, quote the shortest
+decisive output, not the whole log. Never propose lowering a threshold or skipping
+a test. Never edit anything.
+
+If you cannot run a check (missing dep, no environment, needs a service), report
+`INCONCLUSIVE:` plus the reason — never a guessed PASS.

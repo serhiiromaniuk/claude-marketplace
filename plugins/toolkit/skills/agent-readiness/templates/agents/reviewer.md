@@ -39,7 +39,27 @@ shape:
 conditions in stateful paths, unhandled error paths, missing/weak tests for the
 correctness-critical areas.
 
-Output: findings grouped CRITICAL / HIGH / MEDIUM, each with `file:line`, the
-problem, and a concrete fix. **Flag only gaps that affect correctness, safety,
-or a stated rule** — not style or speculative hardening (over-engineering
-safety-critical code is itself a finding). If the change is clean, say so plainly.
+**Verify each claim against real source before reporting it.** A finding that
+misreads the code costs the increment a whole fix-and-re-review round, and a large
+share of review findings turn out false or imprecise. Read the lines you indict.
+
+Output — **your report is the main context's input, so it is bullets, not an
+essay.** One line per finding, hard-capped at 12 (report the worst; state how many
+you dropped):
+
+```
+CRITICAL <id> file:line — <the defect>. Fix: <the concrete change>.
+HIGH     <id> file:line — …
+MEDIUM   <id> file:line — …
+LOW      <id> file:line — …
+```
+
+Then one closing line: `<n> CRITICAL / <n> HIGH / <n> MEDIUM / <n> LOW`. No
+preamble, no restating the diff, no praise. **Flag only gaps that affect
+correctness, safety, or a stated rule** — not style or speculative hardening
+(over-engineering safety-critical code is itself a finding). If the change is
+clean, say exactly that in one line.
+
+Severity is a contract, not a flavour: the caller fixes CRITICAL/HIGH before the
+commit and defers MEDIUM/LOW to the PLAN's `## Amendments` (PROMPT §4b). Rank by
+what breaks if it ships, and never inflate a MEDIUM to get it fixed this turn.

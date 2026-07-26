@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.11.0] - 2026-07-27
+
+### Added (a bounded control plane — the loop's own biggest slowdown)
+`agent-readiness`'s loop templates gain a position oracle and a prose ratchet.
+Both come from a measured failure on a real Ralph-loop project, not from theory:
+iteration wall time went from **12-17 min to 47-211 min** across three objectives
+with the same model, machine and discipline. The cause was neither the gate (28 s),
+the model, nor review standards — it was that every iteration is a *fresh* agent
+that re-reads an *append-only* control plane. The ledger reached 93,119 B of which
+five rows were 88,900 B (one row was 41,717 B on a single line); the pointer file
+reached 88,025 B of which 87,000 B was accumulated "you are here" paragraphs.
+~350 KB read before any work began, growing quadratically, with the same summary
+written three times (log entry, pointer paragraph, ledger row).
+
+- `templates/loop/where.sh` — **position is computed, not narrated.** Derives
+  phase · task · step N/M · step title · governing spec + stub flag · gate · tree
+  state · `last_result` · and a `read[]` **contract** from the `PLAN.md`
+  checkboxes, the `BRIEF.md` `Governing spec:` line, the `LOG.md` tail and
+  `git status`. `--json` (loop) · `--human` / `make where` (person) · `--read`.
+  Exit 2 with `.error` when the ledger has no in-progress task. The read contract
+  is what keeps a closed task's log out of context *structurally* rather than by
+  asking the agent nicely. The idea is spec-kit's `check-prerequisites --json`
+  pattern; none of spec-kit itself is adopted.
+- `templates/loop/entry-size-guard.sh` — the ratchet (`make loop-hygiene`): LOG
+  entry ≤40 lines, `STATE.md` ≤40 lines, ledger row ≤200 B. **Warn-only and NOT a
+  dependency of the correctness gate** — that gate must never fail on prose style
+  — so `PROMPT.md` §5 calls it in the agent's own pre-commit sequence, which is
+  what gives the warning a reader. `--strict` exits 1 for CI.
+
+### Changed (write detail once; one reviewer pass)
+- `templates/loop/STATE.md` no longer restates anything derivable. It keeps the
+  gate verdict, decisions not to relitigate, and a **carry-forward** section for
+  obligations aimed at a phase whose task folder does not exist yet. It changes on
+  those events, not every iteration. Ships at 31/40 lines so there is headroom.
+- `templates/loop/PROMPT.md` §1 is "run the oracle, read only `.read`, dispatch on
+  the flags" (`.error` > `.tree_clean` > `.needs_open` > `.needs_plan` >
+  `.spec_stub` > `.all_steps_done` > do step N); §5 states the write-once rule and
+  the budget; §4b is **one** reviewer pass — CRITICAL/HIGH fixed now, MEDIUM/LOW
+  appended to `PLAN.md` `## Amendments` with `file:line`. Extra polish rounds are
+  now named as a violation in their own right: 2-3 passes per step, each costing a
+  re-verify plus a re-review, was the measured secondary cause.
+- `templates/agents/{reviewer,verifier}.md` report in bullets with a findings cap
+  and trimmed evidence — a subagent's report *is* main-context input, so an essay
+  there costs what an essay in the log costs. `verifier` reports `INCONCLUSIVE`
+  rather than a guessed PASS.
+- `templates/tasks/_template/LOG.md` carries the entry *shape* (headline · changed
+  · check + observed failure-first · verbatim evidence tail · verifier · reviewer
+  dispositions · decision · carry-forward · next) instead of a two-line hint —
+  filling a shaped template is cheaper to emit and to re-read than composing prose.
+  `BRIEF.md` marks its `Governing spec:` line MACHINE-READ. `tasks/INDEX.md` states
+  the ≤200 B row budget and the one-in-progress-row rule the oracle depends on.
+- `templates/rules/{AGENTS,WORKFLOW}.md`, `templates/commands/{loop-step,status}.md`,
+  `templates/loop/README.md` and `templates/Makefile.sample` (new `where` /
+  `loop-hygiene` targets) all follow.
+- `rubric/rubric.md` P3 now requires a bounded control plane and **caps P3 at 3**
+  when it is append-only; `reference/scan-playbook.md` P3 detects the bloat
+  directly (row lengths, pointer size, minutes-per-iteration from `git log`);
+  `reference/ratchets.md` gains §"Control-plane prose" with the numbers, the
+  four-step fix, and the rescue step that must precede any deletion — grep the
+  pointer for live carry-forwards, because history is in git but an unmet
+  obligation is not history.
+
+All scripts were tested against a synthetic project through nine cases: normal
+position, fleshed vs stub spec, no in-progress row (exit 2), missing task folder,
+all-steps-done, a PLAN with no checkboxes, each guard warn path, `--strict`, and
+bad-argument handling. Two bugs were found and fixed that way — a stub-detection
+false positive from the word "STUB" appearing later in a finished spec, and a
+duplicated step title because awk runs `END` on `exit`.
+
 ## [0.10.0] - 2026-07-25
 
 ### Added (evidence before completion claims)

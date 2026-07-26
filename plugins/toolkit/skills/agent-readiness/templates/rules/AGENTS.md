@@ -6,8 +6,13 @@ project: golden rules, architecture, conventions). **This file is the *operating
 layer*** (how you actually execute work across long-running, multi-session,
 phase-gated tasks). [`WORKFLOW.md`](./WORKFLOW.md) is the worked example.
 
-Read order at the start of any session: **RULES.md → AGENTS.md → the active task
-folder under [`../tasks/`](../tasks/) → [`../loop/STATE.md`](../loop/STATE.md).**
+Read order at the start of any session: **run
+[`../loop/where.sh`](../loop/where.sh)` --json` first**, then RULES.md, AGENTS.md,
+and exactly the files it lists in `.read` — the active task folder under
+[`../tasks/`](../tasks/) (`BRIEF`, `PLAN`, tail of `LOG`) and its governing spec.
+The oracle computes position, gate and tree state from disk, so
+[`../tasks/INDEX.md`](../tasks/INDEX.md) is **not** read for orientation and closed
+tasks' folders are archive.
 
 > Do not improvise, skip steps, or deviate from the workflow below. When the
 > workflow and a clever shortcut disagree, the workflow wins.
@@ -62,7 +67,8 @@ src/                  the main package / source tree
   <adapter>/            HARD boundary — vendor/external SDK lives ONLY here
   config.<ext>          every config value read + validated in ONE place
 tests/                the test suite (≥80% coverage)
-loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh · STATE.md
+loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh ·
+                        where.sh (position oracle) · entry-size-guard.sh · STATE.md
 tasks/                per-phase BRIEF/PLAN/LOG/OUTCOME folders + INDEX.md ledger
 agents/               specialist subagents (planner, reviewer, verifier)
 commands/             slash-command shortcuts (/loop-step, /status)
@@ -133,23 +139,30 @@ status `todo | in-progress | blocked | done`.
 ## 3. Session rituals
 
 ### 3a. Startup (before touching anything)
-1. Read [`RULES.md`](./RULES.md) (golden rules, architecture, git).
-2. Read this file (`AGENTS.md`).
-3. Read [`../loop/STATE.md`](../loop/STATE.md) — what phase/task is active, which
-   step is next, gate status.
-4. Open the active task folder; read `BRIEF.md`, `PLAN.md`, and the **tail** of
-   `LOG.md`.
-5. Confirm `git status` is clean and you're on the main branch (or, for parallel
-   same-code work, the intended worktree — see §7).
-6. If there is no active task for the current phase, **create one** from
-   `_template/` before doing any work (§2).
+1. Run [`../loop/where.sh`](../loop/where.sh)` --json` — phase · task · step N/M ·
+   step title · governing spec (and whether it is still a stub) · gate · tree state
+   · **the read list**.
+2. Read [`RULES.md`](./RULES.md) (golden rules, architecture, git) and this file.
+3. Read **exactly** the files in `.read`, and nothing else: the active task's
+   `BRIEF.md`, `PLAN.md`, the **tail** of `LOG.md`, its governing spec, and
+   `STATE.md` for the gate/decisions. Never open a closed task's `LOG.md`.
+4. Dispatch on the oracle's flags (loop/PROMPT.md §1): `.error` → open the next
+   task · `.tree_clean == false` → **reconcile the interrupted increment first** ·
+   `.needs_open` / `.needs_plan` / `.spec_stub` → that IS this iteration ·
+   `.all_steps_done` → close the task.
 
 ### 3b. Shutdown (end of session / loop iteration)
-1. Append a final `LOG.md` entry (what you did, what's next).
-2. Update [`../loop/STATE.md`](../loop/STATE.md) (next step, iteration count, gate).
-3. Update [`../tasks/INDEX.md`](../tasks/INDEX.md) status if it changed.
-4. Commit + push the increment (§7). The remote must not lag the work.
-5. If the task is finished or blocked, write `OUTCOME.md`.
+1. Append a `LOG.md` entry in `_template/LOG.md`'s shape — **≤40 lines, bullets**.
+   This is the ONE place per-step detail is written.
+2. Check the box for that step in `PLAN.md`.
+3. Touch [`../loop/STATE.md`](../loop/STATE.md) or
+   [`../tasks/INDEX.md`](../tasks/INDEX.md) **only** when the gate verdict changes,
+   a decision is made, a carry-forward is raised/discharged, or a task
+   opens/closes — never to record a step. `where.sh` computes step position from
+   the PLAN checkboxes and the last result from the LOG tail.
+4. Run `make loop-hygiene` (warn-only). Shorten prose; never raise a budget.
+5. Commit + push the increment (§7). The remote must not lag the work.
+6. If the task is finished or blocked, write `OUTCOME.md`.
 
 ---
 
@@ -158,15 +171,18 @@ status `todo | in-progress | blocked | done`.
 The technique: **re-feed the same prompt to a fresh agent over and over; the
 filesystem and git history carry progress between iterations.** The invariant
 prompt is [`../loop/PROMPT.md`](../loop/PROMPT.md); the harness is
-[`../loop/loop.sh`](../loop/loop.sh); the live pointer is
+[`../loop/loop.sh`](../loop/loop.sh); the position oracle is
+[`../loop/where.sh`](../loop/where.sh) and the non-derivable pointer is
 [`../loop/STATE.md`](../loop/STATE.md). See [`../loop/README.md`](../loop/README.md).
 
 **One iteration does exactly this:**
-1. Load context (§3a) — STATE.md first.
-2. Pick **the next single unchecked step** in the active `PLAN.md`. One step.
-3. Do it.
-4. **Verify** it (run the relevant check — §5). Record the evidence in `LOG.md`.
-5. Check the box in `PLAN.md`; update `STATE.md`.
+1. Load context (§3a) — `where.sh --json` first, then only what it names.
+2. Do step `.step` of `.steps` — the next single unchecked `PLAN.md` step. One.
+3. **Verify** it (run the relevant check — §5), then the mandatory `verifier` +
+   `reviewer` subagents: **one** reviewer pass, CRITICAL/HIGH fixed now, MEDIUM/LOW
+   appended to `PLAN.md`'s `## Amendments` with their `file:line`.
+4. Record the evidence in `LOG.md` — the template's shape, ≤40 lines.
+5. Check the box in `PLAN.md`; `make loop-hygiene`.
 6. Commit + push.
 7. Emit a **completion marker** (below) and stop. The loop re-invokes a fresh
    agent for the next step.

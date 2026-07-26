@@ -47,8 +47,17 @@ ls ralph/PROMPT.md ralph/STATE.md ralph/loop.sh loop/*.sh 2>/dev/null
 grep -rilE 'max.?iterations|--max-iter|iteration cap' . --include='*.sh' 2>/dev/null   # bounded harness
 grep -rhoE '<<[A-Z]+:[A-Z_]+>>' . 2>/dev/null | sort -u                                # marker protocol
 ls .claude/commands/*loop* 2>/dev/null                                                 # /ralph-loop plugin or a loop-step command
+ls ralph/where.sh loop/where.sh 2>/dev/null                                            # position computed, not narrated
+ls ralph/entry-size-guard.sh loop/entry-size-guard.sh 2>/dev/null                      # prose budget ratchet
+# control-plane bloat — the quadratic-slowdown signal (see reference/ratchets.md):
+wc -c $(ls ROADMAP.md tasks/INDEX.md ralph/STATE.md loop/STATE.md 2>/dev/null) 2>/dev/null
+awk 'length($0)>200 {print FILENAME": line "NR" = "length($0)"B"}' tasks/INDEX.md 2>/dev/null
+git log --format='%ct' -20 | awk 'NR>1{printf "%.0f ", (p-$1)/60} {p=$1}'               # min/iteration, newest first
 ```
-Invariant prompt + bounded harness + markers → 3; add a live state pointer + one-increment discipline → 4.
+Invariant prompt + bounded harness + markers → 3; add a live state pointer + one-increment
+discipline → 4 — **but cap at 3 if the control plane is append-only** (fat ledger rows, a
+sprawling "you-are-here", position narrated rather than computed). Rising minutes-per-iteration
+with flat task difficulty confirms it.
 
 **P4 Verification gates**
 ```bash

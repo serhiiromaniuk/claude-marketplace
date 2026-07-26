@@ -12,7 +12,7 @@ Quick map of the moving parts:
 | Governance | [`RULES.md`](./RULES.md) | golden rules, architecture, git |
 | Operating manual | [`AGENTS.md`](./AGENTS.md) | how to execute |
 | This walkthrough | `WORKFLOW.md` | the example |
-| Loop engine | [`../loop/`](../loop/) | `PROMPT.md`, `loop.sh`, `STATE.md` |
+| Loop engine | [`../loop/`](../loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `entry-size-guard.sh`, `STATE.md` |
 | Memory | [`../tasks/`](../tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
 | Specialists | [`../agents/`](../agents/) | planner, reviewer, verifier |
 | Shortcuts | [`../commands/`](../commands/) | `/status`, `/loop-step` |
@@ -104,11 +104,14 @@ reviewed. Every later decision must trace to a conclusion here.
 > Append-only. Newest at bottom.
 
 ## YYYY-MM-DD HH:MM — Session start
-Context loaded: RULES.md, AGENTS.md, BRIEF, PLAN. Starting at step 1.
+Context loaded per `loop/where.sh --json`. Starting at step 1.
 ```
 
-Then update [`../tasks/INDEX.md`](../tasks/INDEX.md) and
-[`../loop/STATE.md`](../loop/STATE.md) to point at this task, step 1.
+Then flip this task's row in [`../tasks/INDEX.md`](../tasks/INDEX.md) to
+`in-progress` — that is all the pointer work an open needs. Step position comes
+from the `PLAN.md` checkboxes, so nothing restates "step 1" anywhere.
+[`../loop/STATE.md`](../loop/STATE.md) is touched only for the gate verdict, a
+decision, or a carry-forward. Confirm with `make where`.
 
 ---
 

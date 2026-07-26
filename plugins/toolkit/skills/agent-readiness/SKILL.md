@@ -73,7 +73,11 @@ The reference implementation to install from is bundled at `templates/` (domain-
   `templates/` into the target repo, mapping template dirs to the repo's convention:
   `templates/loop/` → `ralph/` (or `loop/`); `templates/tasks/` → `tasks/`; `templates/rules/`
   → `CLAUDE.md`/`AGENTS.md`/`WORKFLOW.md`; `templates/agents/` + `templates/commands/` →
-  `.claude/agents/` + `.claude/commands/`; `templates/Makefile.sample` → merge a `check` target.
+  `.claude/agents/` + `.claude/commands/`; `templates/Makefile.sample` → merge a `check` target
+  plus the `where` / `loop-hygiene` targets. **Install `templates/loop/where.sh` +
+  `entry-size-guard.sh` whenever you install the loop** — a loop without them regrows the
+  control-plane bloat described in `reference/ratchets.md`, which is the single largest
+  measured cause of iteration slowdown.
   **Never overwrite** an existing file silently — show a diff and confirm, or write alongside.
   Then re-run Mode 1 to confirm the grade moved, and commit per the repo's own hygiene rules.
 
@@ -92,6 +96,7 @@ The reference implementation to install from is bundled at `templates/` (domain-
 - **One engine, reused.** Scoring vocabulary and the PDF renderer come from `assessment-report` — this skill adds the rubric, the state layer, the scan playbook, and the uplift step. Don't fork the renderer.
 - **The artifact is stateful.** Always read the prior `score.json` and emit `previous`+`delta` so re-runs show a trend, not just a snapshot.
 - **Templates are the single source of "good".** `templates/` is both what the rubric describes and what Mode 2 installs — keep them in sync.
+- **Position is computed, never narrated.** `templates/loop/where.sh` derives phase · task · step N/M · governing spec · tree state · the read list from the `PLAN.md` checkboxes, the `LOG.md` tail and `git status`. The loop reads ONLY the files it names, which is what keeps closed tasks' logs out of context structurally. Detail is written **once**, in the LOG; pointer files (`STATE.md`, `INDEX.md`) change only on gate/decision/carry-forward/task-boundary events. `entry-size-guard.sh` is the ratchet. See `reference/ratchets.md` §"Control-plane prose".
 - **Never invent a timestamp or a score.** Timestamps come from `date`; levels come from observed evidence. Verified-absent (you looked, it's not there) beats a guessed level.
 
 ## Files

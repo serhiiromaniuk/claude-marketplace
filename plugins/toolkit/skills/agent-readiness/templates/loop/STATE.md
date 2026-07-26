@@ -1,27 +1,31 @@
-# loop/STATE.md — live loop pointer
+# loop/STATE.md — the non-derivable pointer
 
-> The first thing every loop iteration reads. Keep it tiny and current. This is
-> the agent's "you are here". Update it at the end of every iteration.
+> **`loop/where.sh --json` for position; this file for judgement.** Active phase,
+> task, step number, step title, governing spec, tree state and last result are
+> **computed** from the `PLAN.md` checkboxes, the `LOG.md` tail and `git status`.
+> Restating any of them here is a second copy that goes stale and that every future
+> iteration re-reads — the pattern that took one project from 12 to 200 min per
+> iteration. Keep only what no script can derive.
+>
+> **Budget ≤40 lines** (`make loop-hygiene`). Update on a gate change, a decision,
+> or a carry-forward — **not** every iteration.
 
 | Field | Value |
 |-------|-------|
-| **Active phase** | Phase 1 — `<short description>` |
-| **Active task** | [`tasks/phase-1_<short-kebab>/`](../tasks/phase-1_<short-kebab>/) — `<one line on where it stands>` |
-| **Next step** | ⏳ `<the single next unchecked PLAN.md step>` |
-| **Iteration** | 0 |
-| **Gate status** | 🟡 `<phase 1 gate not yet passed / what must go green>` |
-| **Last marker** | `<<LOOP:CONTINUE>>` |
+| **Gate status** | 🟡 `<what must go green to lift the current phase gate>` |
 | **Blocked?** | no |
 
-## Notes for the next iteration
-- `<carry-forward note: a decision made, a follow-up to remember, a gotcha>`
-- The loop tags milestones and rolls phase→phase itself, **only when the gate is
-  observed-green** (the project's check command for code phases; the documented
-  acceptance criteria otherwise). Stop at `<<LOOP:DONE>>` when the project goal
-  is reached. See AGENTS.md §4/§6.
-- Architecture holds: vendor SDKs behind their adapter only; all config in one
-  place; no forbidden runtime dependencies.
-- Parallelize independent work via subagents where it fits (AGENTS.md §8a).
+## Carry-forward — obligations that outlive the task that found them
+> Only for work aimed at a phase whose task folder does not exist yet. **Read this
+> when you OPEN a task**: discharge or re-target any entry naming it in that task's
+> `BRIEF.md`, and strike the entry here in the same commit. ≤6 lines per entry.
 
-## Decision log
-- `<dated, one-line decisions the next iteration must not relitigate>`
+- `<CF-1 → phase N: the fact. Recorded in: <doc §x>. Discharge: <what closes it>.>`
+
+## Decisions — do not relitigate
+- `<YYYY-MM-DD: the decision in one line, and the option it beat.>`
+
+<!-- Does NOT belong here: step position / "next step" (where.sh computes it) ·
+     last iteration's story (that task's LOG.md tail) · a task's outcome or lessons
+     (its OUTCOME.md) · the phase table (rules/RULES.md) · iteration counters and
+     the last marker (git log). Tempted to paste a paragraph? It goes in the LOG. -->

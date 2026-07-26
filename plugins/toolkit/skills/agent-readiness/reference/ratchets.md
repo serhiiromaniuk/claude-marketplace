@@ -94,3 +94,56 @@ a plausible rationale does not convert one into a re-scope.
 - Thresholds with no recorded arithmetic → can't be defended, will be raised on
   reflex.
 - A floor and a ceiling on the same number → they fight; one of them is unenforced.
+
+## Control-plane prose — the ratchet everyone forgets
+
+Every ratchet above guards the *product*. This one guards the *loop itself*, and it
+is the one most likely to be missing: nothing in a Ralph loop bounds how much prose
+the loop writes about itself.
+
+**The failure, measured on a real project.** Iteration wall time (minutes between
+consecutive loop commits) went from **12–17 min** to **47–211 min** over three
+objectives — same model, same machine, same discipline, no growth in task
+difficulty. The cause was not the gate (the full verify was 28 s), the model, or
+review standards. It was that each iteration is a *fresh* agent that re-reads the
+control plane, and the control plane is append-only:
+
+| File | Grew to | Of which |
+|---|---|---|
+| the ledger (`tasks/INDEX.md`) | 93,119 B / 57 lines | **five rows = 88,900 B (95%)**; one row was 41,717 B on a single line |
+| the pointer (`ROADMAP.md`) | 88,025 B / 789 lines | **lines 1–774 = 87,000 B (98.8%)** were accumulated "you are here" paragraphs; one line was 22,485 B |
+| a CLOSED task's `LOG.md` | 215,317 B | never needed again, still reachable |
+
+~350 KB / ~90k tokens read *before any work began*, and each iteration appended
+20–30 KB that every later iteration re-read: **quadratic**. Worse, the same summary
+was written **three times** — LOG entry, pointer paragraph, ledger row — so the
+agent paid output-token time to emit it and input-token time forever after.
+
+**The fix, in the order that pays.**
+
+1. **Compact once.** Pointer files back to pointers (≤4 lines), ledger back to one
+   line per task. 181 KB → 6.5 KB. Before deleting, grep the pointer for
+   `carry-forward|follow-up|owes|amendment|deferred` and relocate anything still
+   *live* — history is in git, but an unmet obligation is not history. On the real
+   project exactly one entry lived nowhere else, and a spec pointed at it by name.
+2. **Compute position instead of narrating it** (`loop/where.sh`). The 181 KB read
+   existed to answer one question: *where am I?* A script answers it from the PLAN
+   checkboxes, the LOG tail and `git status`, and the loop reads only the files it
+   names. This also makes "don't read closed tasks" structural rather than polite.
+3. **Write detail once.** With position computed, pointer files carry no per-step
+   state, so they change only on gate / decision / carry-forward / task-boundary
+   events. The triple-write disappears.
+4. **Ratchet it** (`loop/entry-size-guard.sh`): LOG entry ≤40 lines, `STATE.md`
+   ≤40 lines, ledger row ≤200 B. **Warn-only, and NOT a dependency of the
+   correctness gate** — that gate must never fail on prose style. Call it from the
+   agent's own pre-commit sequence instead; a warning nobody reads is worthless.
+5. **Cap the subagent reports too.** A reviewer's or verifier's output *is*
+   main-context input. Bullets with `file:line`, a findings cap, evidence trimmed
+   to the decisive lines.
+
+**Audit heuristics.** A ledger row over ~200 B, a "you are here" section longer
+than a screen, a closed task's log still named in the read path, or the same
+paragraph appearing in three files → score the loop pillar down and install
+steps 1–4. And note the anti-pattern this whole section is about: growing one of
+these budgets to silence its warning is the same move as weakening a test to go
+green (see the falsified-metric path above — it applies to prose budgets too).
