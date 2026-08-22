@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.12.0] - 2026-08-22
+
+### Added (cost tracking that survives a moved config dir)
+`cost-tracker` — a `Stop` hook plus `/toolkit:cost-report`, reporting this
+machine's own Claude Code token spend from the session transcripts Claude Code
+already writes. No API calls, nothing leaves the machine.
+
+The design comes from a tracker that had silently collected nothing for a month:
+its transcript glob was hardcoded to `~/.claude/projects`, while the sessions had
+moved to a `CLAUDE_CONFIG_DIR` elsewhere. The hook ran, found zero files, and
+exited 0 every time. Three properties follow from that failure:
+
+- `hooks/cost-tracker/track.py` — scans **every** known config dir
+  (`CLAUDE_CONFIG_DIR` and the `~/.claude` default, de-duplicated by realpath),
+  so relocating an install cannot quietly stop collection.
+- `--status` writes and reads a `last-run.json` breadcrumb and **warns when the
+  newest row is more than three days old**. A collector that stops is now
+  discoverable instead of looking like a quiet week.
+- **History is recoverable at any time.** Ingest is idempotent (keyed by
+  assistant-message uuid) and reads the transcripts, so `backfill` recovers
+  sessions that ran before the plugin was installed, or in another install's
+  config dir. The only hard limit is transcript retention.
+
+Other properties worth naming: pricing includes the long-context (>200K input)
+premium and is overridable via `CLAUDE_COST_PRICING` rather than requiring an
+edit; only **metadata** is stored (uuid, timestamp, project directory name, tool,
+model, token counts, cost, session id — never prompt or response text); the
+database is created `0600` inside a `0700` directory; transcripts are streamed
+line-by-line so a tens-of-MB file never lands in memory during a hook; and the
+hook exits 0 on any exception so a tracker bug can never break a session.
+
+`--self-test` covers insertion, duplicate suppression, tool/project capture and
+both pricing tiers on synthetic data in a temp dir. It earned its place
+immediately by failing on a wrong hand-written expectation rather than on the code.
+
 ## [0.11.0] - 2026-07-27
 
 ### Added (a bounded control plane — the loop's own biggest slowdown)
