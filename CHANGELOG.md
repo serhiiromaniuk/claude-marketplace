@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.1] - 2026-08-22
+
+### Fixed
+`commands/cost-report.md` wrote a dollar figure as `~$1/MTok`. In command markdown
+`$1` is a positional-argument placeholder, so invoking the command substituted a
+word from the user's arguments and the sanity-check rule rendered as "a blended
+rate far above ~this/MTok" — the one number in that rule, gone. Now spelled
+`~1 USD/MTok`. Worth remembering for any command doc: write "USD", or escape,
+never a bare `$` followed by a digit.
+
 ## [0.13.0] - 2026-08-22
 
 ### Fixed (cost-tracker overstated every bill by ~4.3x)

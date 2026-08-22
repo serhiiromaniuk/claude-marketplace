@@ -20,7 +20,7 @@ plugin. Nothing leaves the machine and no API is called.
   Present figures as estimates, never as an invoice. If the user has a real bill
   that disagrees, the bill wins.
 - **Sanity-check the magnitude before presenting it.** Divide total USD by total
-  tokens: a blended rate far above ~$1/MTok on a cache-heavy workload means the
+  tokens: a blended rate far above ~1 USD/MTok on a cache-heavy workload means the
   rate table is wrong, not that the work was expensive. Cache read is a tenth of
   input, so long agentic sessions are cheap per token and large in aggregate —
   say which of the two is driving the number.
