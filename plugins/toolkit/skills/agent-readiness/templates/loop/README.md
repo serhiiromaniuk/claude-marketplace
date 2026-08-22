@@ -32,6 +32,7 @@ means a crash, a `/clear`, or a new day never loses progress.
 | `entry-size-guard.sh` | The prose ratchet (`make loop-hygiene`): LOG entry ≤40 lines, `STATE.md` ≤40 lines, ledger row ≤200 B. Warn-only, called from `PROMPT.md` §5 — deliberately **not** a dependency of the correctness gate. |
 | `STATE.md` | Only what no script can derive: the gate verdict, decisions not to relitigate, and carry-forwards aimed at a task with no folder yet. Changes on those events, **not** every iteration. |
 | `loop.sh` | The bounded harness. Runs `claude -p` with `PROMPT.md`, greps stdout for completion markers, stops on a marker or `--max-iterations`. |
+| `loop.sh --stop-on-phase` | Promotes `<<LOOP:PHASE_COMPLETE>>` to a hard terminal, so the run delivers exactly ONE milestone and hands back. Default is autonomous rollover — the agent tags the milestone and continues into the next phase. The stop lands **after** the tag, so nothing is half-done. |
 | `env.sh` *(optional)* | If present, sourced before each iteration — put your toolchain on `PATH` here (child `claude -p` shells are non-interactive and don't source `~/.profile`). Not created by default. |
 
 ## Run it

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.14.0] - 2026-08-22
+
+### Added (`--stop-on-phase`)
+`templates/loop/loop.sh` gains a flag that promotes `<<LOOP:PHASE_COMPLETE>>` from a
+continue-marker to a hard terminal.
+
+The default is unchanged and deliberate: PHASE_COMPLETE *continues*. The agent tags
+the milestone, pushes the tag, advances the pointer and rolls into the next phase on
+its own — that autonomous rollover is the point of the design (rules/AGENTS.md §4).
+But "run until milestone N is done, then let me look" had no expression at all: the
+only ways to get it were counting iterations and hoping the cap landed in the right
+place, or watching for the tag from outside and killing the harness.
+
+`--stop-on-phase` makes it one flag. The stop lands **after** the tag — the agent
+tags, pushes and advances the pointer before emitting the marker, so the milestone is
+complete and recorded, not half-done. The banner reports `stop-on-phase=0|1` so an
+unattended run's log states which behaviour was in force.
+
+Verified both dispatch paths in isolation: with the flag off, PHASE_COMPLETE
+continues and DONE stops; with it on, both stop and CONTINUE still continues.
+
 ## [0.13.1] - 2026-08-22
 
 ### Fixed

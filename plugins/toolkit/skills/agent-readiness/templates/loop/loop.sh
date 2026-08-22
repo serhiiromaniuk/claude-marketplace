@@ -12,6 +12,7 @@
 #   loop/loop.sh --model opus                      # pin the driver model
 #   loop/loop.sh --skip-permissions               # no permission prompts (unattended)
 #   loop/loop.sh --continuous                      # DONE/BLOCKED/GATE_FAILED stop; retry transients
+#   loop/loop.sh --stop-on-phase                   # ALSO stop at PHASE_COMPLETE (one milestone, then hand back)
 #   loop/loop.sh --dry-run                         # show what would run, run nothing
 #   loop/loop.sh --prompt loop/PROMPT.md
 #
@@ -59,6 +60,7 @@ PROMPT_FILE="loop/PROMPT.md"
 MODEL=""
 DRY_RUN=0
 CONTINUOUS=0
+STOP_ON_PHASE=0                      # --stop-on-phase: halt after one milestone instead of rolling on
 PERM_FLAG=(--permission-mode auto)   # default: supervised (classifier in the loop)
 MAX_CONSEC=5                         # stop after this many consecutive hard failures
 LIMIT_WAIT=${LIMIT_WAIT:-1800}       # seconds to wait out a usage/rate limit (default 30m)
@@ -75,6 +77,7 @@ while [[ $# -gt 0 ]]; do
     --model)            MODEL="$2"; shift 2 ;;
     --skip-permissions) PERM_FLAG=(--dangerously-skip-permissions); shift ;;
     --continuous)       CONTINUOUS=1; shift ;;
+    --stop-on-phase)    STOP_ON_PHASE=1; shift ;;
     --dry-run)          DRY_RUN=1; shift ;;
     -h|--help)          grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
@@ -95,8 +98,18 @@ MODEL_FLAG=(); [[ -n "$MODEL" ]] && MODEL_FLAG=(--model "$MODEL")
 STOP_ALWAYS=("<<LOOP:DONE>>" "<<LOOP:BLOCKED>>" "<<LOOP:GATE_FAILED>>")
 CONTINUE_MARKERS=("<<LOOP:CONTINUE>>" "<<LOOP:PHASE_COMPLETE>>")
 
+# --stop-on-phase: by default PHASE_COMPLETE *continues* — the agent tags the
+# milestone and rolls into the next phase autonomously (the point of the design).
+# When you want exactly one milestone and then a human look, promote it to a hard
+# terminal. The stop lands AFTER the tag: the agent tags, pushes and advances the
+# pointer before emitting the marker, so nothing is left half-done.
+if [[ "$STOP_ON_PHASE" -eq 1 ]]; then
+  STOP_ALWAYS+=("<<LOOP:PHASE_COMPLETE>>")
+  CONTINUE_MARKERS=("<<LOOP:CONTINUE>>")
+fi
+
 echo ">> loop | repo=$REPO_ROOT | prompt=$PROMPT_FILE | max-iterations=$MAX_ITERS"
-echo ">> model=${MODEL:-<config default>} | perms=${PERM_FLAG[*]} | continuous=$CONTINUOUS"
+echo ">> model=${MODEL:-<config default>} | perms=${PERM_FLAG[*]} | continuous=$CONTINUOUS | stop-on-phase=$STOP_ON_PHASE"
 echo ">> CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-<default>}"
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo ">> --dry-run: would run up to $MAX_ITERS times:"
