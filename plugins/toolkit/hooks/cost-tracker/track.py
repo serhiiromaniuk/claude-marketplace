@@ -35,23 +35,43 @@ DB_PATH = os.environ.get("CLAUDE_COST_DB") or os.path.join(
     HOME, ".claude-cost-tracker", "usage.db"
 )
 
-# Pricing in USD per 1,000,000 tokens. ESTIMATES — verify against your own plan.
-# Long-context tier: when a single request's input exceeds LONG_CTX_THRESHOLD,
-# Anthropic's 1M-context premium applies (~2x). Order matters: first substring
-# match wins. Override the whole table with CLAUDE_COST_PRICING pointing at a
-# JSON file shaped like: {"threshold": 200000, "default": {...},
-# "models": [["opus", {"std": [15,75,18.75,1.5], "long": [...]}], ...]}
-# where each tuple is (input, output, cache_write, cache_read).
+# Pricing in USD per 1,000,000 tokens, as (input, output, cache_write, cache_read).
+# ESTIMATES — verify against your own plan. Anthropic first-party rates; Bedrock
+# and Vertex are partner-operated and priced separately.
+#
+# Cache multipliers are structural, not per-model: write = 1.25x input,
+# read = 0.10x input. Keep them derived from the input rate when editing a row.
+#
+# LONG-CONTEXT TIER: every current model (Opus 5/4.8/4.7/4.6, Sonnet 5/4.6,
+# Fable 5, Mythos 5) has a 1M window at a SINGLE price — there is no >200K
+# premium to apply, so "long" equals "std" for every family below. The tier
+# machinery is kept because the CLAUDE_COST_PRICING override uses it and older
+# 1M-context betas did carry a ~2x premium; do not reintroduce a premium for a
+# current model without a published rate for it.
+#
+# Order matters: first substring match wins.
+# Override the whole table with CLAUDE_COST_PRICING pointing at a JSON file:
+#   {"threshold": 200000, "default": {...},
+#    "models": [["opus", {"std": [5,25,6.25,0.50], "long": [...]}], ...]}
 LONG_CTX_THRESHOLD = 200_000
 PRICING = [
-    ("opus",   {"std": (15.0, 75.0, 18.75, 1.50), "long": (30.0, 150.0, 37.50, 3.00)}),
-    ("sonnet", {"std": (3.0,  15.0,  3.75, 0.30), "long": (6.0,  22.50,  7.50, 0.60)}),
-    ("haiku",  {"std": (1.0,   5.0,  1.25, 0.10), "long": (2.0,  10.0,   2.50, 0.20)}),
-    # Rates for newer models are not always public; falling back to the Opus tier
-    # keeps estimates conservative rather than flattering. Verify before quoting.
-    ("fable",  {"std": (15.0, 75.0, 18.75, 1.50), "long": (30.0, 150.0, 37.50, 3.00)}),
+    # Opus 5 / 4.8 / 4.7 / 4.6 — $5 in, $25 out. NOT the retired Claude 3 Opus
+    # $15/$75, which is the single easiest way to overstate a bill by 3x.
+    ("opus",   {"std": (5.0, 25.0, 6.25, 0.50), "long": (5.0, 25.0, 6.25, 0.50)}),
+    # Sonnet 5 / 4.6 — $3/$15 is the durable rate. Sonnet 5 carries a $2/$10
+    # introductory rate through 2026-08-31; this table deliberately does NOT
+    # encode it, because a hardcoded intro price silently overstates the
+    # discount the day it lapses. Undercounts Sonnet slightly until then.
+    ("sonnet", {"std": (3.0, 15.0, 3.75, 0.30), "long": (3.0, 15.0, 3.75, 0.30)}),
+    ("haiku",  {"std": (1.0,  5.0, 1.25, 0.10), "long": (1.0,  5.0, 1.25, 0.10)}),
+    # Fable 5 and Mythos 5 — $10 in, $50 out. Above the Opus tier, not equal to it.
+    ("fable",  {"std": (10.0, 50.0, 12.50, 1.00), "long": (10.0, 50.0, 12.50, 1.00)}),
+    ("mythos", {"std": (10.0, 50.0, 12.50, 1.00), "long": (10.0, 50.0, 12.50, 1.00)}),
 ]
-DEFAULT_PRICE = {"std": (3.0, 15.0, 3.75, 0.30), "long": (6.0, 22.50, 7.50, 0.60)}
+# Unknown / unreleased model: assume the Sonnet tier rather than the top tier —
+# a new id is far more often mid-tier than frontier, and guessing high turns
+# every unrecognised model into a phantom bill. Verify before quoting.
+DEFAULT_PRICE = {"std": (3.0, 15.0, 3.75, 0.30), "long": (3.0, 15.0, 3.75, 0.30)}
 
 
 def load_pricing():
@@ -324,13 +344,26 @@ def cmd_self_test():
             ("tool captured", row[0] == "Bash"),
             ("project is dir name", row[1] == "demo-project"),
             ("tokens captured", row[2] == 100_000),
-            # 100k in @ $3/M + 10k out @ $15/M = $0.45 on the standard tier
+            # 100k in @ $3/M + 10k out @ $15/M = $0.45 on the Sonnet tier
             ("standard tier priced", abs(row[3] - 0.45) < 1e-6),
-            # same model, but a request whose context crosses the threshold
-            # bills at the long-context tier: 300k in @ $6/M + 10k out @ $22.50/M
-            ("long-context tier priced",
+            # Crossing 200k must NOT change the rate: no current model has a
+            # long-context premium. This is the regression guard for the phantom
+            # ~2x that shipped in 0.12.0.
+            ("no long-context premium",
              abs(cost_usd("claude-sonnet-test", 300_000, 10_000, 0, 0, load_pricing())
-                 - (300_000 * 6.0 + 10_000 * 22.50) / 1_000_000) < 1e-9),
+                 - (300_000 * 3.0 + 10_000 * 15.0) / 1_000_000) < 1e-9),
+            # Opus must be the $5/$25 tier, never Claude 3 Opus $15/$75.
+            ("opus priced at 5/25",
+             abs(cost_usd("claude-opus-5", 1_000_000, 1_000_000, 0, 0, load_pricing())
+                 - 30.0) < 1e-9),
+            # Cache read is a tenth of input; write is 1.25x.
+            ("opus cache multipliers",
+             abs(cost_usd("claude-opus-5", 0, 0, 1_000_000, 1_000_000, load_pricing())
+                 - (6.25 + 0.50)) < 1e-9),
+            # Fable is above the Opus tier.
+            ("fable priced at 10/50",
+             abs(cost_usd("claude-fable-5", 1_000_000, 0, 0, 0, load_pricing())
+                 - 10.0) < 1e-9),
             ("unknown model falls back", cost_usd("mystery", 1_000, 0, 0, 0,
                                                  load_pricing()) > 0),
         ]

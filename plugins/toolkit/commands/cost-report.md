@@ -15,9 +15,19 @@ plugin. Nothing leaves the machine and no API is called.
 ## Ground rules
 
 - **Costs are estimates.** The rate table lives in
-  `${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker/track.py` and includes the
-  long-context (>200K input) premium. Present figures as estimates, never as an
-  invoice. If the user has a real bill that disagrees, the bill wins.
+  `${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker/track.py` — Anthropic first-party
+  rates, no long-context premium (every current model is single-price at 1M).
+  Present figures as estimates, never as an invoice. If the user has a real bill
+  that disagrees, the bill wins.
+- **Sanity-check the magnitude before presenting it.** Divide total USD by total
+  tokens: a blended rate far above ~$1/MTok on a cache-heavy workload means the
+  rate table is wrong, not that the work was expensive. Cache read is a tenth of
+  input, so long agentic sessions are cheap per token and large in aggregate —
+  say which of the two is driving the number.
+- **The Stop hook only sees sessions that end with it loaded.** Headless
+  `claude -p` runs (Ralph loops, subagents) never fire it, so their spend is
+  missing until a backfill. If a project the user knows they hammered shows
+  near-zero, run the backfill in the last section before reporting anything.
 - If the database is missing, say the collector has not run yet and offer the
   backfill in the last section — do not invent numbers.
 - Sessions on a subscription plan cost nothing marginal. Say so if the user reads
@@ -130,5 +140,6 @@ python3 "${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker/track.py" --self-test
 ```
 
 Synthetic end-to-end check in a temp directory — row insertion, duplicate
-suppression, tool and project capture, standard and long-context pricing. Touches
+suppression, tool and project capture, the per-family rates, and the
+no-long-context-premium guard. Touches
 no real data.

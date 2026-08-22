@@ -1,5 +1,70 @@
 # Changelog
 
+## [0.13.0] - 2026-08-22
+
+### Fixed (cost-tracker overstated every bill by ~4.3x)
+`cost-report` on a real project produced $26,274 all-time and $9,604 for one repo.
+Both were wrong by **4.30x** — the true figures are **$6,104** and **$2,755**. Two
+independent bugs in `hooks/cost-tracker/track.py`, compounding:
+
+1. **The Opus row carried retired Claude 3 Opus pricing** — `$15 in / $75 out` per
+   MTok. Opus 5 / 4.8 / 4.7 / 4.6 are **$5 / $25**. A 3x error on the tier that
+   serves the overwhelming majority of agentic work. Fable 5 was also mapped to
+   the Opus row at $15/$75 instead of its own **$10 / $50**, and its comment
+   claimed falling back to the Opus tier "keeps estimates conservative" — it did
+   the opposite for a model priced *above* Opus.
+2. **A phantom long-context premium.** The table doubled every rate once a single
+   request's context passed 200K. No current model has such a premium: Opus
+   5/4.8/4.7/4.6, Sonnet 5/4.6, Fable 5 and Mythos 5 are all single-price at a 1M
+   window. On cache-heavy agentic sessions most requests cross 200K, so this
+   silently doubled the bulk of the spend on top of bug 1.
+
+Corrected table, with cache multipliers derived from the input rate (write 1.25x,
+read 0.10x) rather than hand-typed:
+
+    opus         5 / 25 / 6.25 / 0.50
+    sonnet       3 / 15 / 3.75 / 0.30
+    haiku        1 /  5 / 1.25 / 0.10
+    fable       10 / 50 / 12.50 / 1.00
+    mythos      10 / 50 / 12.50 / 1.00   (new row)
+    default      3 / 15 / 3.75 / 0.30    (was: top tier)
+
+`long` now equals `std` for every family. The tier machinery is kept — the
+`CLAUDE_COST_PRICING` override uses it, and older 1M-context betas genuinely did
+carry ~2x — with a comment forbidding its reintroduction without a published rate.
+
+Deliberately NOT encoded: Sonnet 5's $2/$10 introductory rate, valid through
+2026-08-31. A hardcoded intro price silently overstates the discount the day it
+lapses, and an unattended collector has nobody watching. Sonnet is undercounted
+by 1.5x until then; it was 1.5% of the observed spend.
+
+The unknown-model fallback moved from the top tier to the Sonnet tier. A new,
+unrecognised model id is far more often mid-tier than frontier, and guessing high
+turns every unknown into a phantom bill.
+
+### Added (regression guards)
+`--self-test` gains four checks that would have caught both bugs: Opus prices at
+5/25, Opus cache multipliers are 6.25/0.50, Fable prices at 10/50, and crossing
+200K does **not** change the rate.
+
+### Changed (`commands/cost-report.md`)
+- A magnitude sanity-check before presenting anything: divide USD by tokens, and
+  a blended rate far above ~$1/MTok on a cache-heavy workload means the rate table
+  is wrong, not that the work was expensive.
+- Says plainly that cache read is a tenth of input, so long agentic sessions are
+  cheap per token and large in aggregate — and to name which of the two drives the
+  number. On the project measured, fresh input was **$2** of $2,755; cache read
+  was 52%, cache write 28%, output 20%, across 3.05 billion tokens.
+- Warns that the Stop hook never fires for headless `claude -p` runs, so Ralph
+  loops and subagents are missing until a backfill. On the project measured this
+  hid **32,032 of 32,034 rows** — the repo showed $0.00 before backfill.
+
+### Note on re-pricing existing databases
+Cost is computed at ingest, so an existing `usage.db` keeps the old numbers.
+Deleting it and re-backfilling is **lossy** — rows whose `.jsonl` has since been
+rotated away cannot be rebuilt (75 sessions, 17,189 rows in the case measured).
+Re-price in place instead: read every row, recompute with `cost_usd`, `UPDATE`.
+
 ## [0.12.0] - 2026-08-22
 
 ### Added (cost tracking that survives a moved config dir)
