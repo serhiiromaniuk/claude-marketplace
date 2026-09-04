@@ -30,6 +30,8 @@ means a crash, a `/clear`, or a new day never loses progress.
 | `PROMPT.md` | The **invariant** prompt. Re-fed verbatim every iteration. Don't change it per-step — change the task's `PLAN.md` instead. |
 | `where.sh` | The **position oracle** — every iteration's first command. `--json` for the loop, `--human` (`make where`) for a person, `--read` for just the file list. Computes phase · task · step N/M · step title · governing spec + stub flag · gate · tree state · the read contract. |
 | `entry-size-guard.sh` | The prose ratchet (`make loop-hygiene`): LOG entry ≤40 lines, `STATE.md` ≤40 lines, ledger row ≤200 B. Warn-only, called from `PROMPT.md` §5 — deliberately **not** a dependency of the correctness gate. |
+| `amendments-guard.sh` | `make amendments` — prints how many deferred reviewer findings in the active `PLAN.md`'s `## Amendments` are still OPEN, read from each entry's own disposition verb. `--all` walks closed tasks too. Warn-only. |
+| `merge-gate.sh` | The prerequisite for parallel tasks: merges N branches into a throwaway worktree off `main` and runs the gate **once on the merged tree**. Two branches can be green alone and RED together — global LOC rows, one coverage/testcount ratchet, committed generated code. |
 | `STATE.md` | Only what no script can derive: the gate verdict, decisions not to relitigate, and carry-forwards aimed at a task with no folder yet. Changes on those events, **not** every iteration. |
 | `loop.sh` | The bounded harness. Runs `claude -p` with `PROMPT.md`, greps stdout for completion markers, stops on a marker or `--max-iterations`. |
 | `loop.sh --stop-on-phase` | Promotes `<<LOOP:PHASE_COMPLETE>>` to a hard terminal, so the run delivers exactly ONE milestone and hands back. Default is autonomous rollover — the agent tags the milestone and continues into the next phase. The stop lands **after** the tag, so nothing is half-done. |
@@ -45,6 +47,14 @@ loop/loop.sh --dry-run             # print the prompt + settings, run nothing
 
 `--max-iterations` is the **primary safety**. The loop is never unbounded.
 Alternatively, run one increment by hand with the `/loop-step` slash command.
+
+**Watching the loop from outside: never `pgrep -f` a pattern that appears in your
+own command line.** A watcher written as
+`while pgrep -f 'claude -p'; do sleep 20; done` matches *itself* — its `bash -c`
+line contains that string — so the condition never goes false and the watcher spins
+forever. The same shape makes `pkill -f 'loop.sh'` kill the shell that runs it.
+Watch a PID instead (`while kill -0 "$pid"; do …`), or match on parentage with
+`pgrep -P "$parent"`. Both failures were observed on a real run.
 
 ### Long unattended run
 

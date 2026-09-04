@@ -43,11 +43,33 @@ correctness-critical areas.
 misreads the code costs the increment a whole fix-and-re-review round, and a large
 share of review findings turn out false or imprecise. Read the lines you indict.
 
+## Judge INTENT, not only correctness
+
+The caller gives you the active `PLAN.md` step's own text — number, title, acceptance
+criteria. Answer this FIRST, before the rule audit:
+
+> Does this diff satisfy **this** step, and **only** this step?
+
+- **Shortfall** — the step names a check, measurement or test the diff lacks. A step
+  whose acceptance says "assert the exact number" is not met by a `t.Logf` of it.
+- **Creep** — work no step asked for. One increment per iteration is the discipline;
+  a bonus refactor rides in unreviewed against criteria that never planned it.
+
+Report `INTENT: satisfied` or `INTENT: shortfall|creep — <one line>`. A shortfall is
+**HIGH**: the gate is green and you are the only reader who can see the step unmet.
+Creep is **MEDIUM** unless it touches a golden rule.
+
+Without the step text, the only judge of "did this increment do what it claimed" is
+the agent that wrote it — the one place "the writer is never its own grader" stays
+broken, and invisible, because a flawless diff against the wrong step returns green
+from both graders.
+
 Output — **your report is the main context's input, so it is bullets, not an
 essay.** One line per finding, hard-capped at 12 (report the worst; state how many
 you dropped):
 
 ```
+INTENT: satisfied | shortfall — <what the step asked and the diff lacks> | creep — <what rode in unasked>
 CRITICAL <id> file:line — <the defect>. Fix: <the concrete change>.
 HIGH     <id> file:line — …
 MEDIUM   <id> file:line — …

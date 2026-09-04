@@ -63,6 +63,10 @@ where:                          ## print the loop's position (loop/where.sh --hu
 loop-hygiene:                   ## warn if the newest LOG entry / STATE.md / INDEX rows exceed their budgets
 	@./loop/entry-size-guard.sh
 
+.PHONY: amendments
+amendments:                     ## warn which deferred reviewer findings (PLAN ## Amendments) are still open
+	@./loop/amendments-guard.sh
+
 # ── Project-specific targets ──────────────────────────────────────────────
 # Add run / build / validate / acceptance targets your project needs, e.g.:
 # .PHONY: build

@@ -147,3 +147,45 @@ paragraph appearing in three files → score the loop pillar down and install
 steps 1–4. And note the anti-pattern this whole section is about: growing one of
 these budgets to silence its warning is the same move as weakening a test to go
 green (see the falsified-metric path above — it applies to prose budgets too).
+
+
+## Deferred findings — the ratchet that is usually a promise
+
+A review that defers MEDIUM/LOW findings to a plan's `## Amendments` needs a third
+thing besides the finding and the deferral: a **count of what is still open**.
+Without it "deferred" and "dropped" are the same state, and nothing distinguishes
+them at the close.
+
+Measured on one real project, once the count existed: **m1-06 74 entries / 50 open ·
+m1-07 46 / 26 · m1-08 44 / 34 · m1-10 81 / 39 · m1-11 138 / 69 · m1-12 40 / 8.**
+Nobody had been dishonest — the mechanism simply had no reader. Its own
+carry-forward file maintained the open list **by hand**, and one entry admitted
+outright that its obligations' "only check is re-measure at the close".
+
+**How to decide discharge, and how not to.** The first version of the guard grepped
+amendment ids out of the whole plan and matched them against 400 commit messages.
+Its one field result — "16 of 16 discharged" — was false at *both* ends: the ids it
+found were cross-references to *other* objectives' amendments, and the evidence was
+bare numbers inside unrelated strings (`.29.`, `=202`, `/35/`). The commit grep went
+away. An amendment's disposition is written **in the amendment**, by the increment
+that dealt with it, which is local and exact:
+
+- scope the scan to the `## Amendments` section, never the whole plan;
+- accept every entry format the project actually uses (three were in use here:
+  `- **#162 …`, `**#151 · …`, `12. **2026-08-23 — …`) and treat a zero count as a
+  signal to look, not a clean bill;
+- fold continuation lines into their entry — the disposition verb is often on the
+  second line;
+- an entry is disposed when its own text says so: *discharged, fixed, folded,
+  resolved, closed, actioned, taken, superseded, declined, re-targeted, withdrawn,
+  satisfied, done*.
+
+Warn-only, for the same reason as the prose budget: an amendment can legitimately
+stay open for a whole objective. The point is that the number is visible at every
+close, where each open id owes a disposition — done, re-targeted to a carry-forward,
+or declined **with a reason**. Never dropped for being inconvenient.
+
+**Audit heuristic.** Ask to see the count. If the project cannot produce one, the
+deferral mechanism is unmeasured however disciplined its prose, and the plan-review
+lens ("does every step name the check that proves it") applies to the process
+itself.

@@ -74,7 +74,10 @@ The reference implementation to install from is bundled at `templates/` (domain-
   `templates/loop/` → `ralph/` (or `loop/`); `templates/tasks/` → `tasks/`; `templates/rules/`
   → `CLAUDE.md`/`AGENTS.md`/`WORKFLOW.md`; `templates/agents/` + `templates/commands/` →
   `.claude/agents/` + `.claude/commands/`; `templates/Makefile.sample` → merge a `check` target
-  plus the `where` / `loop-hygiene` targets. **Install `templates/loop/where.sh` +
+  plus the `where` / `loop-hygiene` / `amendments` targets. Install the graders
+  together — `templates/agents/{planner,reviewer,verifier,plan-reviewer,adjudicator}.md`
+  — since PROMPT §1/§4b/§7 dispatch all five, and `templates/loop/amendments-guard.sh`
+  + `merge-gate.sh` alongside the other two scripts. **Install `templates/loop/where.sh` +
   `entry-size-guard.sh` whenever you install the loop** — a loop without them regrows the
   control-plane bloat described in `reference/ratchets.md`, which is the single largest
   measured cause of iteration slowdown.
@@ -96,6 +99,7 @@ The reference implementation to install from is bundled at `templates/` (domain-
 - **One engine, reused.** Scoring vocabulary and the PDF renderer come from `assessment-report` — this skill adds the rubric, the state layer, the scan playbook, and the uplift step. Don't fork the renderer.
 - **The artifact is stateful.** Always read the prior `score.json` and emit `previous`+`delta` so re-runs show a trend, not just a snapshot.
 - **Templates are the single source of "good".** `templates/` is both what the rubric describes and what Mode 2 installs — keep them in sync.
+- **Every grader reads what it is grading.** `reviewer` gets the step's own acceptance text and answers `INTENT: satisfied | shortfall | creep` first — without it the only judge of "did this increment do what the step said" is the agent that wrote it, and a flawless diff against the wrong step returns green from both graders. `plan-reviewer` audits a freshly written `PLAN.md` before step 1, because plan defects are found by *executing* them (two real cases: a plan revised 16→20 steps mid-objective; a step that became "part 1…part 8"). `adjudicator` rules on whether a *failing gate* is itself wrong, and is the only role with no stake in the increment continuing — a `raise-with-basis` ruling is actionable only once its arithmetic is in a committed decision record.
 - **Position is computed, never narrated.** `templates/loop/where.sh` derives phase · task · step N/M · governing spec · tree state · the read list from the `PLAN.md` checkboxes, the `LOG.md` tail and `git status`. The loop reads ONLY the files it names, which is what keeps closed tasks' logs out of context structurally. Detail is written **once**, in the LOG; pointer files (`STATE.md`, `INDEX.md`) change only on gate/decision/carry-forward/task-boundary events. `entry-size-guard.sh` is the ratchet. See `reference/ratchets.md` §"Control-plane prose".
 - **Never invent a timestamp or a score.** Timestamps come from `date`; levels come from observed evidence. Verified-absent (you looked, it's not there) beats a guessed level.
 

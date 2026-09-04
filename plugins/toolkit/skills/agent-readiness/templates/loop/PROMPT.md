@@ -36,8 +36,16 @@ row, and `git status --porcelain`. Then:
      on a dirty tree; never leave orphan files behind.
    - `.needs_open == true` → open the task folder from `tasks/_template/`; that IS
      this iteration.
-   - `.needs_plan == true` → the **`planner`** subagent writes `PLAN.md` from the
-     `BRIEF` + spec; that decomposition IS this iteration, then stop.
+   - `.needs_plan == true` → the **`planner`** writes `PLAN.md` from the `BRIEF` +
+     spec, then the **`plan-reviewer`** audits it. Act on CRITICAL/HIGH before the
+     commit: the plan is immutable once step 1's box is checked. That decomposition
+     **plus its review** IS this iteration, then stop.
+     **§4b's both-graders rule does NOT apply here** — a plan has no diff and no
+     gate to re-run, so its grader turn is the `plan-reviewer` alone.
+     Why it earns an iteration: plan defects are the expensive kind, because they
+     are found by EXECUTING them. Two real cases: a plan revised 16 -> 20 steps
+     mid-objective because a whole area was missing, and a step that grew into
+     "part 1...part 8" because one step was really eight.
    - `.spec_stub == true` → the governing spec is still a stub. **Write it first —
      that IS this iteration.** No code precedes its spec.
    - `.all_steps_done == true` → close the task: `OUTCOME.md`, tick the BRIEF's
@@ -87,7 +95,13 @@ The writer is never its own grader. For **every** increment, before you commit:
    re-runs the project's check and reports PASS/FAIL **with evidence**. FAIL → fix
    the work (never the threshold) and re-run this step.
 2. Spawn the **`reviewer`** subagent (`agents/reviewer.md`) on the diff in a fresh
-   context. **ONE pass.** Then triage by severity, and do not re-open:
+   context, **and give it THIS STEP'S OWN TEXT** — number, title, acceptance
+   criteria, verbatim from `PLAN.md`. It answers
+   `INTENT: satisfied | shortfall | creep` before the rule audit. Without the step
+   text the only judge of "did this increment do what step N said" is you, the
+   writer — the one place this section's own principle stays broken, and invisible,
+   because a flawless diff against the wrong step returns green from both graders.
+   **ONE pass.** Then triage by severity, and do not re-open:
    - **CRITICAL / HIGH** → fix now, before the commit. Verify each finding against
      real source first — a large share of review findings are false or imprecise,
      and acting on a misread costs a whole fix-and-re-review round.
@@ -158,7 +172,14 @@ the reason instead. Never end silently.
   itself is the wrong metric** — same overage shape on record at ≥3 checkpoints,
   arithmetically unreachable alongside the project's other mandated
   requirements, and fixable only by re-scoping *what is counted* while keeping a
-  hard gate on the part moved out — then this increment is the **decision
+  hard gate on the part moved out — spawn the **`adjudicator`**
+  (`agents/adjudicator.md`) first. It has no stake in the increment continuing,
+  which you do. Act on its ruling exactly: **`fits`** → re-run, confirm green,
+  continue and do NOT emit this marker; **`re-scope`** → build the replacement gate
+  as the next increment; **`raise-with-basis`** → actionable ONLY once the measured
+  arithmetic is written into a committed decision record in this same commit — a
+  threshold never moves on a subagent's word alone; **`blocked`** or no adjudicator
+  → this marker stands. Then this increment is the **decision
   record** (measured numbers, ≥2 options, a recommendation), and this marker
   names the decision needed. Never edit the constant yourself: AGENTS.md §6.
 - `<<LOOP:BLOCKED>>` — escape hatch tripped, or a step needs a human (e.g. a

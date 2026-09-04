@@ -1,5 +1,73 @@
 # Changelog
 
+## [0.15.0] - 2026-09-04
+
+### Added (every grader reads what it grades)
+Three orchestration gaps closed, all found by auditing a real loop rather than by
+reading the templates.
+
+- **`templates/agents/plan-reviewer.md`** (strongest reasoner) — audits a freshly
+  written `PLAN.md` at a task's open, before step 1. The plan is immutable from the
+  first checked box, and plan defects are the expensive kind because they are found
+  by EXECUTING them: on the source project one plan was revised **16 -> 20 steps**
+  mid-objective because a whole area was missing, and another grew a step into
+  "part 1...part 8" because one step was really eight. Both cost several iterations;
+  this pass costs part of one. `PROMPT.md` §1's `.needs_plan` branch dispatches it,
+  and explicitly carves it out of §4b's both-graders rule — a plan has no diff and
+  no gate, so one grader call is complete, not a violation.
+- **`templates/agents/adjudicator.md`** (strongest reasoner, read-only) — rules
+  whether a FAILING hard gate is itself wrong: `fits` / `re-scope` /
+  `raise-with-basis` / `blocked`. It is the only role with no stake in the increment
+  continuing, which the driver has and the reviewer does not audit: the reviewer
+  reads the diff, never the motive. `PROMPT.md`'s GATE_FAILED path now enumerates an
+  action per ruling, because a ruling with no action path is a trap — `fits` means
+  the gate really passes, so telling the driver to emit GATE_FAILED anyway would
+  halt the loop on a green gate. `raise-with-basis` is actionable ONLY once its
+  measured arithmetic is in a committed decision record in the same commit: a
+  threshold never moves on a subagent's word, and this is not a route around
+  "never weaken a check to go green".
+- **`templates/loop/amendments-guard.sh`** + a `make amendments` target — counts how
+  many deferred reviewer findings in a plan's `## Amendments` are still OPEN.
+  `--all` walks closed tasks. Measured on the source project the first time the
+  count existed: **m1-06 74 entries / 50 open · m1-07 46/26 · m1-08 44/34 ·
+  m1-10 81/39 · m1-11 138/69 · m1-12 40/8**. Nobody had been dishonest; the
+  mechanism simply had no reader, and its carry-forward file maintained the open
+  list by hand.
+- **`templates/loop/merge-gate.sh`** — merges N branches into a throwaway worktree
+  off `main` and runs the gate ONCE on the merged tree. The prerequisite for
+  parallel tasks, which the templates have always sanctioned and no project had
+  used: two branches can be green alone and RED together, because LOC rows are
+  global, coverage/testcount is one ratchet, and generated code is committed. Per
+  branch verification proves nothing about the union.
+
+### Changed
+- **`templates/agents/reviewer.md`** now receives the active step's own acceptance
+  text and answers `INTENT: satisfied | shortfall | creep` as the FIRST line of its
+  report, and the output template carries that line (a literal reader omitted it
+  otherwise). Without the step text the only judge of "did this increment do what
+  step N said" is the agent that wrote it — the one place "the writer is never its
+  own grader" stayed broken, and invisible, because a flawless diff against the
+  wrong step returns green from both graders.
+- **`rubric/rubric.md`** P5 gains the requirement and a cap: **P5 is capped at 3**
+  when the reviewer gets the diff but not the step's acceptance criteria, when a
+  plan is written by an agent and reviewed by nobody, or when a failing gate can be
+  re-scoped by the same agent that wants to continue with no independent
+  adjudication and no committed decision record.
+- **`reference/ratchets.md`** gains §"Deferred findings — the ratchet that is
+  usually a promise", including how NOT to detect discharge. The guard's first
+  version grepped ids from the whole plan and matched them against 400 commit
+  messages; its one field result, "16 of 16 discharged", was false at BOTH ends —
+  the ids were cross-references to other objectives' amendments and the evidence
+  was bare numbers inside unrelated strings (`.29.`, `=202`, `/35/`). Disposition is
+  read from the amendment's own text instead, scoped to the section, across the
+  three entry formats real projects use.
+- **`templates/loop/README.md`** documents a watcher failure worth never repeating:
+  **never `pgrep -f` a pattern that appears in your own command line.** A watcher
+  written `while pgrep -f 'claude -p'; do sleep 20; done` matches itself, so the
+  condition never goes false; the same shape makes `pkill -f 'loop.sh'` kill the
+  shell running it. Watch a PID with `kill -0`, or match parentage with `pgrep -P`.
+  Both were observed on a real run — the second one killed its own shell.
+
 ## [0.14.0] - 2026-08-22
 
 ### Added (`--stop-on-phase`)
