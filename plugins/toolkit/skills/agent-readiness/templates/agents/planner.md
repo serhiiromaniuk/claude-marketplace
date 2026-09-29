@@ -41,6 +41,10 @@ Produce a `PLAN.md` (use `tasks/_template/PLAN.md`) where:
   reviewer pass over each group catches the cross-document contradictions a
   per-step pass cannot. On a real project the serial version of this was ~3 h
   of a ~7 h run.
+- **Cite the spec section as `spec §<key>`** (the heading's number, or its
+  text before ` — `) in every step that follows one. `loop/where.sh --context`
+  then loads that section instead of the whole spec; a bare `§N` is read as a
+  citation of some other document.
 - **Batch trivial items.** Mechanical items that one check proves (a row per
   table, the same edit across files) are ONE step. Every step carries a fixed
   close-out cost, so a 37-step plan pays it 37 times; do not split what one

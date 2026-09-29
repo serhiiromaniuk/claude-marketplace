@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.19.1] - 2026-09-29
+
+### Fixed (a foreign `§N` could hide the spec)
+
+- **`templates/loop/where.sh` counts only `spec §<key>` as a spec citation.**
+  0.17.0 treated every bare `§<key>` as one, skipping only `FILE.md §N`. A
+  step reading "values per runtime-reference §5" then matched spec heading
+  `## 5. …`. The session got the wrong section, and the whole spec left
+  `.read`, which is the one failure the fallback exists to prevent. The same
+  defect was found by an independent review of the source project's port.
+  `spec` must now start a word (`runtime-spec §1` is not a citation), and
+  whitespace is collapsed first, so a citation that wraps across lines
+  resolves instead of falling back.
+- `planner.md` now tells the planner to cite as `spec §<key>`. `plan-reviewer.md`
+  flags a step that follows a spec section without citing it (MEDIUM).
+  `tests/loop-scripts.test.sh` adds foreign-citation and wrapped-citation
+  cases (40 run, 0 failed).
+
 ## [0.19.0] - 2026-09-29
 
 ### Added (faster task open: fan out, ask once, batch the trivial)

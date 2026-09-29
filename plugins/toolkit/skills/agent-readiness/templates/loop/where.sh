@@ -27,7 +27,7 @@
 #   · a rules file CLAUDE.md `@`-imports (directly or through another import) is
 #     reported in `.loaded` and left OUT of `.read`;
 #   · LOG.md is never in `.read` — `--context` prints its newest two entries;
-#   · the spec leaves `.read` when every `§<key>` the current step cites
+#   · the spec leaves `.read` when every `spec §<key>` the current step cites
 #     resolves to a heading of it — `--context` prints just those sections.
 #     Any unresolved citation, a stub spec or a plan still to write keeps the
 #     whole spec in `.read`. A miss costs a bigger read, never a missing one.
@@ -222,15 +222,19 @@ elif [[ -n "$spec" ]]; then
 fi
 
 # ── the spec sections the current step cites ─────────────────────────────────
-# A citation is `§<key>` where <key> is a heading's leading number (`## 3. Data`
-# → `§3`) or its text before ` — ` (`## Wave 1 — edge` → `§Wave 1`), matched
-# case-insensitively and not followed by a letter or digit (`§1` never matches
-# `§10`). `FILE.md §6` cites another document and is ignored. Headings inside
+# A citation is `spec §<key>` where <key> is a heading's leading number
+# (`## 3. Data` → `spec §3`) or its text before ` — ` (`## Wave 1 — edge` →
+# `spec §Wave 1`), matched case-insensitively and not followed by a letter or
+# digit (`§1` never matches `§10`). `spec` must start a word: a bare `§6`,
+# `AGENTS.md §6` or `runtime-spec §6` names another document and is ignored —
+# a foreign `§5` that happened to match heading `5.` would load the wrong
+# section AND drop the whole spec. Whitespace is collapsed first, so a
+# citation may wrap across lines. Headings inside
 # fenced code are not headings. A section runs to the next heading of the same
 # or a higher level. Prints `start end title` per section, `NONE` when the step
 # cites nothing, `UNRESOLVED` when any citation matches no heading.
 spec_sections_of() { # <spec> <step text>
-  WHERE_STEP_TEXT="$2" awk -v q='§' '
+  WHERE_STEP_TEXT="$2" awk -v q='spec §' '
     function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
     /^[ \t]*(```|~~~)/ { fence = !fence; next }
     fence { next }
@@ -252,11 +256,11 @@ spec_sections_of() { # <spec> <step text>
         for (j = i + 1; j <= n; j++) if (hlev[j] <= hlev[i]) { e = hl[j] - 1; break }
         hend[i] = e
       }
-      s = tolower(ENVIRON["WHERE_STEP_TEXT"]); ql = length(q); cites = 0; unres = 0
+      s = tolower(ENVIRON["WHERE_STEP_TEXT"]); gsub(/[ \t\n]+/, " ", s)
+      ql = length(q); cites = 0; unres = 0
       while ((p = index(s, q)) > 0) {
-        before = substr(s, 1, p - 1); after = substr(s, p + ql); s = after
-        sub(/[ \t`*]+$/, "", before)
-        if (before ~ /\.md$/) continue
+        prev = (p > 1 ? substr(s, p - 1, 1) : ""); after = substr(s, p + ql); s = after
+        if (prev ~ /[a-z0-9_-]/) continue
         cites++
         if (substr(after, 1, 1) == " ") after = substr(after, 2)
         best = 0; bl = 0

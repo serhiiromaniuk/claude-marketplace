@@ -70,8 +70,9 @@ EOF
 ## Steps
 
 - [x] 1. **Done already:** nothing — check: none.
-- [ ] 2. **Edge proxy:** spec §Wave 1 file table and §2 rules; see
-  `AGENTS.md` §6 for gates — check: make check.
+- [ ] 2. **Edge proxy:** spec §Wave 1 file table and spec §2 rules; values
+  per runtime-reference §1 and runtime-spec §10; see `AGENTS.md` §6 — check:
+  make check.
   second continuation line.
 - [ ] 3. **Later:** spec §Wave 2 — check: make check.
 
@@ -133,7 +134,7 @@ check "LOG.md is never in .read" \
   test "$(jq '[.read[] | select(endswith("LOG.md"))] | length' <<<"$J")" = 0
 check "every cited § resolves → spec leaves .read" \
   test "$(jq '[.read[] | select(. == "docs/spec.md")] | length' <<<"$J")" = 0
-check "spec_sections names §Wave 1 and §2, not §1 or §10" \
+check "spec_sections names §Wave 1 and §2, not foreign §1 or §10" \
   test "$(jq -c '.spec_sections' <<<"$J")" = '["2. More rules (L6-8)","Wave 1 — edge (L12-21)"]'
 check "context_cmd is set" test "$(jq -r '.context_cmd' <<<"$J")" = "loop/where.sh --context"
 check "--context prints the step's full text" grep -q 'second continuation line' <<<"$C"
@@ -142,6 +143,10 @@ lacks() { ! grep -qE "$1" <<<"$C"; }
 check "--context leaves out uncited sections" lacks 'tenth body|wave two body|rule one'
 check "--context prints the newest two LOG entries" grep -qzE 'middle body.*newest body' <<<"$C"
 check "--context prints the newest two LOG entries only" lacks 'old body|template heading'
+
+sed -i 's/spec §Wave 1 file/spec §Wave\n  1 file/' "$W/tasks/phase-1_demo/PLAN.md"
+check "a citation wrapped across lines still resolves" \
+  test "$(jq -c '.spec_sections' <<<"$("$W/loop/where.sh" --json)")" = '["2. More rules (L6-8)","Wave 1 — edge (L12-21)"]'
 
 sed -i 's/§2 rules/§9 rules/' "$W/tasks/phase-1_demo/PLAN.md"
 J2="$("$W/loop/where.sh" --json)"

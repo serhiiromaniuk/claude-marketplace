@@ -27,7 +27,9 @@ eight. Both cost several iterations; this pass costs part of one.
    step needing three unrelated checks is three steps (**oversized**, HIGH when
    it hides a whole area). A run of consecutive trivial steps that share ONE
    check is one batch step (**undersized**, MEDIUM): each step pays a fixed
-   close-out cost, so over-splitting is measured time, not neatness.
+   close-out cost, so over-splitting is measured time, not neatness. A step that
+   follows a spec section without citing it as `spec §<key>` makes every resume
+   load the whole spec (MEDIUM).
 3. **Order.** Does any step depend on a later one? Does code precede its spec?
 4. **Acceptance.** Does every step name the check that proves it — a test name, a
    measured number, a gate — rather than "implement X"?
