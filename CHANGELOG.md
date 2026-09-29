@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.16.0] - 2026-09-29
+
+### Changed (graders sized to their job)
+
+Tuned from a real project's agent set, where every subagent call re-read about
+24 KB of rules it already had.
+
+- **`templates/agents/verifier.md` now runs on `haiku`** (was `sonnet`). The
+  verifier only runs the gate and reports the exit code and output, so it makes
+  no judgment call that needs a stronger model. A new rule keeps the cheaper
+  model honest: `VERDICT` follows the exit code, so any non-zero `EXIT` is
+  `FAIL`, and a threshold miss is `FAIL` even on `EXIT=0`. The judgment roles
+  keep their models: `reviewer` and `planner` stay on `opus`, `plan-reviewer`
+  and `adjudicator` stay on `fable`.
+- **Graders stop re-reading loaded rules.** Subagents already get `CLAUDE.md`
+  and every file it `@`-imports. `planner`, `reviewer` and `verifier` now skip
+  rule files that `CLAUDE.md` already loads, and Mode 2 in `SKILL.md` now
+  installs the rules with `CLAUDE.md` `@`-importing the rest. A probe on the
+  source project confirmed it: a Haiku subagent quoted a `CLAUDE.md` golden
+  rule and an `AGENTS.md` §6 bullet verbatim without reading either file.
+
 ## [0.15.0] - 2026-09-04
 
 ### Added (every grader reads what it grades)

@@ -72,7 +72,9 @@ The reference implementation to install from is bundled at `templates/` (domain-
 - **On-the-fly (apply now):** for each `Fix now` gap, install or repair the pillar from
   `templates/` into the target repo, mapping template dirs to the repo's convention:
   `templates/loop/` → `ralph/` (or `loop/`); `templates/tasks/` → `tasks/`; `templates/rules/`
-  → `CLAUDE.md`/`AGENTS.md`/`WORKFLOW.md`; `templates/agents/` + `templates/commands/` →
+  → `CLAUDE.md`/`AGENTS.md`/`WORKFLOW.md` (have `CLAUDE.md` `@`-import the rest, so every
+  subagent starts with the rules loaded and the graders skip re-reading them);
+  `templates/agents/` + `templates/commands/` →
   `.claude/agents/` + `.claude/commands/`; `templates/Makefile.sample` → merge a `check` target
   plus the `where` / `loop-hygiene` / `amendments` targets. Install the graders
   together — `templates/agents/{planner,reviewer,verifier,plan-reviewer,adjudicator}.md`

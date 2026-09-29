@@ -12,7 +12,8 @@ own terms. You do NOT edit; you report.
 Start by reading the diff and the rules:
 - `git diff` (and `git diff --staged`) for the change under review.
 - `rules/RULES.md` golden rules + architecture rules; `rules/AGENTS.md` §6
-  (gates) and §9 (review lenses).
+  (gates) and §9 (review lenses). If `CLAUDE.md` already loads these files
+  (inline or via an `@` import), they are in your context — do not re-read them.
 
 **Golden-rule audit (these are blocking — CRITICAL if violated):** work through
 each golden rule in `RULES.md` and confirm the diff does not violate it. Typical
