@@ -27,18 +27,18 @@ Context loaded per `loop/where.sh --json`. Starting at step <N>.
 reason>, then passed. <or, when it is green-on-arrival: the mutation that proves
 the assertion has teeth, in one line>
 
-**Evidence:** `make check` EXIT=<n> — <lint result, type result, tests passed,
-coverage %, the acceptance numbers>.
-<the verbatim output tail — only the decisive lines>
+**Evidence:** written below this entry by `loop/step-done.sh` (the gate tail,
+fenced in `gate:begin/gate:end`). Add by hand only what no script captures: a
+smoke result, measured acceptance numbers — the decisive lines.
 
-**verifier:** PASS|FAIL — <one line>
-**reviewer:** <n> CRITICAL / <n> HIGH / <n> MEDIUM / <n> LOW
+**reviewer:** <n> CRITICAL / <n> HIGH / <n> MEDIUM · or `batched` (low-risk,
+reviewed with the next batch before the push)
 - CRITICAL|HIGH <id>: <finding> → fixed in <where>.
-- MEDIUM|LOW <id>: <finding> → deferred to PLAN `## Amendments` #<n>.
+- MEDIUM <id>: <finding> → deferred to PLAN `## Amendments` #<n>.
 
 **Decision:** <a choice the next iteration must not relitigate · none>
 **Carry-forward:** <raised/discharged in loop/STATE.md · none>
 **Next:** step <N+1> — <title>.
 
-Commit: <type>(<scope>): <subject>   ·   Marker: <<LOOP:CONTINUE>>
+Commit: via `loop/step-done.sh --commit "<type>(<scope>): <subject>"`   ·   Marker: <<LOOP:CONTINUE>>
 -->

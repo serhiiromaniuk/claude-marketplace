@@ -47,9 +47,10 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$REPO_ROOT" || exit 1
-SELF="$(basename "$(dirname "${BASH_SOURCE[0]}")")/$(basename "${BASH_SOURCE[0]}")"
+SELF="$(basename "$SCRIPT_DIR")/$(basename "${BASH_SOURCE[0]}")" # e.g. loop/where.sh
 
 INDEX="${LOOP_INDEX:-tasks/INDEX.md}"
 STATE="${LOOP_STATE:-loop/STATE.md}"
@@ -65,7 +66,7 @@ case "${1:-}" in
   --context) MODE="context" ;;
   --human) MODE="human" ;;
   -h | --help)
-    grep '^#' "$0" | sed '1d; s/^# \{0,1\}//'
+    grep '^#' "$REPO_ROOT/$SELF" | sed '1d; s/^# \{0,1\}//'
     exit 0
     ;;
   *)
@@ -253,6 +254,11 @@ tree_clean=true
 # symbolic-ref first: it also works before the first commit; short sha when detached.
 branch="$(git symbolic-ref --short -q HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo '?')"
 
+# ── unreviewed work: commits not yet pushed ──────────────────────────────────
+# AGENTS.md §8: a commit is pushed only once reviewed, so "ahead of upstream"
+# IS the batch still owed a reviewer pass. -1 = no upstream: review every step.
+unreviewed="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo -1)"
+
 # ── last result: the newest LOG.md entry heading ─────────────────────────────
 # Deliberately NOT read from the pointer files. Deriving it here is what lets a
 # normal increment write prose in ONE place (its LOG) instead of three.
@@ -358,6 +364,7 @@ case "$MODE" in
     [[ ${#LABELS[@]} -gt 0 ]] && echo "cited       : ${LABELS[*]}"
     echo "gate        : ${gate:-<none recorded>}"
     echo "tree        : $([[ "$tree_clean" == true ]] && echo clean || echo 'DIRTY — reconcile before starting (PROMPT §1)') on $branch"
+    echo "unreviewed  : $([[ "$unreviewed" -lt 0 ]] && echo 'no upstream — review every step' || echo "$unreviewed commit(s) ahead of upstream")"
     echo "last result : ${last_result:-<none>}"
     echo "loaded      : ${LOADED[*]:-<none>}"
     echo "read        : ${READ[*]}"
@@ -382,6 +389,7 @@ case "$MODE" in
     printf '  "blocked": "%s",\n' "$(jesc "$blocked")"
     printf '  "tree_clean": %s,\n' "$tree_clean"
     printf '  "branch": "%s",\n' "$(jesc "$branch")"
+    printf '  "unreviewed": %s,\n' "$unreviewed"
     printf '  "last_result": "%s",\n' "$(jesc "$last_result")"
     printf '  "loaded": %s,\n' "$(jarr ${LOADED[@]+"${LOADED[@]}"})"
     printf '  "read": %s,\n' "$(jarr "${READ[@]}")"

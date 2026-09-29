@@ -51,7 +51,8 @@ this operating manual permits you to violate them. In particular:
 
 ```bash
 make install   # set up the isolated environment + install deps
-make check     # lint + typecheck + tests — RUN BEFORE EVERY COMMIT
+make check     # lint + typecheck + tests, in parallel — RUN BEFORE EVERY COMMIT
+make step-done MSG="…" [PUSH=1]   # gate → LOG evidence → tick → hygiene → scan → commit
 make test      # tests with coverage (≥80% target)
 make lint | format | typecheck   # the individual gates
 make lock      # freeze exact dep versions
@@ -70,9 +71,10 @@ src/                  the main package / source tree
   config.<ext>          every config value read + validated in ONE place
 tests/                the test suite (≥80% coverage)
 loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh ·
-                        where.sh (position oracle) · entry-size-guard.sh · STATE.md
+                        where.sh (position oracle) · step-done.sh (close a step) ·
+                        entry-size-guard.sh · STATE.md
 tasks/                per-phase BRIEF/PLAN/LOG/OUTCOME folders + INDEX.md ledger
-agents/               specialist subagents (planner, reviewer, verifier)
+agents/               specialist subagents (planner, plan-reviewer, reviewer, adjudicator; verifier optional)
 commands/             slash-command shortcuts (/loop-step, /status)
 RULES.md              governance: golden rules, architecture, conventions, git
 AGENTS.md             this file — how an agent executes work here
@@ -159,14 +161,17 @@ status `todo | in-progress | blocked | done`.
 ### 3b. Shutdown (end of session / loop iteration)
 1. Append a `LOG.md` entry in `_template/LOG.md`'s shape — **≤40 lines, bullets**.
    This is the ONE place per-step detail is written.
-2. Check the box for that step in `PLAN.md`.
+2. `loop/step-done.sh --commit "<msg>" [--push]` (§7): the gate tail into the LOG,
+   the step's `PLAN.md` box, `make loop-hygiene`, the secret scan, the commit — one
+   command. Push only reviewed commits (§8).
 3. Touch [`../loop/STATE.md`](../loop/STATE.md) or
    [`../tasks/INDEX.md`](../tasks/INDEX.md) **only** when the gate verdict changes,
    a decision is made, a carry-forward is raised/discharged, or a task
    opens/closes — never to record a step. `where.sh` computes step position from
    the PLAN checkboxes and the last result from the LOG tail.
-4. Run `make loop-hygiene` (warn-only). Shorten prose; never raise a budget.
-5. Commit + push the increment (§7). The remote must not lag the work.
+4. On a `make loop-hygiene` warning, shorten prose; never raise a budget.
+5. The remote lags the work only by low-risk commits awaiting their batched
+   review (≤3, §8) — never by reviewed ones.
 6. If the task is finished or blocked, write `OUTCOME.md`.
 
 ---
@@ -183,12 +188,14 @@ prompt is [`../loop/PROMPT.md`](../loop/PROMPT.md); the harness is
 **One iteration does exactly this:**
 1. Load context (§3a) — `where.sh --json` first, then only what it names.
 2. Do step `.step` of `.steps` — the next single unchecked `PLAN.md` step. One.
-3. **Verify** it (run the relevant check — §5), then the mandatory `verifier` +
-   `reviewer` subagents: **one** reviewer pass, CRITICAL/HIGH fixed now, MEDIUM/LOW
-   appended to `PLAN.md`'s `## Amendments` with their `file:line`.
-4. Record the evidence in `LOG.md` — the template's shape, ≤40 lines.
-5. Check the box in `PLAN.md`; `make loop-hygiene`.
-6. Commit + push.
+3. **Verify** it (run the relevant check — §5), then the `reviewer` by risk tier
+   (§8): risky steps before the commit, low-risk steps in a batch before the push;
+   started in the background while you write the LOG. **One** pass, CRITICAL/HIGH
+   fixed now, MEDIUM appended to `PLAN.md`'s `## Amendments` with its `file:line`.
+4. Record what changed and the dispositions in `LOG.md` — the template's shape,
+   ≤40 lines.
+5. `loop/step-done.sh --commit "<msg>" [--push]`: gate evidence, tick, hygiene,
+   scan, commit (and push when nothing unreviewed remains).
 7. Emit a **completion marker** (below) and stop. The loop re-invokes a fresh
    agent for the next step.
 
@@ -307,7 +314,9 @@ weaken one to pass it ("fix the work, never lower the thresholds").
 - **Atomic commits straight to the main branch.** One logical change per commit,
   Conventional Commits with a repo scope — `feat(<component>): …`,
   `test(<component>): …`, `docs(<component>): …`. No feature branches or PRs by
-  default. Commit **and push** after every completed increment. Task-folder docs
+  default. Commit every completed increment with `loop/step-done.sh`, and push
+  once it is reviewed (§8) — risky increments at once, low-risk ones with their
+  batch. Task-folder docs
   may ride along with the code change they describe, or be their own `docs(...)`
   commit.
 - **Parallel on the same code → git worktree.** The only reason to leave a single
@@ -332,18 +341,35 @@ live in [`../agents/`](../agents/):
 | Subagent | Use it to… | Phase |
 |----------|------------|-------|
 | `planner` | turn a `BRIEF.md` into a numbered `PLAN.md` (steps, risks, escape hatches) without touching code | any |
-| `reviewer` | audit a diff in a **fresh context** against the golden rules + correctness, report gaps only | any |
-| `verifier` | run `make check` / the acceptance check and report pass/fail **with evidence**, no edits | any |
+| `plan-reviewer` | audit a fresh `PLAN.md` before step 1 — missing work, step sizing, order, checks | task open |
+| `reviewer` | audit a diff (or a batch of commits) in a **fresh context** against the step text, the golden rules + correctness, report gaps only | any |
+| `verifier` | *optional* — run a check that needs judgment (smoke run, thresholds) and report pass/fail **with evidence**, no edits | any |
+| `adjudicator` | rule whether a failing hard gate is itself wrong | on a gate failure |
 
 Patterns: **parallelize independent reads**; **evaluator-optimizer** =
 `reviewer`/`verifier` checking the builder's output in a fresh context so the
 writer isn't its own grader. Keep the toolset small — more agents ≠ better.
 
-**Mandatory per increment (PROMPT.md §4b):** before **every** commit, spawn the
-`verifier` (re-run the check, report PASS/FAIL with evidence) then the `reviewer`
-(audit the diff vs the golden rules + correctness) in fresh contexts. Skipping
-either is a loop violation. `planner` runs earlier — at an objective's start — to
-write `PLAN.md`; it is not part of the per-commit gate.
+**Mandatory, by risk (PROMPT.md §4b):** every commit is reviewed by the `reviewer`
+in a fresh context before it is **pushed**.
+
+- **Risky** — code with logic, scripts, infra/deploy config, host- or
+  environment-changing steps, decision records, anything near a golden rule or a
+  secret: reviewed **before the commit**.
+- **Low-risk** — doc-only prose, mechanical edits: committed unpushed, then ONE
+  batched pass over `@{u}..HEAD` when 3 are waiting (`where.sh` `.unreviewed`),
+  before a risky step, or at the wave/task end. It sees the batch as one change,
+  which catches contradictions between documents a per-step pass cannot.
+- **Pipelined** — start the reviewer in the background as soon as the gate is
+  green; write the LOG meanwhile; wait for the verdict before the commit (risky)
+  or the push (batch). CRITICAL/HIGH are always fixed before the push.
+
+The deterministic gate needs no subagent: `loop/step-done.sh` runs it and writes
+the evidence. Skipping the reviewer, or pushing an unreviewed commit, is a loop
+violation. Why tiers and not every step: on a real project ~30 per-step reviews
+found 0 CRITICAL and ~2 HIGH each, the HIGH mostly on scripts, config and decision
+records — the classes that stay per-step. `planner` runs earlier — at an
+objective's start — to write `PLAN.md`; it is not part of the per-commit gate.
 
 ### 8a. Parallelize independent work (the default — with guardrails)
 
@@ -393,6 +419,8 @@ Run the change past four lenses and note conclusions in `LOG.md`:
   vanish. Write it to the task folder.
 - Editing past `LOG.md` entries or rewriting `PLAN.md` steps mid-task.
 - Marking a step done without recorded verification evidence.
+- Pushing a commit no reviewer has seen, or retyping gate output by hand when
+  `loop/step-done.sh` would have written it.
 - Lowering a gate threshold, or skipping the foundation phase, to "make progress".
 - Running an unbounded loop, or thrashing on a failing step past the 3-try hatch.
 - Batching unrelated changes into one commit, or letting the remote lag.

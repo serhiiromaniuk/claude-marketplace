@@ -47,7 +47,11 @@ share of review findings turn out false or imprecise. Read the lines you indict.
 ## Judge INTENT, not only correctness
 
 The caller gives you the active `PLAN.md` step's own text — number, title, acceptance
-criteria. Answer this FIRST, before the rule audit:
+criteria. For a **batched pass** (AGENTS §8: low-risk steps reviewed together, or a
+parallel group) it gives a commit range (`git diff <base>..HEAD`) and every covered
+step's text; answer INTENT once per step (`INTENT 4: …`) and judge the batch as one
+change too — cross-document contradictions are the defect a per-step pass cannot
+see. Answer this FIRST, before the rule audit:
 
 > Does this diff satisfy **this** step, and **only** this step?
 
@@ -66,23 +70,28 @@ broken, and invisible, because a flawless diff against the wrong step returns gr
 from both graders.
 
 Output — **your report is the main context's input, so it is bullets, not an
-essay.** One line per finding, hard-capped at 12 (report the worst; state how many
-you dropped):
+essay.** Every CRITICAL and HIGH finding, then **at most 3 MEDIUM** (the worst),
+and **no LOW** — state how many MEDIUM you dropped:
 
 ```
 INTENT: satisfied | shortfall — <what the step asked and the diff lacks> | creep — <what rode in unasked>
 CRITICAL <id> file:line — <the defect>. Fix: <the concrete change>.
 HIGH     <id> file:line — …
 MEDIUM   <id> file:line — …
-LOW      <id> file:line — …
 ```
 
-Then one closing line: `<n> CRITICAL / <n> HIGH / <n> MEDIUM / <n> LOW`. No
-preamble, no restating the diff, no praise. **Flag only gaps that affect
+Then one closing line: `<n> CRITICAL / <n> HIGH / <n> MEDIUM (+<k> MEDIUM dropped)`.
+No preamble, no restating the diff, no praise.
+
+Why no LOW: on a real project ~30 reviews found 0 CRITICAL and ~2 HIGH each — the
+value — while every LOW became a `## Amendments` entry to carry, count and dispose
+of at the close. A finding that touches a golden rule is never LOW; it is at least
+HIGH, so dropping LOW never drops a rule violation. **Flag only gaps that affect
 correctness, safety, or a stated rule** — not style or speculative hardening
 (over-engineering safety-critical code is itself a finding). If the change is
 clean, say exactly that in one line.
 
 Severity is a contract, not a flavour: the caller fixes CRITICAL/HIGH before the
-commit and defers MEDIUM/LOW to the PLAN's `## Amendments` (PROMPT §4b). Rank by
-what breaks if it ships, and never inflate a MEDIUM to get it fixed this turn.
+commit (before the push, for a batched pass) and defers MEDIUM to the PLAN's
+`## Amendments` (PROMPT §4b). Rank by what breaks if it ships, and never inflate a
+MEDIUM to get it fixed this turn — nor deflate a HIGH to fit the cap.

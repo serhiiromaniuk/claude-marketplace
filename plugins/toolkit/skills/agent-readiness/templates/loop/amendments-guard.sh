@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hack/amendments-guard.sh — make deferred findings arrive as a NUMBER.
 #
-# PROMPT §4b defers every MEDIUM/LOW reviewer finding to the active PLAN's
+# PROMPT §4b defers every MEDIUM reviewer finding (the reviewer reports no LOW) to the active PLAN's
 # `## Amendments`. The mechanism works; what never existed is a count of how many
 # are still OPEN. loop/STATE.md maintains its open list by hand, and CF-6
 # admits its reservations' "only check is re-measure at the M1 close".

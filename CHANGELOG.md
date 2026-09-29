@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.18.0] - 2026-09-29
+
+### Changed (review by risk, close by script)
+
+On the same project, closing a step cost 6-10 model round-trips of ceremony,
+~1.5-2 h over a 37-step plan. ~30 per-step reviews found 0 CRITICAL and ~2 HIGH
+each (mostly on scripts, config and decision records), while every LOW became an
+amendment to carry to the close.
+
+- **New `templates/loop/step-done.sh`** (+ `make step-done MSG=… [PUSH=1]`)
+  closes an increment in one command: runs the gate (red → exit 1, nothing
+  changed), appends its tail to `LOG.md` between `gate:begin`/`gate:end`
+  markers, ticks the first unchecked `PLAN.md` box, runs the prose budget and
+  the staged-diff secret scan (`make staged-scan` when present, else a built-in
+  scan for forbidden paths and key-shaped strings that never prints a value),
+  commits with commit hooks running, and pushes only with `--push`. The gate
+  evidence is now written by the script from the real exit code instead of
+  retyped by the agent.
+- **The verifier subagent is optional.** A deterministic gate needs no model;
+  `verifier.md` is for checks that need judgment (a smoke run, thresholds).
+- **Review is risk-tiered and pipelined** (`PROMPT.md` §4b, `AGENTS.md` §8,
+  `RULES.md` Git). Risky steps — code with logic, scripts, infra config,
+  host/env changes, decision records, anything near a golden rule — are
+  reviewed before the commit. Low-risk steps are committed unpushed and
+  reviewed in ONE batch over `@{u}..HEAD` when 3 wait, before a risky step, or
+  at the wave/task end. Unpushed == unreviewed: `where.sh` reports the count as
+  `.unreviewed` (-1 without an upstream → review every step). The reviewer
+  starts in the background as soon as the gate is green, while the LOG entry is
+  written; CRITICAL/HIGH are always fixed before the push.
+- **Lean review ledger.** `reviewer.md` reports every CRITICAL/HIGH, at most 3
+  MEDIUM and no LOW (a golden-rule finding is never LOW), answers INTENT per
+  step in a batched pass, and judges the batch as one change.
+- **`entry-size-guard.sh`** does not count the fixed-size gate block as prose.
+- **`where.sh` and `step-done.sh` `--help`** work from any directory.
+- Tests: `tests/loop-scripts.test.sh` gains 15 step-done cases (red gate leaves
+  everything untouched, dry-run, staged files + LOG + PLAN in one commit, the
+  gate block, the tick, `.unreviewed`, a key-shaped string and a staged `.env`
+  refused, a refusing commit hook honoured, `--push`).
+
 ## [0.17.0] - 2026-09-29
 
 ### Changed (a lean resume read and a parallel gate)

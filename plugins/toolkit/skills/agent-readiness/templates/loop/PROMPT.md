@@ -89,63 +89,91 @@ reading the whole control plane.
   first (TDD). For research/design, the document section must end with an
   explicit recommendation. For measured results, record the full acceptance
   criteria.
-- Paste the actual command output / evidence into `LOG.md`. Do not assert
-  success you did not observe.
+- Evidence goes in `LOG.md`: the gate's tail is written there by
+  `loop/step-done.sh` (§5); paste by hand only what no script captures (the
+  failing-first run, a smoke result, measured numbers). Do not assert success you
+  did not observe.
 
-## 4b. Independent review + verification — MANDATORY before every commit
-The writer is never its own grader. For **every** increment, before you commit:
+## 4b. Independent review — by risk, pipelined, before every push
+The writer is never its own grader. What changed decides WHEN the grader runs:
 
-1. Spawn the **`verifier`** subagent (`agents/verifier.md`) in a fresh context. It
-   re-runs the project's check and reports PASS/FAIL **with evidence**. FAIL → fix
-   the work (never the threshold) and re-run this step.
-2. Spawn the **`reviewer`** subagent (`agents/reviewer.md`) on the diff in a fresh
-   context, **and give it THIS STEP'S OWN TEXT** — number, title, acceptance
-   criteria, verbatim from `PLAN.md`. It answers
-   `INTENT: satisfied | shortfall | creep` before the rule audit. Without the step
-   text the only judge of "did this increment do what step N said" is you, the
-   writer — the one place this section's own principle stays broken, and invisible,
-   because a flawless diff against the wrong step returns green from both graders.
-   **ONE pass.** Then triage by severity, and do not re-open:
-   - **CRITICAL / HIGH** → fix now, before the commit. Verify each finding against
-     real source first — a large share of review findings are false or imprecise,
-     and acting on a misread costs a whole fix-and-re-review round.
-   - **MEDIUM / LOW** → do **not** fix in this increment. Append each, with its
-     `file:line` and the finding text, to the active `PLAN.md` `## Amendments`.
-     That is a disposition, not a dismissal.
+- **Risky step → reviewer before the commit.** Code with logic, scripts, infra or
+  deploy config, host- or environment-changing steps, decision records, anything
+  touching a golden rule or a secret path. When unsure, it is risky.
+- **Low-risk step → batched reviewer before the push.** Doc-only prose, mechanical
+  edits (renames, formatting, ledger rows), steps whose check is the whole proof.
+  Commit it with `loop/step-done.sh` **without** `--push`; LOG records
+  `reviewer: batched`. One reviewer pass then covers every unpushed commit when
+  **any** of these holds: `.unreviewed` (unpushed commits) reaches 3, the next
+  step is risky, or the wave/task closes. Unpushed == unreviewed is the
+  invariant: never push a commit no reviewer has seen. `.unreviewed == -1` (no
+  upstream) → review every step as risky.
+
+How to run it — **pipelined, never skipped:**
+
+1. The gate is green (`make check`, run once). Spawn the **`reviewer`**
+   (`agents/reviewer.md`) **in the background** in a fresh context, and give it
+   **THIS STEP'S OWN TEXT** — number, title, acceptance criteria, verbatim from
+   `PLAN.md` (for a batch: the commit range `@{u}..HEAD` and every covered step's
+   text). It answers `INTENT: satisfied | shortfall | creep` before the rule
+   audit. Without the step text the only judge of "did this increment do what
+   step N said" is you, the writer.
+2. While it runs, write the step's `LOG.md` entry (§5). Do not start the next step.
+3. Take the verdict. **ONE pass**, then triage by severity and do not re-open:
+   - **CRITICAL / HIGH** → fix now, before the commit (batch: before the push).
+     Verify each finding against real source first — a large share of review
+     findings are false or imprecise, and acting on a misread costs a whole
+     fix-and-re-review round.
+   - **MEDIUM** (the reviewer reports at most 3, and no LOW) → do **not** fix in
+     this increment. Append each, with its `file:line` and the finding text, to
+     the active `PLAN.md` `## Amendments`. A disposition, not a dismissal.
    - Record every disposition in `LOG.md` (fixed / deferred to amendment #n).
    - A **second** pass is warranted only when a CRITICAL/HIGH fix changed logic —
      re-review that fix, not the whole diff. Otherwise stop at one.
+4. Close with `loop/step-done.sh` (§5): it re-runs the gate on the final tree and
+   writes the evidence.
 
-Skipping either subagent is a loop violation. Grinding a third and fourth pass to
-polish MEDIUM/LOW findings is the opposite failure and is equally forbidden: each
-extra round costs a re-verify plus a re-review, and that is a measured cause of
-iteration times growing. Keep the bar; cut the rounds. (`planner` is used earlier —
-at a task's start — to write `PLAN.md`; it is not part of the per-commit gate.)
+The **`verifier`** is optional: spawn it only for a check that needs judgment (a
+smoke run to interpret, measured results against thresholds). The deterministic
+gate needs no model — step-done.sh runs it and records the tail itself.
+
+Skipping the reviewer, or pushing a commit it has not seen, is a loop violation.
+Grinding a third and fourth pass to polish MEDIUM findings is the opposite failure
+and is equally forbidden: each extra round costs a re-verify plus a re-review, and
+that is a measured cause of iteration times growing. Keep the bar; cut the rounds.
+(`planner` is used earlier — at a task's start — to write `PLAN.md`; it is not part
+of the per-commit gate.)
 
 ## 5. Record + commit
 - Append a `LOG.md` entry in the shape `tasks/_template/LOG.md` gives: what
-  changed · the check and its observed failure-first · the evidence (the verbatim
-  output tail + verifier + reviewer dispositions) · next.
+  changed · the check and its observed failure-first · reviewer dispositions ·
+  next. **Do not retype the gate output** — step-done.sh appends it.
 - **≤40 lines per LOG entry. Bullets, not narrative.** Cite a spec/doc section;
   never re-quote it. Record the decision and the evidence, not the reasoning that
-  produced them.
-- Check the box for the step in `PLAN.md` (do NOT rewrite other steps).
+  produced them. (The machine-written gate block is not counted.)
 - **Detail is written ONCE, in the LOG.** `loop/STATE.md` and `tasks/INDEX.md` are
   pointers, not journals: touch them only when the **gate verdict changes, a
   decision is made, a carry-forward is raised/discharged, or a task opens/closes**
   — never to record a step. `loop/where.sh` computes step position from the PLAN
   checkboxes and the last result from the LOG tail, so restating either in a
   pointer file is duplicate prose every later iteration pays to re-read.
-- Run `make loop-hygiene` — it warns when a LOG entry, `loop/STATE.md`, or an
-  `INDEX.md` row is over budget. **Shorten the prose; never raise the budget** —
+- Stage the step's files (`git add <paths>`), then close the increment in ONE
+  command:
+
+  ```bash
+  loop/step-done.sh --commit "<type>(<scope>): <subject>" [--push]
+  ```
+
+  It re-runs the gate (red → exit 1, nothing changed), appends the gate tail to
+  `LOG.md`, ticks the step's `PLAN.md` box, runs `make loop-hygiene` and the
+  staged-diff secret scan, and commits. Pass `--push` only when every unpushed
+  commit has been reviewed (§4b). Exit 3 means the scan or a commit hook refused —
+  fix the cause; never bypass hooks.
+- `make loop-hygiene` warnings: **shorten the prose; never raise the budget** —
   growing a threshold is the same move as weakening a test to go green.
-- Commit with a Conventional-Commits message + scope (e.g. `feat(<component>):
-  ...`, `docs(<component>): ...`). Then push. Before committing, scan the staged
-  diff for anything secret-like and for forbidden paths (env files, data/output
-  dirs, generated artifacts).
-- **Finish synchronously — do NOT background the check or defer the commit.** Run
-  the verify/check to completion THIS turn (even if slow) and commit now; never
-  end a turn saying "commit follows" or "verify running in background."
+- **Finish synchronously — do NOT defer the commit.** The background reviewer
+  (§4b) must return, and the increment must be committed, THIS turn; never end a
+  turn saying "commit follows" or "review running in background."
 - **Expected diffs are not failures.** A committed testcount/coverage ratchet
   file and committed generated code changing during an increment is normal —
   stage and commit them; do not treat them as a gate failure or a reason to defer.

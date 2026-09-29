@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# loop/step-done.sh — close one increment in ONE command.
+#
+# WHY THIS EXISTS (measured). On a real project the fixed cost of closing a step
+# was 6-10 model round-trips — spawn a verifier to re-run a deterministic gate,
+# read its report, paste the tail into LOG.md, tick the PLAN box, run hygiene,
+# run the staged scan, commit, push — each one a full model turn. At 37 steps a
+# plan that was ~1.5-2 h of ceremony alone. A script does the mechanical part in
+# one call, and the evidence gets BETTER: the gate tail in LOG.md is written by
+# the script from the real exit code, not retyped by the agent that wants green.
+#
+# What it does, in order (stops at the first failure):
+#   1. runs the gate ($STEP_DONE_GATE, default `make check`). Red → prints the
+#      tail and exits 1. Nothing has been changed at that point.
+#   2. appends the gate tail (last $STEP_DONE_TAIL lines, ANSI stripped) to the
+#      active task's LOG.md, fenced between `<!-- gate:begin -->` and
+#      `<!-- gate:end -->` so entry-size-guard.sh can tell machine evidence from
+#      prose. Write your step's LOG entry BEFORE calling this: the block lands
+#      at its bottom.
+#   3. ticks the first unchecked `- [ ]` box in PLAN.md (skip with --no-tick).
+#   4. runs the prose budget (`make loop-hygiene`, warn-only).
+#   5. stages LOG.md + PLAN.md (plus everything with --all; otherwise stage the
+#      step's own files yourself first), runs the staged-diff secret scan
+#      (`make staged-scan` when the Makefile has it, else a built-in scan of
+#      forbidden paths and key-shaped strings), and commits with --commit.
+#      Commit hooks run: this script never passes --no-verify.
+#   6. pushes, only with --push. Push only reviewed commits (AGENTS.md §8):
+#      unpushed == unreviewed is the invariant the batched review relies on.
+#
+# Usage:
+#   loop/step-done.sh --commit "<message>" [--push] [--all] [--no-tick]
+#   loop/step-done.sh --dry-run            # run the gate, print the plan, change nothing
+#   make step-done MSG="<message>" [PUSH=1]
+#
+# Exit: 0 committed (or dry-run green) · 1 gate red, nothing changed · 2 usage
+#       · 3 precondition, scan or commit failed (LOG/PLAN may be edited — see output).
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$REPO_ROOT"
+HERE="$(basename "$SCRIPT_DIR")" # the loop dir, e.g. loop
+SCRIPT="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+
+GATE="${STEP_DONE_GATE:-make check}"
+TAIL="${STEP_DONE_TAIL:-15}"
+WHERE="${LOOP_WHERE:-$HERE/where.sh}"
+
+MSG=""
+PUSH=0
+ALL=0
+TICK=1
+DRY=0
+usage() { sed -n '/^# Usage:/,/^# Exit:/p' "$SCRIPT" | sed 's/^# \{0,1\}//' >&2; }
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --commit)
+      [[ $# -ge 2 && -n "$2" ]] || {
+        echo "--commit needs a message" >&2
+        exit 2
+      }
+      MSG="$2"
+      shift 2
+      ;;
+    --push) PUSH=1 && shift ;;
+    --all) ALL=1 && shift ;;
+    --no-tick) TICK=0 && shift ;;
+    --dry-run) DRY=1 && shift ;;
+    -h | --help)
+      grep '^#' "$SCRIPT" | sed '1d; s/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+if [[ "$DRY" -eq 0 && -z "$MSG" ]]; then
+  echo "refusing to commit without --commit \"<message>\" (or use --dry-run)" >&2
+  exit 2
+fi
+
+die() {
+  echo "!! $*" >&2
+  exit 3
+}
+
+# ── where is the active task? ────────────────────────────────────────────────
+json="$("$WHERE" --json 2>/dev/null)" || die "$WHERE found no active task — nothing to close"
+field() { sed -n "s/^  \"$1\": //p" <<<"$json" | sed -E 's/,$//; s/^"//; s/"$//'; }
+folder="$(field folder)"
+[[ -n "$folder" && -d "$folder" ]] || die "no task folder in $WHERE output"
+LOG="$folder/LOG.md"
+PLAN="$folder/PLAN.md"
+[[ -f "$LOG" ]] || die "no $LOG"
+if [[ "$TICK" -eq 1 ]]; then
+  [[ -f "$PLAN" ]] || die "no $PLAN"
+  grep -qE '^- \[ \] ' "$PLAN" || die "no unchecked step in $PLAN (use --no-tick for a non-step commit)"
+fi
+
+# ── 1. the gate ──────────────────────────────────────────────────────────────
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+echo ">> gate: $GATE"
+set +e
+bash -c "$GATE" >"$out" 2>&1
+rc=$?
+set -e
+# shellcheck disable=SC2016 # reason: literal backticks in a sed script, not an expansion
+evidence="$(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g; s/```/` ` `/g' "$out" | tail -n "$TAIL")"
+if [[ "$rc" -ne 0 ]]; then
+  printf '%s\n' "$evidence" >&2
+  echo "!! gate RED (EXIT=$rc) — nothing changed. Fix the work, never the check." >&2
+  exit 1
+fi
+echo ">> gate green (EXIT=0)"
+
+if [[ "$DRY" -eq 1 ]]; then
+  echo ">> dry-run: would append the gate tail to $LOG$([[ "$TICK" -eq 1 ]] && echo ", tick $PLAN step $(field step)"), stage, scan, commit$([[ "$PUSH" -eq 1 ]] && echo ', push')"
+  exit 0
+fi
+
+# ── 2. machine-written evidence ──────────────────────────────────────────────
+{
+  echo
+  echo "<!-- gate:begin (written by $HERE/step-done.sh — do not edit) -->"
+  echo "**Gate:** \`$GATE\` EXIT=0 · $(date -u +%FT%TZ)"
+  echo
+  echo '```text'
+  printf '%s\n' "$evidence"
+  echo '```'
+  echo
+  echo "<!-- gate:end -->"
+} >>"$LOG"
+
+# ── 3. tick the step ─────────────────────────────────────────────────────────
+if [[ "$TICK" -eq 1 ]]; then
+  tmp="$(mktemp)"
+  awk '!d && /^- \[ \] / {sub(/^- \[ \] /, "- [x] "); d = 1} {print}' "$PLAN" >"$tmp"
+  cat "$tmp" >"$PLAN" && rm -f "$tmp"
+  echo ">> ticked step $(field step) in $PLAN"
+fi
+
+# ── 4. prose budget (warn-only) ──────────────────────────────────────────────
+if make -n loop-hygiene >/dev/null 2>&1; then
+  make --no-print-directory loop-hygiene || true
+elif [[ -x "$HERE/entry-size-guard.sh" ]]; then
+  "$HERE/entry-size-guard.sh" || true
+fi
+
+# ── 5. stage, scan, commit ───────────────────────────────────────────────────
+if [[ "$ALL" -eq 1 ]]; then git add -A; fi
+git add -- "$LOG"
+[[ "$TICK" -eq 1 ]] && git add -- "$PLAN"
+
+builtin_scan() { # forbidden paths and key-shaped strings in the staged diff; never prints a value
+  local bad=0 f
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    if [[ "$f" =~ (^|/)\.env(\.[^/]*)?$ && ! "$f" =~ \.example$ ]] \
+      || [[ "$f" =~ \.(pem|key|p12|pfx)$ ]] || [[ "$f" =~ (^|/)id_(rsa|dsa|ecdsa|ed25519) ]]; then
+      echo "!! forbidden path staged: $f" >&2
+      bad=1
+    fi
+  done < <(git diff --cached --name-only --diff-filter=ACMR)
+  local re='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|glpat-[A-Za-z0-9_-]{20}|xox[abprs]-[A-Za-z0-9-]{10,}'
+  local hits
+  hits="$(git diff --cached -U0 --diff-filter=ACMR | grep -E '^\+[^+]' | grep -cE "$re" || true)"
+  if [[ "$hits" -gt 0 ]]; then
+    echo "!! $hits added line(s) look like a secret (key/token pattern) — values not shown" >&2
+    bad=1
+  fi
+  return "$bad"
+}
+if make -n staged-scan >/dev/null 2>&1; then
+  make --no-print-directory staged-scan || die "staged-scan failed — unstage the offending file; LOG/PLAN edits are staged"
+else
+  builtin_scan || die "staged diff failed the built-in secret scan; LOG/PLAN edits are staged"
+fi
+
+if [[ -n "$(git status --porcelain --untracked-files=normal | grep -vE '^[MADRC] ' || true)" ]]; then
+  echo ">> WARN unstaged or untracked files remain (not in this commit):" >&2
+  git status --short | grep -vE '^[MADRC] ' | sed 's/^/     /' >&2
+fi
+git commit -q -m "$MSG" || die "git commit failed (a hook refused it?) — fix and commit by hand"
+echo ">> committed $(git rev-parse --short HEAD): $(git log -1 --format=%s)"
+
+# ── 6. push ──────────────────────────────────────────────────────────────────
+if [[ "$PUSH" -eq 1 ]]; then
+  git push -q || die "push failed — the commit is local; push by hand"
+  echo ">> pushed"
+fi

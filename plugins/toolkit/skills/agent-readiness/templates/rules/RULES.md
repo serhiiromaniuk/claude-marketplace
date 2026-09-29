@@ -145,8 +145,10 @@ gates this.
   enough.
 
 **Cadence & milestones**
-- **Commit + push after every completed change, scope, or task** — do not batch
-  unrelated work or leave the remote behind.
+- **Commit after every completed change, scope, or task** — do not batch
+  unrelated work. **Push once it is reviewed** (AGENTS.md §8): risky changes at
+  once, low-risk ones with their batched review, so the remote lags by at most
+  three reviewed-pending commits and never holds an unreviewed one.
 - Tag milestones per the phase table (`git tag v0.1-<name>` then `git push
   --tags`). The agent applies these tags itself once the phase gate is
   observed-green (a tag asserts the gate passed — never tag to "make progress").

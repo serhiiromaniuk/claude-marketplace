@@ -5,7 +5,8 @@
 # that keeps it. Nothing stops pointer files growing back except a style rule, and
 # a style rule is exactly what drifts. Budgets:
 #
-#   newest <task>/LOG.md entry   <=  40 lines   (detail, but bounded)
+#   newest <task>/LOG.md entry   <=  40 lines   (detail, but bounded; the
+#                                               step-done.sh gate block is not prose)
 #   loop/STATE.md, whole file    <=  40 lines   (a pointer, not a report)
 #   every tasks/INDEX.md row     <= 200 bytes   (a ledger row, not a history)
 #
@@ -27,7 +28,7 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 STRICT=0
 case "${1:-}" in
@@ -59,7 +60,12 @@ fi
 if [[ -n "$LOG" && -f "$LOG" ]]; then
   start="$(grep -nE '^## ' "$LOG" | tail -n1 | cut -d: -f1)"
   if [[ -n "$start" ]]; then
-    entry=$(( $(wc -l < "$LOG") - start + 1 ))
+    # The gate block loop/step-done.sh appends is machine-written evidence of a
+    # fixed size (its tail length + 7 lines), not prose — it is not counted.
+    entry="$(awk -v s="$start" 'NR >= s && /<!-- gate:begin/ {g = 1}
+                                 NR >= s && !g {n++}
+                                 /<!-- gate:end -->/ {g = 0}
+                                 END {print n + 0}' "$LOG")"
     if [[ "$entry" -gt "$MAX_LOG_ENTRY" ]]; then
       warn "$LOG newest entry is $entry lines (max $MAX_LOG_ENTRY)"
       printf '         Bullets, not narrative: what changed · the test and its observed RED ·\n'

@@ -20,13 +20,16 @@ Do this now:
    actions) autonomously.
 3. Do step `.step` of `.steps`, titled `.step_title` — the single next unchecked
    `PLAN.md` step. Just one.
-4. Verify it (AGENTS.md §5), run the mandatory `verifier` + `reviewer` subagents
-   (PROMPT §4b — ONE reviewer pass; MEDIUM/LOW go to `## Amendments`), and record
-   the evidence in `LOG.md` in the template's shape, ≤40 lines.
-5. Check the box in `PLAN.md`. Touch `loop/STATE.md` / `tasks/INDEX.md` **only** if
-   the gate verdict changed, a decision was made, a carry-forward moved, or the
-   task opened/closed — never to record a step. Then `make loop-hygiene`.
-6. Commit (Conventional Commits + scope) and push.
+4. Verify it (AGENTS.md §5), then the `reviewer` by risk tier (PROMPT §4b —
+   risky before the commit, low-risk batched before the push; started in the
+   background while you write the LOG; ONE pass; MEDIUM go to `## Amendments`,
+   there is no LOW). Record what changed and the dispositions in `LOG.md` in the
+   template's shape, ≤40 lines.
+5. Touch `loop/STATE.md` / `tasks/INDEX.md` **only** if the gate verdict changed,
+   a decision was made, a carry-forward moved, or the task opened/closed — never
+   to record a step.
+6. `git add` the step's files, then `loop/step-done.sh --commit
+   "<type>(<scope>): <subject>"`, plus `--push` when nothing unreviewed remains.
 7. End with exactly one marker on the last line: `<<LOOP:CONTINUE>>`,
    `<<LOOP:PHASE_COMPLETE>>`, `<<LOOP:DONE>>`, `<<LOOP:GATE_FAILED>>`, or
    `<<LOOP:BLOCKED>>`.

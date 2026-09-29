@@ -12,9 +12,9 @@ Quick map of the moving parts:
 | Governance | [`RULES.md`](./RULES.md) | golden rules, architecture, git |
 | Operating manual | [`AGENTS.md`](./AGENTS.md) | how to execute |
 | This walkthrough | `WORKFLOW.md` | the example |
-| Loop engine | [`../loop/`](../loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `entry-size-guard.sh`, `STATE.md` |
+| Loop engine | [`../loop/`](../loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `step-done.sh` (close an increment), `entry-size-guard.sh`, `STATE.md` |
 | Memory | [`../tasks/`](../tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
-| Specialists | [`../agents/`](../agents/) | planner, reviewer, verifier |
+| Specialists | [`../agents/`](../agents/) | planner, plan-reviewer, reviewer, adjudicator, verifier (optional) |
 | Shortcuts | [`../commands/`](../commands/) | `/status`, `/loop-step` |
 
 ---
@@ -132,7 +132,8 @@ Good `LOG.md` entries are factual and carry evidence:
 Compared options A / B / C on <criteria>. Recommendation: <choice> — <one-line
 justification>. Written to the foundation doc, Section A.
 Verify: Section A now ends with a stated recommendation. ✅
-Commit: docs(<component>): foundation Section A recommendation
+reviewer: batched (doc-only; reviewed with Sections B–C before the push)
+Commit: loop/step-done.sh --commit "docs(<component>): foundation Section A recommendation"
 <<LOOP:CONTINUE>>
 ```
 
@@ -191,10 +192,9 @@ tasks/phase-2_<component>/
          2. implement src/<component>/base.<ext> interface
          3. implement src/<component>/<impl>.<ext>  (green)
          4. edge cases + tests
-         5. reviewer subagent: audit vs golden rules (adapter boundary,
-            no forbidden deps, no side effects) + correctness
-         6. verifier subagent: make check, paste output
-  each step → verify (make check) → log evidence → commit → <<LOOP:CONTINUE>>
+  each step → make check → reviewer (risky: before the commit, in the
+  background while the LOG is written) → loop/step-done.sh --commit … --push
+  → <<LOOP:CONTINUE>>
 ```
 
 Same discipline, same markers, same gates. The only thing that changes between

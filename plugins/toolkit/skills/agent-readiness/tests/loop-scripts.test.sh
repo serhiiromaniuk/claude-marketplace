@@ -160,6 +160,83 @@ rm "$W/CLAUDE.md"
 check "without CLAUDE.md the rules files are read" \
   test "$("$W/loop/where.sh" --json | jq -c '.read[0:2]')" = '["rules/RULES.md","rules/AGENTS.md"]'
 
+echo "step-done.sh"
+# sfixture <dir> — the where.sh fixture plus a gate, a bare remote and an upstream.
+sfixture() {
+  local d="$1"
+  fixture "$d"
+  printf 'check:\n\t@echo "lint ok"; echo "tests: 3 passed"; test ! -f FAIL\n' >"$d/Makefile"
+  git init -q --bare "$d.remote.git"
+  (cd "$d" && git add -A && git -c user.name=t -c user.email=t@t commit -qm gate \
+    && git remote add origin "$d.remote.git" && git push -qu origin HEAD 2>/dev/null)
+}
+sd() { (cd "$S" && git -c user.name=t -c user.email=t@t "$@"); }
+S="$ROOT/s"
+sfixture "$S"
+head0="$(sd rev-parse HEAD)"
+PLAN="$S/tasks/phase-1_demo/PLAN.md"
+LOGF="$S/tasks/phase-1_demo/LOG.md"
+
+(cd "$S" && loop/step-done.sh >/dev/null 2>&1)
+check "no --commit and no --dry-run → exit 2" test $? -eq 2
+
+touch "$S/FAIL"
+(cd "$S" && loop/step-done.sh --commit "x" >/dev/null 2>&1)
+rc=$?
+check "red gate → exit 1" test "$rc" -eq 1
+check "red gate → LOG, PLAN and HEAD untouched" \
+  test -z "$(sd status --porcelain -- tasks)" -a "$(sd rev-parse HEAD)" = "$head0"
+rm "$S/FAIL"
+
+(cd "$S" && loop/step-done.sh --dry-run >/dev/null 2>&1)
+check "--dry-run is green and changes nothing" test $? -eq 0 -a -z "$(sd status --porcelain)"
+
+for i in $(seq 1 34); do echo "- prose line $i"; done >>"$LOGF" # entry ≈36 prose lines
+echo "new file" >"$S/docs/new.md"
+sd add docs/new.md
+(cd "$S" && GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t \
+  loop/step-done.sh --commit "docs: step 2" >/dev/null 2>&1)
+check "green gate → committed" test "$(sd log -1 --format=%s)" = "docs: step 2"
+check "…with the staged step files, LOG and PLAN" \
+  test "$(sd show --name-only --format= HEAD | sort | tr '\n' ' ')" = "docs/new.md tasks/phase-1_demo/LOG.md tasks/phase-1_demo/PLAN.md "
+check "LOG gets the machine-written gate block" \
+  grep -qzE 'gate:begin.*EXIT=0.*tests: 3 passed.*gate:end' "$LOGF"
+check "PLAN step 2 is ticked, step 3 is not" \
+  grep -qzE -- '- \[x\] 2\..*- \[ \] 3\.' "$PLAN"
+check "where.sh moves to step 3" test "$(cd "$S" && loop/where.sh --json | jq .step)" = 3
+check "one unpushed commit = one unreviewed" \
+  test "$(cd "$S" && loop/where.sh --json | jq .unreviewed)" = 1
+check "the gate block is not counted as LOG prose (36 + block ≤ 40)" \
+  grep -qE 'newest entry 3[0-9]/40' <<<"$(cd "$S" && loop/entry-size-guard.sh)"
+
+printf 'aws_key = "%s%s"\n' "AKIA" "IOSFODNN7EXAMPLE" >"$S/docs/leak.md"
+sd add docs/leak.md
+head1="$(sd rev-parse HEAD)"
+(cd "$S" && loop/step-done.sh --commit "leak" >/dev/null 2>&1)
+check "a key-shaped string in the staged diff → exit 3, no commit" \
+  test $? -eq 3 -a "$(sd rev-parse HEAD)" = "$head1"
+sd reset -q docs/leak.md && rm "$S/docs/leak.md"
+sd checkout -q -- tasks
+
+printf 'X=1\n' >"$S/.env"
+sd add -f .env
+(cd "$S" && loop/step-done.sh --commit "env" >/dev/null 2>&1)
+check "a staged .env → exit 3, no commit" test $? -eq 3 -a "$(sd rev-parse HEAD)" = "$head1"
+sd reset -q .env && rm "$S/.env"
+sd checkout -q -- tasks
+
+printf '#!/bin/sh\nexit 1\n' >"$S/.git/hooks/pre-commit" && chmod +x "$S/.git/hooks/pre-commit"
+(cd "$S" && loop/step-done.sh --commit "hooked" >/dev/null 2>&1)
+check "commit hooks run (no --no-verify): a refusing hook → exit 3" \
+  test $? -eq 3 -a "$(sd rev-parse HEAD)" = "$head1"
+rm "$S/.git/hooks/pre-commit"
+sd reset -q && sd checkout -q -- tasks
+
+(cd "$S" && GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t \
+  loop/step-done.sh --commit "docs: step 3" --push >/dev/null 2>&1)
+check "--push publishes: nothing unreviewed afterwards" \
+  test "$(cd "$S" && loop/where.sh --json | jq .unreviewed)" = 0
+
 echo
 echo "$RUN run, $FAILED failed"
 [[ "$FAILED" -eq 0 ]]

@@ -76,10 +76,12 @@ The reference implementation to install from is bundled at `templates/` (domain-
   subagent starts with the rules loaded and the graders skip re-reading them);
   `templates/agents/` + `templates/commands/` →
   `.claude/agents/` + `.claude/commands/`; `templates/Makefile.sample` → merge a `check` target
-  (its gates run in parallel — `--jobs --output-sync=target`, GNU make ≥ 4.0) plus the `where` / `loop-hygiene` / `amendments` targets. Install the graders
-  together — `templates/agents/{planner,reviewer,verifier,plan-reviewer,adjudicator}.md`
-  — since PROMPT §1/§4b/§7 dispatch all five, and `templates/loop/amendments-guard.sh`
-  + `merge-gate.sh` alongside the other two scripts. **Install `templates/loop/where.sh` +
+  (its gates run in parallel — `--jobs --output-sync=target`, GNU make ≥ 4.0) plus the `where` / `loop-hygiene` / `step-done` / `amendments` targets. Install the graders
+  together — `templates/agents/{planner,reviewer,plan-reviewer,adjudicator}.md`, plus
+  `verifier.md` when a step's check needs judgment (it is optional: the deterministic
+  gate is run by `step-done.sh`) — since PROMPT §1/§4b/§7 dispatch them, and
+  `templates/loop/step-done.sh`, `amendments-guard.sh` + `merge-gate.sh` alongside the
+  other two scripts. **Install `templates/loop/where.sh` +
   `entry-size-guard.sh` whenever you install the loop** — a loop without them regrows the
   control-plane bloat described in `reference/ratchets.md`, which is the single largest
   measured cause of iteration slowdown.
@@ -102,6 +104,7 @@ The reference implementation to install from is bundled at `templates/` (domain-
 - **The artifact is stateful.** Always read the prior `score.json` and emit `previous`+`delta` so re-runs show a trend, not just a snapshot.
 - **Templates are the single source of "good".** `templates/` is both what the rubric describes and what Mode 2 installs — keep them in sync.
 - **Every grader reads what it is grading.** `reviewer` gets the step's own acceptance text and answers `INTENT: satisfied | shortfall | creep` first — without it the only judge of "did this increment do what the step said" is the agent that wrote it, and a flawless diff against the wrong step returns green from both graders. `plan-reviewer` audits a freshly written `PLAN.md` before step 1, because plan defects are found by *executing* them (two real cases: a plan revised 16→20 steps mid-objective; a step that became "part 1…part 8"). `adjudicator` rules on whether a *failing gate* is itself wrong, and is the only role with no stake in the increment continuing — a `raise-with-basis` ruling is actionable only once its arithmetic is in a committed decision record.
+- **Review by risk, close by script.** Risky steps (code with logic, scripts, infra config, host/env changes, decision records, anything near a golden rule) get the `reviewer` before the commit; low-risk steps (doc prose, mechanical edits) are committed unpushed and reviewed in one batch before the push — unpushed == unreviewed, and `where.sh` reports the count as `.unreviewed`. The reviewer runs in the background while the LOG is written, reports every CRITICAL/HIGH, at most 3 MEDIUM and no LOW. `loop/step-done.sh` closes the step in one command (gate → LOG evidence → tick → hygiene → scan → commit), so a deterministic gate needs no verifier subagent.
 - **Position is computed, never narrated.** `templates/loop/where.sh` derives phase · task · step N/M · governing spec · tree state · the read list from the `PLAN.md` checkboxes, the `LOG.md` tail and `git status`. The loop reads ONLY the files it names, which is what keeps closed tasks' logs out of context structurally. The read list is lean on purpose: rules `CLAUDE.md` already `@`-imports are reported as `.loaded` and not re-read, the active `LOG.md` is replaced by `where.sh --context` (newest two entries), and the governing spec shrinks to the sections the step cites with `§<key>` — on one real project that cut the resume read from ~110 KB to ~28 KB. Detail is written **once**, in the LOG; pointer files (`STATE.md`, `INDEX.md`) change only on gate/decision/carry-forward/task-boundary events. `entry-size-guard.sh` is the ratchet. See `reference/ratchets.md` §"Control-plane prose".
 - **Never invent a timestamp or a score.** Timestamps come from `date`; levels come from observed evidence. Verified-absent (you looked, it's not there) beats a guessed level.
 

@@ -147,7 +147,14 @@ agent paid output-token time to emit it and input-token time forever after.
    the whole spec — a miss costs a bigger read, never a missing one.
 6. **Cap the subagent reports too.** A reviewer's or verifier's output *is*
    main-context input. Bullets with `file:line`, a findings cap, evidence trimmed
-   to the decisive lines.
+   to the decisive lines. The reviewer template reports every CRITICAL/HIGH, at
+   most 3 MEDIUM and no LOW: on a real project ~30 reviews found 0 CRITICAL and
+   ~2 HIGH each, while every LOW became an amendment to carry to the close.
+7. **Script the ceremony.** Closing a step took 6-10 model round-trips (verifier
+   spawn, paste the tail, tick, hygiene, scan, commit, push). `loop/step-done.sh`
+   is one: it runs the gate, writes the tail into the LOG itself — better
+   evidence than a retyped one — and commits. Its gate block is fixed-size
+   machine output, so the prose budget does not count it.
 
 **Audit heuristics.** A ledger row over ~200 B, a "you are here" section longer
 than a screen, a closed task's log still named in the read path, or the same
@@ -159,7 +166,7 @@ green (see the falsified-metric path above — it applies to prose budgets too).
 
 ## Deferred findings — the ratchet that is usually a promise
 
-A review that defers MEDIUM/LOW findings to a plan's `## Amendments` needs a third
+A review that defers MEDIUM findings to a plan's `## Amendments` needs a third
 thing besides the finding and the deferral: a **count of what is still open**.
 Without it "deferred" and "dropped" are the same state, and nothing distinguishes
 them at the close.
