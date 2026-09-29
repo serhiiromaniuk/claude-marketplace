@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.17.0] - 2026-09-29
+
+### Changed (a lean resume read and a parallel gate)
+
+Measured on a second real project, run as long interactive sessions rather than
+a loop: every resume read about 110 KB before any work began, and the gate took
+26.7 s in sequence while running at least twice per increment.
+
+- **`templates/loop/where.sh` reads less.** Rules files that `CLAUDE.md`
+  `@`-imports (directly or through another import) are reported in a new
+  `.loaded` field and left out of `.read`; they were already in context and got
+  read a second time. The active `LOG.md` leaves `.read` too. A new `--context`
+  mode prints the step slice instead: the current step's full text (all its
+  continuation lines), the newest two LOG entries (capped at 80 lines, headings
+  in comments and code fences skipped), and only the governing-spec sections
+  the step cites with `§<key>` (a heading's leading number or its text before
+  ` — `; `§1` never matches `§10`; `FILE.md §6` cites another document and is
+  ignored). The spec leaves `.read` only when every citation resolves, so a
+  miss costs a bigger read, never a missing one. JSON gains `loaded`,
+  `spec_sections` and `context_cmd`. On the source project: ~110 KB → ~28 KB
+  per resume.
+- **`where.sh` step position** is now the ordinal of the first unchecked box,
+  not "checked + 1", which went wrong once a later box was ticked out of order.
+- **`templates/Makefile.sample` runs the gate in parallel.** `check` calls
+  `$(MAKE) --jobs=$(CHECK_JOBS) --output-sync=target check-gates`, then prints
+  the green line. Any failing gate still fails `check`; the output stays grouped
+  per gate. Needs GNU make ≥ 4.0.
+- **`entry-size-guard.sh` finds the active LOG from the task folder** (`where.sh
+  --json`), no longer from `--read`, since `LOG.md` left the read list.
+- **Resume ritual updated** to match: `PROMPT.md` §1, `AGENTS.md` §3a,
+  `/loop-step`, `/status`, `loop/README.md`, `reference/ratchets.md`.
+- **New `tests/loop-scripts.test.sh`** (outside `templates/`, so never
+  installed): builds a throwaway fixture repo and checks the read contract,
+  section resolution and `--context` output.
+
 ## [0.16.0] - 2026-09-29
 
 ### Changed (graders sized to their job)

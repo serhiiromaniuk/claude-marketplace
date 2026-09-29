@@ -22,10 +22,14 @@ the `- [ ]`/`- [x]` checkboxes of the active `PLAN.md`, the `Governing spec:` li
 of its `BRIEF.md`, the newest `## ` heading of its `LOG.md`, `loop/STATE.md`'s gate
 row, and `git status --porcelain`. Then:
 
-1. **Read exactly the files in `.read`, and nothing else.** That list is the read
-   contract. Do **NOT** browse `tasks/INDEX.md` for orientation, and **never** open
-   a CLOSED task's `LOG.md` — closed folders are archive. Read the active `LOG.md`
-   as a **tail**, not whole.
+1. **Read exactly the files in `.read`, and nothing else, then run
+   `.context_cmd` (`loop/where.sh --context`) once.** That pair is the read
+   contract. `.read` leaves out what is already in your context (`.loaded`: the
+   rules `CLAUDE.md` imports) and the active `LOG.md`; `--context` prints the
+   current step's full text, the newest two LOG entries and only the governing-spec
+   sections the step cites (`.spec_sections`). Do **NOT** browse `tasks/INDEX.md`
+   for orientation, do not open the whole `LOG.md`, and **never** open a CLOSED
+   task's `LOG.md` — closed folders are archive.
 2. Then dispatch on the flags, in this order — the first true one IS this iteration:
    - `.error` non-empty (exit 2) → the ledger has no in-progress task. Open the
      next `todo` one from `tasks/_template/`, checking `loop/STATE.md`'s

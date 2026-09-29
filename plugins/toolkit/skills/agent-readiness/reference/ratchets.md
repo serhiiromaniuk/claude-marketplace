@@ -137,7 +137,15 @@ agent paid output-token time to emit it and input-token time forever after.
    ≤40 lines, ledger row ≤200 B. **Warn-only, and NOT a dependency of the
    correctness gate** — that gate must never fail on prose style. Call it from the
    agent's own pre-commit sequence instead; a warning nobody reads is worthless.
-5. **Cap the subagent reports too.** A reviewer's or verifier's output *is*
+5. **Trim the read contract itself.** Once position is computed, the next
+   biggest resume cost on a second project was files read *in full* that the
+   step needed a slice of: rules files `CLAUDE.md` already loads (read twice),
+   the whole active `LOG.md` (only the tail was wanted) and a 27 KB spec whose
+   step cited one section. `where.sh` now leaves imported rules in `.loaded`,
+   drops `LOG.md` from `.read` and prints the tail plus the cited `§` sections
+   via `--context`: ~110 KB → ~28 KB per resume. An unresolved citation keeps
+   the whole spec — a miss costs a bigger read, never a missing one.
+6. **Cap the subagent reports too.** A reviewer's or verifier's output *is*
    main-context input. Bullets with `file:line`, a findings cap, evidence trimmed
    to the decisive lines.
 

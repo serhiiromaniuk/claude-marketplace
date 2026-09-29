@@ -9,8 +9,9 @@ status readout, not an essay. Do not change anything.
 1. Run `loop/where.sh --human` — phase, task, step N/M, governing spec (and
    whether it is still a stub), gate, tree state, last result. This replaces
    reading `loop/STATE.md` + `tasks/INDEX.md` for position.
-2. Read the active task's `BRIEF.md` (done-when boxes) and the **tail** of its
-   `LOG.md`. Closed tasks' folders are archive — do not open them.
+2. Read the active task's `BRIEF.md` (done-when boxes) and run
+   `loop/where.sh --context` for the step text and the LOG tail. Closed tasks'
+   folders are archive — do not open them.
 3. Read `loop/STATE.md`'s carry-forward + decision sections only if the question
    needs them.
 4. Run `git tag` (which milestones are tagged) and `git log --oneline -5`.

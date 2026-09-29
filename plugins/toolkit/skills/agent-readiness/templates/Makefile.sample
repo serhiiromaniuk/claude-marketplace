@@ -44,8 +44,21 @@ test: $(ENV)                   ## run tests with coverage (>=80% target)
 	<run tests with coverage, e.g. $(BIN)/pytest --cov=src>
 
 # The single sanctioned gate — the loop and every commit run THIS.
-.PHONY: check
-check: lint typecheck test      ## lint + typecheck + test (run before committing)
+# Its gates run IN PARALLEL: they are independent, and the agent runs this at
+# least twice per increment, so its wall time is paid on every step. Measured on
+# a real project: four tool containers, 26.7 s in sequence. `--output-sync=target`
+# keeps each gate's output together; any failing gate still fails `check`, and
+# the green line prints only when all passed. Needs GNU make >= 4.0. A gate that
+# shares mutable state with another (one database, one port) belongs in a
+# serial prerequisite chain instead.
+CHECK_JOBS ?= 6
+
+.PHONY: check check-gates
+check:                          ## lint + typecheck + test, in parallel (run before committing)
+	@$(MAKE) --no-print-directory --jobs=$(CHECK_JOBS) --output-sync=target check-gates
+	@echo ">> make check: all gates green"
+
+check-gates: lint typecheck test
 
 .PHONY: clean
 clean:                          ## remove the environment and caches

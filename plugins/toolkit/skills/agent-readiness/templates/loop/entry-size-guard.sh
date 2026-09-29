@@ -51,7 +51,11 @@ ok()   { printf '>> ok    %s\n' "$1"; }
 
 # ── 1. the newest LOG entry ──────────────────────────────────────────────────
 LOG=""
-[[ -x "$WHERE" ]] && LOG="$("$WHERE" --read 2>/dev/null | grep -E '/LOG\.md$' | head -1)"
+# From the task folder, not `--read`: LOG.md is deliberately not in the read list.
+if [[ -x "$WHERE" ]]; then
+  folder="$("$WHERE" --json 2>/dev/null | sed -n 's/^  "folder": "\(.*\)",$/\1/p')"
+  [[ -n "$folder" ]] && LOG="$folder/LOG.md"
+fi
 if [[ -n "$LOG" && -f "$LOG" ]]; then
   start="$(grep -nE '^## ' "$LOG" | tail -n1 | cut -d: -f1)"
   if [[ -n "$start" ]]; then

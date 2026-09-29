@@ -15,50 +15,98 @@
 #   the active PLAN.md · the `Governing spec:` line of its BRIEF.md · the newest
 #   `## ` heading of its LOG.md · loop/STATE.md's gate row · git status.
 #
-# loop/PROMPT.md §1 consumes the JSON and reads ONLY the files listed in `.read`.
-# That is what keeps a CLOSED task's LOG.md out of context structurally instead
-# of by asking the agent nicely — closed folders are never named.
+# loop/PROMPT.md §1 consumes the JSON, reads ONLY the files listed in `.read`,
+# and runs `--context` once for the step slice. That is what keeps a CLOSED
+# task's LOG.md out of context structurally instead of by asking the agent
+# nicely — closed folders are never named.
+#
+# THE READ CONTRACT IS LEAN ON PURPOSE. A second project measured the resume
+# read at ~110 KB: the rules files CLAUDE.md already loads (re-read in full),
+# the whole active LOG.md although only its tail was wanted, and the whole
+# 27 KB governing spec although the step cited one section of it. So:
+#   · a rules file CLAUDE.md `@`-imports (directly or through another import) is
+#     reported in `.loaded` and left OUT of `.read`;
+#   · LOG.md is never in `.read` — `--context` prints its newest two entries;
+#   · the spec leaves `.read` when every `§<key>` the current step cites
+#     resolves to a heading of it — `--context` prints just those sections.
+#     Any unresolved citation, a stub spec or a plan still to write keeps the
+#     whole spec in `.read`. A miss costs a bigger read, never a missing one.
 #
 # Usage:
 #   loop/where.sh            # JSON (default) — what the loop consumes
 #   loop/where.sh --read     # just the file list, one path per line
+#   loop/where.sh --context  # the step slice: full step text, LOG tail, cited spec sections
 #   loop/where.sh --human    # one-screen summary for a person (see /status)
 #
 # Exit 0 = position determined (read .needs_open / .needs_plan / .spec_stub to
 # see what the iteration owes). Exit 2 = cannot determine; JSON still prints with
 # .error set.
 #
-# ADAPTING IT: only the five paths below are project-specific. If your layout
+# ADAPTING IT: only the paths below are project-specific. If your layout
 # differs (no rules/ dir, specs elsewhere), change them here and nowhere else.
 
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
+SELF="$(basename "$(dirname "${BASH_SOURCE[0]}")")/$(basename "${BASH_SOURCE[0]}")"
 
 INDEX="${LOOP_INDEX:-tasks/INDEX.md}"
 STATE="${LOOP_STATE:-loop/STATE.md}"
 TASKS_DIR="${LOOP_TASKS_DIR:-tasks}"
 TEMPLATE_DIR="${LOOP_TEMPLATE_DIR:-tasks/_template}"
-RULES=()
-for f in rules/RULES.md rules/AGENTS.md; do [[ -f "$f" ]] && RULES+=("$f"); done
+RULE_FILES="${LOOP_RULES:-rules/RULES.md rules/AGENTS.md RULES.md AGENTS.md}"
+LOG_TAIL_MAX="${LOOP_LOG_TAIL_MAX:-80}"
 
-MODE=json
+MODE="json"
 case "${1:-}" in
-  ""|--json) MODE=json ;;
-  --read)    MODE=read ;;
-  --human)   MODE=human ;;
-  -h|--help) grep '^#' "$0" | sed '1d; s/^# \{0,1\}//'; exit 0 ;;
-  *) echo "unknown arg: $1 (try --help)" >&2; exit 2 ;;
+  "" | --json) MODE="json" ;;
+  --read) MODE="read" ;;
+  --context) MODE="context" ;;
+  --human) MODE="human" ;;
+  -h | --help)
+    grep '^#' "$0" | sed '1d; s/^# \{0,1\}//'
+    exit 0
+    ;;
+  *)
+    echo "unknown arg: $1 (try --help)" >&2
+    exit 2
+    ;;
 esac
 
 ERROR=""
+
+# ── rules: already loaded by CLAUDE.md, or still to read ─────────────────────
+# Claude Code loads CLAUDE.md and every file it `@`-imports, into the main
+# session and into every subagent. Re-reading those is pure waste.
+LOADED=()
+RULES=()
+[[ -f CLAUDE.md ]] && LOADED+=(CLAUDE.md)
+imports() { # imports <file> <target>: does <file> contain an `@<target>` import?
+  local re="${2//./\\.}"
+  grep -qE "(^|[[:space:]])@(\./)?${re}([[:space:]]|$)" "$1" 2>/dev/null
+}
+pending=()
+for f in $RULE_FILES; do [[ -f "$f" ]] && pending+=("$f"); done
+# Transitive, bounded: CLAUDE.md -> RULES.md -> AGENTS.md is two hops.
+for _ in 1 2 3; do
+  rest=()
+  for f in ${pending[@]+"${pending[@]}"}; do
+    hit=false
+    for l in ${LOADED[@]+"${LOADED[@]}"}; do imports "$l" "$f" && hit=true && break; done
+    if [[ "$hit" == true ]]; then LOADED+=("$f"); else rest+=("$f"); fi
+  done
+  pending=(${rest[@]+"${rest[@]}"})
+done
+RULES=(${pending[@]+"${pending[@]}"})
 
 # ── the ledger row ───────────────────────────────────────────────────────────
 # The single row of tasks/INDEX.md whose status is in-progress. Its first
 # markdown link is the task folder.
 row="$(grep -m1 -E '\|[^|]*in-progress[^|]*\|' "$INDEX" 2>/dev/null || true)"
-folder=""; task=""; phase=""
+folder=""
+task=""
+phase=""
 if [[ -n "$row" ]]; then
   rel="$(printf '%s' "$row" | grep -oE '\]\(\./[^)]+\)' | head -1 | sed -E 's#^\]\(\./##; s#\)$##; s#/$##')"
   [[ -n "$rel" ]] && folder="$TASKS_DIR/$rel"
@@ -69,29 +117,42 @@ if [[ -z "$row" ]]; then
   ERROR="no in-progress row in $INDEX — open the next todo task from $TEMPLATE_DIR"
 fi
 needs_open=false
-[[ -n "$row" && ( -z "$folder" || ! -d "$folder" ) ]] && needs_open=true
+[[ -n "$row" && (-z "$folder" || ! -d "$folder") ]] && needs_open=true
 
-BRIEF=""; PLAN=""; LOG=""
+BRIEF=""
+PLAN=""
+LOG=""
 if [[ -n "$folder" && -d "$folder" ]]; then
   [[ -f "$folder/BRIEF.md" ]] && BRIEF="$folder/BRIEF.md"
-  [[ -f "$folder/PLAN.md"  ]] && PLAN="$folder/PLAN.md"
-  [[ -f "$folder/LOG.md"   ]] && LOG="$folder/LOG.md"
+  [[ -f "$folder/PLAN.md" ]] && PLAN="$folder/PLAN.md"
+  [[ -f "$folder/LOG.md" ]] && LOG="$folder/LOG.md"
 fi
 
 # ── step position: the PLAN's checkboxes ARE the state machine ───────────────
-steps=0; done_steps=0; step=0; step_title=""; all_done=false
+steps=0
+step=0
+step_title=""
+step_text=""
+all_done=false
 if [[ -n "$PLAN" ]]; then
   steps="$(grep -cE '^- \[[ xX]\] ' "$PLAN" || true)"
-  done_steps="$(grep -cE '^- \[[xX]\] ' "$PLAN" || true)"
 fi
 needs_plan=false
 if [[ -z "$PLAN" || "$steps" -eq 0 ]]; then
   needs_plan=true
 else
-  if [[ "$done_steps" -ge "$steps" ]]; then
-    step="$steps"; all_done=true
+  # The ordinal of the FIRST unchecked box, not "checked + 1": the two differ
+  # once any later box is ticked out of order.
+  step="$(grep -E '^- \[[ xX]\] ' "$PLAN" | grep -nE '^- \[ \] ' | head -1 | cut -d: -f1)"
+  if [[ -z "$step" ]]; then
+    step="$steps"
+    all_done=true
   else
-    step=$((done_steps + 1))
+    # The step's FULL text: its checkbox line plus every continuation line up to
+    # the next checkbox or heading.
+    step_text="$(awk '/^- \[ \] / && !f {f=1; print; next}
+                      f && (/^- \[/ || /^#/) {exit}
+                      f {print}' "$PLAN")"
     # A step title may wrap onto indented continuation lines and end at a bolded
     # `:**`. Join up to 4 lines, cut there, strip marker/number/emphasis.
     # NB: awk runs END on `exit`, so the fallback print is guarded by `p`.
@@ -107,8 +168,10 @@ fi
 # ── the governing spec, and whether it is still a stub ───────────────────────
 # BRIEF.md's `Governing spec:` line; the first backticked path on it. Optional —
 # a project with no spec layer simply leaves the line out.
-spec=""; spec_stub=false
+spec=""
+spec_stub=false
 if [[ -n "$BRIEF" ]]; then
+  # shellcheck disable=SC2016 # reason: the backticks are literal Markdown, not expansions
   spec="$(grep -m1 -E '^[-*] *Governing spec:' "$BRIEF" \
     | grep -oE '`[A-Za-z0-9._/-]+\.md`' | head -1 | tr -d '`')"
 fi
@@ -118,13 +181,77 @@ if [[ -n "$spec" && -f "$spec" ]]; then
   # "STUB" further down, recording that it stopped being one.
   head -12 "$spec" | grep -qE '\*\*STUB|TODO\(spec\)' && spec_stub=true
 elif [[ -n "$spec" ]]; then
-  spec_stub=true   # named but absent — writing it IS the iteration
+  spec_stub=true # named but absent — writing it IS the iteration
+fi
+
+# ── the spec sections the current step cites ─────────────────────────────────
+# A citation is `§<key>` where <key> is a heading's leading number (`## 3. Data`
+# → `§3`) or its text before ` — ` (`## Wave 1 — edge` → `§Wave 1`), matched
+# case-insensitively and not followed by a letter or digit (`§1` never matches
+# `§10`). `FILE.md §6` cites another document and is ignored. Headings inside
+# fenced code are not headings. A section runs to the next heading of the same
+# or a higher level. Prints `start end title` per section, `NONE` when the step
+# cites nothing, `UNRESOLVED` when any citation matches no heading.
+spec_sections_of() { # <spec> <step text>
+  WHERE_STEP_TEXT="$2" awk -v q='§' '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^[ \t]*(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    /^#+[ \t]/ {
+      n++; hl[n] = NR; t = $0; lev = 0
+      while (substr(t, 1, 1) == "#") { lev++; t = substr(t, 2) }
+      hlev[n] = lev; t = trim(t); htxt[n] = t; k1 = ""
+      if (match(t, /^[0-9]+(\.[0-9]+)*\.?[ \t]/)) {
+        k1 = trim(substr(t, 1, RLENGTH)); sub(/\.$/, "", k1); t = trim(substr(t, RLENGTH + 1))
+      }
+      p = index(t, " — "); if (p > 0) t = substr(t, 1, p - 1)
+      p = index(t, " – "); if (p > 0) t = substr(t, 1, p - 1)
+      sub(/:$/, "", t)
+      key1[n] = tolower(k1); key2[n] = tolower(trim(t))
+    }
+    END {
+      for (i = 1; i <= n; i++) {
+        e = NR
+        for (j = i + 1; j <= n; j++) if (hlev[j] <= hlev[i]) { e = hl[j] - 1; break }
+        hend[i] = e
+      }
+      s = tolower(ENVIRON["WHERE_STEP_TEXT"]); ql = length(q); cites = 0; unres = 0
+      while ((p = index(s, q)) > 0) {
+        before = substr(s, 1, p - 1); after = substr(s, p + ql); s = after
+        sub(/[ \t`*]+$/, "", before)
+        if (before ~ /\.md$/) continue
+        cites++
+        if (substr(after, 1, 1) == " ") after = substr(after, 2)
+        best = 0; bl = 0
+        for (i = 1; i <= n; i++) for (k = 1; k <= 2; k++) {
+          key = (k == 1 ? key1[i] : key2[i]); L = length(key)
+          if (L == 0 || L <= bl) continue
+          if (substr(after, 1, L) == key && substr(after, L + 1, 1) !~ /[a-z0-9]/) { best = i; bl = L }
+        }
+        if (best) chosen[best] = 1; else unres++
+      }
+      if (cites == 0) { print "NONE"; exit }
+      if (unres > 0) { print "UNRESOLVED"; exit }
+      for (i = 1; i <= n; i++) if (chosen[i]) {
+        inner = 0
+        for (j = 1; j <= n; j++) if (j != i && chosen[j] && hl[j] < hl[i] && hend[i] <= hend[j]) inner = 1
+        if (!inner) printf "%d %d %s\n", hl[i], hend[i], htxt[i]
+      }
+    }' "$1"
+}
+SECTIONS=()
+if [[ -n "$step_text" && -n "$spec" && -f "$spec" && "$spec_stub" == false ]]; then
+  res="$(spec_sections_of "$spec" "$step_text")"
+  if [[ "$res" != NONE && "$res" != UNRESOLVED && -n "$res" ]]; then
+    while IFS= read -r l; do SECTIONS+=("$l"); done <<<"$res"
+  fi
 fi
 
 # ── tree state (PROMPT §1's reconcile branch) ────────────────────────────────
 tree_clean=true
 [[ -n "$(git status --porcelain 2>/dev/null)" ]] && tree_clean=false
-branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+# symbolic-ref first: it also works before the first commit; short sha when detached.
+branch="$(git symbolic-ref --short -q HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo '?')"
 
 # ── last result: the newest LOG.md entry heading ─────────────────────────────
 # Deliberately NOT read from the pointer files. Deriving it here is what lets a
@@ -136,79 +263,132 @@ if [[ -n "$LOG" ]]; then
 fi
 
 # ── the non-derivable bits STATE.md still owns ───────────────────────────────
-gate=""; blocked="unknown"
+gate=""
+blocked="unknown"
 if [[ -f "$STATE" ]]; then
   gate="$(grep -m1 -E '\*\*Gate status\*\*' "$STATE" \
-    | awk -F'|' '{gsub(/^[ 	]+|[ 	]+$/,"",$3); gsub(/`/,"",$3); print $3}' | cut -c1-200)"
+    | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$3); gsub(/`/,"",$3); print $3}' | cut -c1-200)"
   blocked="$(grep -m1 -E '\*\*Blocked\?\*\*' "$STATE" \
     | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$3); gsub(/`/,"",$3); print $3}' | cut -c1-80)"
 fi
 
 # ── what this iteration must read ────────────────────────────────────────────
-READ=("${RULES[@]}")
+READ=(${RULES[@]+"${RULES[@]}"})
 [[ -f "$STATE" ]] && READ+=("$STATE")
 if [[ "$needs_open" == true ]]; then
   READ+=("$TEMPLATE_DIR/BRIEF.md" "$TEMPLATE_DIR/PLAN.md")
 else
   [[ -n "$BRIEF" ]] && READ+=("$BRIEF")
-  [[ -n "$PLAN"  ]] && READ+=("$PLAN")
-  [[ -n "$LOG"   ]] && READ+=("$LOG")
+  [[ -n "$PLAN" ]] && READ+=("$PLAN")
 fi
-[[ -n "$spec" ]] && READ+=("$spec")
+[[ -n "$spec" && ${#SECTIONS[@]} -eq 0 ]] && READ+=("$spec")
 
 # ── output ───────────────────────────────────────────────────────────────────
 jesc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\000-\037'; }
+jarr() { # jarr <item>... → a JSON array of strings
+  local i=0 x
+  printf '['
+  for x in "$@"; do
+    [[ "$i" -gt 0 ]] && printf ', '
+    printf '"%s"' "$(jesc "$x")"
+    i=$((i + 1))
+  done
+  printf ']'
+}
+section_label() { # "start end title" → "title (L<start>-<end>)"
+  local a b t
+  read -r a b t <<<"$1"
+  printf '%s (L%s-%s)' "$t" "$a" "$b"
+}
+LABELS=()
+for s in ${SECTIONS[@]+"${SECTIONS[@]}"}; do LABELS+=("$(section_label "$s")"); done
+
+log_tail() { # the newest two `## ` entries, skipping headings in comments and fences
+  local start total
+  start="$(awk '/^[ \t]*(```|~~~)/ { if (!c) fence = !fence }
+                /<!--/ { if (!fence) c = 1 }
+                { if (!c && !fence && /^## /) h[++n] = NR }
+                /-->/ { c = 0 }
+                END { print (n >= 2 ? h[n - 1] : (n == 1 ? h[1] : 1)) }' "$LOG")"
+  total="$(sed -n "${start},\$p" "$LOG" | wc -l)"
+  if [[ "$total" -gt "$LOG_TAIL_MAX" ]]; then
+    echo "(… $((total - LOG_TAIL_MAX)) earlier lines of these entries omitted — open $LOG only if you need them)"
+    sed -n "${start},\$p" "$LOG" | tail -n "$LOG_TAIL_MAX"
+  else
+    sed -n "${start},\$p" "$LOG"
+  fi
+}
 
 case "$MODE" in
-read)
-  printf '%s\n' "${READ[@]}"
-  ;;
-human)
-  echo "phase       : ${phase:-?}"
-  echo "task        : ${task:-<none>}  [${folder:-no folder}]"
-  if [[ "$needs_open" == true ]]; then
-    echo "step        : NO FOLDER — open the task from $TEMPLATE_DIR; that IS this iteration"
-  elif [[ "$needs_plan" == true ]]; then
-    echo "step        : NO PLAN — the planner subagent decomposes BRIEF+spec; that IS this iteration"
-  elif [[ "$all_done" == true ]]; then
-    echo "step        : all $steps steps ✓ — close the task (OUTCOME.md), check the gate, advance"
-  else
-    echo "step        : $step of $steps — $step_title"
-  fi
-  [[ -n "$spec" ]] && echo "spec        : $spec$([[ "$spec_stub" == true ]] && echo '  [STUB — write it first]')"
-  echo "gate        : ${gate:-<none recorded>}"
-  echo "tree        : $([[ "$tree_clean" == true ]] && echo clean || echo 'DIRTY — reconcile before starting (PROMPT §1)') on $branch"
-  echo "last result : ${last_result:-<none>}"
-  echo "read        : ${READ[*]}"
-  [[ -n "$ERROR" ]] && echo "error       : $ERROR"
-  ;;
-json)
-  printf '{\n'
-  printf '  "phase": "%s",\n'         "$(jesc "$phase")"
-  printf '  "task": "%s",\n'          "$(jesc "$task")"
-  printf '  "folder": "%s",\n'        "$(jesc "$folder")"
-  printf '  "needs_open": %s,\n'      "$needs_open"
-  printf '  "needs_plan": %s,\n'      "$needs_plan"
-  printf '  "step": %s,\n'            "$step"
-  printf '  "steps": %s,\n'           "$steps"
-  printf '  "all_steps_done": %s,\n'  "$all_done"
-  printf '  "step_title": "%s",\n'    "$(jesc "$step_title")"
-  printf '  "spec": "%s",\n'          "$(jesc "$spec")"
-  printf '  "spec_stub": %s,\n'       "$spec_stub"
-  printf '  "gate": "%s",\n'          "$(jesc "$gate")"
-  printf '  "blocked": "%s",\n'       "$(jesc "$blocked")"
-  printf '  "tree_clean": %s,\n'      "$tree_clean"
-  printf '  "branch": "%s",\n'        "$(jesc "$branch")"
-  printf '  "last_result": "%s",\n'   "$(jesc "$last_result")"
-  printf '  "read": ['
-  for i in "${!READ[@]}"; do
-    [[ "$i" -gt 0 ]] && printf ', '
-    printf '"%s"' "$(jesc "${READ[$i]}")"
-  done
-  printf '],\n'
-  printf '  "error": "%s"\n'          "$(jesc "$ERROR")"
-  printf '}\n'
-  ;;
+  read)
+    printf '%s\n' "${READ[@]}"
+    ;;
+  context)
+    if [[ -n "$step_text" ]]; then
+      echo "==> step $step of $steps ($PLAN)"
+      printf '%s\n' "$step_text"
+    else
+      echo "==> no current step (needs_open=$needs_open needs_plan=$needs_plan all_steps_done=$all_done)"
+    fi
+    if [[ -n "$LOG" ]]; then
+      echo
+      echo "==> newest LOG entries ($LOG)"
+      log_tail
+    fi
+    for s in ${SECTIONS[@]+"${SECTIONS[@]}"}; do
+      read -r a b _ <<<"$s"
+      echo
+      echo "==> spec section $(section_label "$s") of $spec"
+      sed -n "${a},${b}p" "$spec"
+    done
+    ;;
+  human)
+    echo "phase       : ${phase:-?}"
+    echo "task        : ${task:-<none>}  [${folder:-no folder}]"
+    if [[ "$needs_open" == true ]]; then
+      echo "step        : NO FOLDER — open the task from $TEMPLATE_DIR; that IS this iteration"
+    elif [[ "$needs_plan" == true ]]; then
+      echo "step        : NO PLAN — the planner subagent decomposes BRIEF+spec; that IS this iteration"
+    elif [[ "$all_done" == true ]]; then
+      echo "step        : all $steps steps ✓ — close the task (OUTCOME.md), check the gate, advance"
+    else
+      echo "step        : $step of $steps — $step_title"
+    fi
+    [[ -n "$spec" ]] && echo "spec        : $spec$([[ "$spec_stub" == true ]] && echo '  [STUB — write it first]')"
+    [[ ${#LABELS[@]} -gt 0 ]] && echo "cited       : ${LABELS[*]}"
+    echo "gate        : ${gate:-<none recorded>}"
+    echo "tree        : $([[ "$tree_clean" == true ]] && echo clean || echo 'DIRTY — reconcile before starting (PROMPT §1)') on $branch"
+    echo "last result : ${last_result:-<none>}"
+    echo "loaded      : ${LOADED[*]:-<none>}"
+    echo "read        : ${READ[*]}"
+    echo "context     : $SELF --context"
+    [[ -n "$ERROR" ]] && echo "error       : $ERROR"
+    ;;
+  json)
+    printf '{\n'
+    printf '  "phase": "%s",\n' "$(jesc "$phase")"
+    printf '  "task": "%s",\n' "$(jesc "$task")"
+    printf '  "folder": "%s",\n' "$(jesc "$folder")"
+    printf '  "needs_open": %s,\n' "$needs_open"
+    printf '  "needs_plan": %s,\n' "$needs_plan"
+    printf '  "step": %s,\n' "$step"
+    printf '  "steps": %s,\n' "$steps"
+    printf '  "all_steps_done": %s,\n' "$all_done"
+    printf '  "step_title": "%s",\n' "$(jesc "$step_title")"
+    printf '  "spec": "%s",\n' "$(jesc "$spec")"
+    printf '  "spec_stub": %s,\n' "$spec_stub"
+    printf '  "spec_sections": %s,\n' "$(jarr ${LABELS[@]+"${LABELS[@]}"})"
+    printf '  "gate": "%s",\n' "$(jesc "$gate")"
+    printf '  "blocked": "%s",\n' "$(jesc "$blocked")"
+    printf '  "tree_clean": %s,\n' "$tree_clean"
+    printf '  "branch": "%s",\n' "$(jesc "$branch")"
+    printf '  "last_result": "%s",\n' "$(jesc "$last_result")"
+    printf '  "loaded": %s,\n' "$(jarr ${LOADED[@]+"${LOADED[@]}"})"
+    printf '  "read": %s,\n' "$(jarr "${READ[@]}")"
+    printf '  "context_cmd": "%s",\n' "$(jesc "$SELF --context")"
+    printf '  "error": "%s"\n' "$(jesc "$ERROR")"
+    printf '}\n'
+    ;;
 esac
 
 [[ -n "$ERROR" ]] && exit 2

@@ -9,7 +9,9 @@ test the loop before running it unattended.
 
 Do this now:
 1. Run `loop/where.sh --json` FIRST, then read exactly the files it lists in
-   `.read` — nothing else. Never open a closed task's `LOG.md`. Dispatch on its
+   `.read` — nothing else — and run `loop/where.sh --context` once for the step
+   text, the LOG tail and the cited spec sections. Never open a closed task's
+   `LOG.md`. Dispatch on its
    flags per PROMPT §1: `.error` / `.tree_clean` / `.needs_open` / `.needs_plan` /
    `.spec_stub` / `.all_steps_done`, first true one wins.
 2. Respect the gates (AGENTS.md §6) — especially: if the foundation phase is

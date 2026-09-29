@@ -7,9 +7,11 @@ layer*** (how you actually execute work across long-running, multi-session,
 phase-gated tasks). [`WORKFLOW.md`](./WORKFLOW.md) is the worked example.
 
 Read order at the start of any session: **run
-[`../loop/where.sh`](../loop/where.sh)` --json` first**, then RULES.md, AGENTS.md,
-and exactly the files it lists in `.read` — the active task folder under
-[`../tasks/`](../tasks/) (`BRIEF`, `PLAN`, tail of `LOG`) and its governing spec.
+[`../loop/where.sh`](../loop/where.sh)` --json` first**, then exactly the files it
+lists in `.read` (RULES.md and AGENTS.md only when `CLAUDE.md` does not already
+import them — see `.loaded`), then `where.sh --context` once: the current step's
+full text, the tail of the active task's `LOG`, and the governing-spec sections
+the step cites.
 The oracle computes position, gate and tree state from disk, so
 [`../tasks/INDEX.md`](../tasks/INDEX.md) is **not** read for orientation and closed
 tasks' folders are archive.
@@ -142,10 +144,13 @@ status `todo | in-progress | blocked | done`.
 1. Run [`../loop/where.sh`](../loop/where.sh)` --json` — phase · task · step N/M ·
    step title · governing spec (and whether it is still a stub) · gate · tree state
    · **the read list**.
-2. Read [`RULES.md`](./RULES.md) (golden rules, architecture, git) and this file.
-3. Read **exactly** the files in `.read`, and nothing else: the active task's
-   `BRIEF.md`, `PLAN.md`, the **tail** of `LOG.md`, its governing spec, and
-   `STATE.md` for the gate/decisions. Never open a closed task's `LOG.md`.
+2. Read **exactly** the files in `.read`, and nothing else: `STATE.md` for the
+   gate/decisions, the active task's `BRIEF.md` and `PLAN.md`, the governing spec
+   when the step cites no section of it, and [`RULES.md`](./RULES.md) / this file
+   only when `CLAUDE.md` does not already load them (`.loaded`).
+3. Run `where.sh --context` once — the step's full text, the newest two `LOG.md`
+   entries, the cited spec sections. Never open a whole `LOG.md`, and never a
+   closed task's.
 4. Dispatch on the oracle's flags (loop/PROMPT.md §1): `.error` → open the next
    task · `.tree_clean == false` → **reconcile the interrupted increment first** ·
    `.needs_open` / `.needs_plan` / `.spec_stub` → that IS this iteration ·

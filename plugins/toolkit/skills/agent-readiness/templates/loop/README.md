@@ -28,7 +28,7 @@ means a crash, a `/clear`, or a new day never loses progress.
 | File | Role |
 |------|------|
 | `PROMPT.md` | The **invariant** prompt. Re-fed verbatim every iteration. Don't change it per-step — change the task's `PLAN.md` instead. |
-| `where.sh` | The **position oracle** — every iteration's first command. `--json` for the loop, `--human` (`make where`) for a person, `--read` for just the file list. Computes phase · task · step N/M · step title · governing spec + stub flag · gate · tree state · the read contract. |
+| `where.sh` | The **position oracle** — every iteration's first command. `--json` for the loop, `--human` (`make where`) for a person, `--read` for just the file list, `--context` for the step slice (full step text, newest two LOG entries, the spec sections the step cites with `§<key>`). Computes phase · task · step N/M · step title · governing spec + stub flag · gate · tree state · the read contract, which leaves out rules `CLAUDE.md` already loads (`.loaded`) and the whole `LOG.md`. |
 | `entry-size-guard.sh` | The prose ratchet (`make loop-hygiene`): LOG entry ≤40 lines, `STATE.md` ≤40 lines, ledger row ≤200 B. Warn-only, called from `PROMPT.md` §5 — deliberately **not** a dependency of the correctness gate. |
 | `amendments-guard.sh` | `make amendments` — prints how many deferred reviewer findings in the active `PLAN.md`'s `## Amendments` are still OPEN, read from each entry's own disposition verb. `--all` walks closed tasks too. Warn-only. |
 | `merge-gate.sh` | The prerequisite for parallel tasks: merges N branches into a throwaway worktree off `main` and runs the gate **once on the merged tree**. Two branches can be green alone and RED together — global LOC rows, one coverage/testcount ratchet, committed generated code. |
