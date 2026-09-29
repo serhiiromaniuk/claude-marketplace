@@ -24,8 +24,28 @@ Produce a `PLAN.md` (use `tasks/_template/PLAN.md`) where:
 - **Steps respect the boundaries:** vendor SDK only in its adapter module;
   config only via the one config module; files ≤ ~400 lines; state persists
   where correctness needs it; no forbidden runtime dependency.
-- **Risks / Dependencies** call out unknowns and which steps are independent
-  (candidates for parallel subagents).
+- **Questions for the owner come first.** Collect every unknown the repo cannot
+  answer — a fact only a human knows, a product call, access, a credential — into
+  `## Questions for the owner` (`- Q1 — … · blocks: 4, 7 · answer: pending`) and
+  mark each dependent step `(needs Q1)`. They are asked in ONE batch at task
+  open; a plan that leaves them to be discovered mid-step stalls one step at a
+  time (on a real project ~40 owner questions surfaced that way).
+- **Independent steps are tagged `[parallel: A]`** (right after the number) when
+  they write disjoint files and none consumes another's output. Shared index or
+  README rows are a separate step after the group. Never tag a host-, secret- or
+  shared-state-changing step. Keep a group ≤ 4 steps.
+- **Research-heavy tasks fan out.** When the task is discovery or design, the
+  first group is one read-only discovery step per area (inventory, data,
+  network, dependencies…), each writing its own page or section; independent
+  decision records are a second group, drafted side by side. One batched
+  reviewer pass over each group catches the cross-document contradictions a
+  per-step pass cannot. On a real project the serial version of this was ~3 h
+  of a ~7 h run.
+- **Batch trivial items.** Mechanical items that one check proves (a row per
+  table, the same edit across files) are ONE step. Every step carries a fixed
+  close-out cost, so a 37-step plan pays it 37 times; do not split what one
+  check proves.
+- **Risks / Dependencies** call out unknowns and explain the parallel groups.
 - **Escape hatches** cover: 3-failure stop, destructive/secret-touching/
   irreversible actions (hand to human), and gate failure
   (`<<LOOP:GATE_FAILED>>`, never weaken the threshold).
@@ -34,4 +54,6 @@ Rules:
 - Honour the phase gate: if the foundation phase is still open, the only valid
   plans concern that phase's work, never later-phase `src/` code.
 - Don't over-plan. Enough steps to be unambiguous; not a 30-step ritual.
+- `loop/where.sh` parses the checkboxes: keep one `- [ ] N.` line per step, the
+  `[parallel: X]` tag right after `N.`, and `(needs Qn)` in the step text.
 - Write only `PLAN.md`. Never edit code or other task docs.

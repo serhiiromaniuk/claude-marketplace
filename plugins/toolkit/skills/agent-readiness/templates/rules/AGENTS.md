@@ -380,6 +380,24 @@ research/reads across subsystems, several review lenses over one diff at once,
 independent file edits **via separate git worktrees** (§7) so concurrent writes
 can't collide.
 
+**How a `[parallel: X]` group runs** (the planner tags it; `where.sh` reports it
+as `.parallel_steps`; the group is ONE increment):
+
+1. Fan out one subagent per step, launched together. Read-only discovery and
+   steps that only create their own new files run in the same tree; anything
+   else gets its own branch in its own git worktree (§7).
+2. Subagents deliver their step's files only — never `LOG.md`, `PLAN.md` or a
+   shared index row. Branches go through `loop/merge-gate.sh <branches>` (the
+   gate on the MERGED tree), then merge.
+3. ONE batched `reviewer` pass with every step's text: it sees the group as one
+   change, which is where two pages contradicting each other get caught.
+4. One LOG entry per step, shared index rows as their own edit, then
+   `loop/step-done.sh --steps "<N M …>"` ticks the group together.
+
+**Research-heavy tasks** open with such a group: one read-only discovery area per
+subagent, each writing its own page, then the decision records drafted side by
+side. On a real project the serial version of that phase was ~3 h of a ~7 h run.
+
 This does **not** override §1's simplicity rule: map the dependencies first and
 only fan out work that is actually independent and non-trivial. If task B needs
 task A's result, they are a **wave boundary** (sequential), not parallel. When
@@ -413,8 +431,31 @@ Run the change past four lenses and note conclusions in `LOG.md`:
 
 ---
 
-## 10. Anti-patterns (don't)
+## 10. Throughput — what actually costs time
 
+Measured on real projects: the model's thinking is rarely the bottleneck. Wall
+time goes to round-trips (every tool call is a model turn), to serial work that
+was independent, and to fixed per-step ceremony paid once per step.
+
+- **Batch independent tool calls** into one turn: reads, searches, independent
+  subagents. Three sequential calls cost three turns.
+- **Fan out independent work** (§8a) and **ask owner questions in one batch**
+  at task open (PLAN `## Questions for the owner`), not one per stalled step.
+- **Let scripts do ceremony:** `where.sh --context` for the resume slice,
+  `step-done.sh` to close a step, a parallel `make check`.
+- **Right-size steps:** a batch step for trivial items one check proves; review
+  by risk (§8), not by ritual.
+- **Models are sized per role** in `../agents/` (strongest reasoner for plan
+  review and adjudication, a strong one for planning and review, a small one for
+  a verifier that only runs commands). In Claude Code, `/fast` speeds up the
+  main session's output on the same model — useful for long mechanical stretches.
+
+---
+
+## 11. Anti-patterns (don't)
+
+- Discovering owner questions one step at a time, or running independent
+  research areas one after another.
 - Holding progress only in the conversation — if context were lost, work would
   vanish. Write it to the task folder.
 - Editing past `LOG.md` entries or rewriting `PLAN.md` steps mid-task.

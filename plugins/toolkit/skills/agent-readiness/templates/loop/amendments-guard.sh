@@ -29,7 +29,7 @@
 #         hack/amendments-guard.sh --all   # every tasks/*/PLAN.md, closed included
 #         hack/amendments-guard.sh --strict
 set -uo pipefail
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$REPO_ROOT"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$REPO_ROOT" || exit 1
 
 STRICT=0; ALL=0
 for a in "$@"; do

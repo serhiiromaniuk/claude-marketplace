@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.19.0] - 2026-09-29
+
+### Added (faster task open: fan out, ask once, batch the trivial)
+
+On the same project the research phase was ~3 h of a ~7 h run, done one area
+after another; ~40 owner questions surfaced one stalled step at a time; and a
+37-step plan paid the per-step close-out cost 37 times.
+
+- **Parallel plan groups.** The planner tags independent steps
+  `- [ ] N. [parallel: A] …` (disjoint files, no shared state, ≤ 4 per group).
+  `where.sh` strips the tag from the title and reports `.parallel_group` and
+  `.parallel_steps`; `PROMPT.md` §1/§3 and `AGENTS.md` §8a run a group as ONE
+  increment: one subagent per step launched together (worktrees for anything
+  beyond new files), `merge-gate.sh` on the merged tree, ONE batched reviewer
+  pass that sees the group as one change, one LOG entry per step, and
+  `step-done.sh --steps "N M …"` to tick the group. Research-heavy tasks open
+  with a discovery group, one area per subagent, each writing its own page,
+  then the decision records side by side.
+- **Owner questions up front.** `PLAN.md` gains `## Questions for the owner`
+  (`- Q1 — … · blocks: 4 · answer: pending | asked <date> | <answer>`); the
+  planner collects every unknown only a human can resolve and marks dependent
+  steps `(needs Q1)`. `where.sh` reports `.open_questions`,
+  `.unasked_questions` and `.waiting_on`; the session asks all unasked ones in
+  ONE batch, and a step waiting on an open one blocks instead of guessing.
+- **Batch steps.** Trivial mechanical items one check proves are one step. The
+  plan-reviewer flags both directions: oversized (unrelated checks) and
+  undersized (a run of trivial steps sharing one check, MEDIUM), plus missing
+  owner questions (HIGH) and parallel tags on host/secret/shared-state steps
+  (CRITICAL).
+- **`AGENTS.md` §10 Throughput** (and a `SKILL.md` convention): wall time goes
+  to round-trips, serial independent work and per-step ceremony — batch
+  independent tool calls, fan out, ask once, script the ceremony, size models
+  per role, `/fast` for the main session.
+- **`merge-gate.sh` made generic:** `loop/` paths, the gate is
+  `$MERGE_GATE_CMD` (default `make check`, was a project-specific target),
+  project-specific wording removed.
+- Tests: 9 more cases (group detection, title stripping, question states,
+  `.waiting_on`, `--steps`, merge-gate green/conflict/main untouched) — 39 total.
+
 ## [0.18.0] - 2026-09-29
 
 ### Changed (review by risk, close by script)

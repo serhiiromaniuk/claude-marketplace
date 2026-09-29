@@ -161,9 +161,45 @@ else
                 f{buf = buf " " $0; if (buf ~ /:\*\*/ || ++n >= 4) {print buf; p=1; exit}}
                 END{if (!p && f && buf != "") print buf}' "$PLAN")"
     step_title="$(printf '%s' "$raw" \
-      | sed -E 's/:\*\*.*$//; s/^ *- \[ \] *//; s/^[0-9]+[a-z]?\.? *//; s/\*\*//g;
+      | sed -E 's/:\*\*.*$//; s/^ *- \[ \] *//; s/^[0-9]+[a-z]?\.? *//; s/^\[parallel: *[A-Za-z0-9_-]+\] *//; s/\*\*//g;
                 s/[[:space:]]+/ /g; s/^ +//; s/ +$//' | cut -c1-160)"
   fi
+fi
+
+# ── parallel groups: `- [ ] N. [parallel: A] …` ──────────────────────────────
+# Steps the planner tagged with the same group write disjoint files and do not
+# consume each other's output, so the session may fan them out (AGENTS.md §8a).
+# `.parallel_steps` lists the unchecked steps of the current step's group.
+parallel_group=""
+PAR_STEPS=()
+if [[ -n "$step_text" ]]; then
+  parallel_group="$(head -1 <<<"$step_text" | sed -nE 's/^- \[ \] [0-9]+[a-z]?\.? *\[parallel: *([A-Za-z0-9_-]+)\].*/\1/p')"
+fi
+if [[ -n "$parallel_group" ]]; then
+  while IFS= read -r n; do PAR_STEPS+=("$n"); done < <(grep -E '^- \[[ xX]\] ' "$PLAN" \
+    | awk -v g="$parallel_group" '{o++} /^- \[ \] / && index($0, "[parallel: " g "]") {print o}')
+fi
+
+# ── owner questions: asked in ONE batch, not discovered step by step ─────────
+# PLAN.md `## Questions for the owner`: `- Q3 — <question> · blocks: 4, 7 ·
+# answer: pending` (not yet asked) → `answer: asked <date>` → `answer: <text>`.
+# `.unasked_questions` / `.open_questions` count the first / first two states;
+# `.waiting_on` lists the open ones the current step names with `(needs Q3)`.
+OPEN_Q=()
+UNASKED_Q=()
+WAIT_Q=()
+questions() { # questions <state regex> → the Q ids in that state, in order
+  awk '/^## / {s = ($0 ~ /^## Questions for the owner/)} s' "$PLAN" \
+    | grep -iE "^- \**Q[0-9]+.*answer: *\**($1)" | grep -oE '^- \**Q[0-9]+' | grep -oE 'Q[0-9]+' || true
+}
+if [[ -n "$PLAN" ]]; then
+  while IFS= read -r q; do [[ -n "$q" ]] && OPEN_Q+=("$q"); done < <(questions 'pending|asked')
+  while IFS= read -r q; do [[ -n "$q" ]] && UNASKED_Q+=("$q"); done < <(questions 'pending')
+fi
+if [[ -n "$step_text" && ${#OPEN_Q[@]} -gt 0 ]]; then
+  while IFS= read -r q; do
+    for o in "${OPEN_Q[@]}"; do [[ -n "$q" && "$o" == "$q" ]] && WAIT_Q+=("$q"); done
+  done < <(grep -oE 'needs Q[0-9]+(( *, *| and | */ *)Q[0-9]+)*' <<<"$step_text" | grep -oE 'Q[0-9]+' | sort -u)
 fi
 
 # ── the governing spec, and whether it is still a stub ───────────────────────
@@ -360,6 +396,8 @@ case "$MODE" in
     else
       echo "step        : $step of $steps — $step_title"
     fi
+    [[ -n "$parallel_group" ]] && echo "parallel    : group $parallel_group — unchecked steps ${PAR_STEPS[*]} may fan out (AGENTS.md §8a)"
+    [[ ${#OPEN_Q[@]} -gt 0 ]] && echo "questions   : ${#OPEN_Q[@]} open (${OPEN_Q[*]}), ${#UNASKED_Q[@]} not yet asked — ask them in ONE batch$([[ ${#WAIT_Q[@]} -gt 0 ]] && echo "; this step waits on ${WAIT_Q[*]}")"
     [[ -n "$spec" ]] && echo "spec        : $spec$([[ "$spec_stub" == true ]] && echo '  [STUB — write it first]')"
     [[ ${#LABELS[@]} -gt 0 ]] && echo "cited       : ${LABELS[*]}"
     echo "gate        : ${gate:-<none recorded>}"
@@ -382,6 +420,14 @@ case "$MODE" in
     printf '  "steps": %s,\n' "$steps"
     printf '  "all_steps_done": %s,\n' "$all_done"
     printf '  "step_title": "%s",\n' "$(jesc "$step_title")"
+    printf '  "parallel_group": "%s",\n' "$(jesc "$parallel_group")"
+    printf '  "parallel_steps": [%s],\n' "$(
+      IFS=,
+      echo "${PAR_STEPS[*]:-}"
+    )"
+    printf '  "open_questions": %s,\n' "${#OPEN_Q[@]}"
+    printf '  "unasked_questions": %s,\n' "${#UNASKED_Q[@]}"
+    printf '  "waiting_on": %s,\n' "$(jarr ${WAIT_Q[@]+"${WAIT_Q[@]}"})"
     printf '  "spec": "%s",\n' "$(jesc "$spec")"
     printf '  "spec_stub": %s,\n' "$spec_stub"
     printf '  "spec_sections": %s,\n' "$(jarr ${LABELS[@]+"${LABELS[@]}"})"

@@ -17,7 +17,9 @@
 #      `<!-- gate:end -->` so entry-size-guard.sh can tell machine evidence from
 #      prose. Write your step's LOG entry BEFORE calling this: the block lands
 #      at its bottom.
-#   3. ticks the first unchecked `- [ ]` box in PLAN.md (skip with --no-tick).
+#   3. ticks the first unchecked `- [ ]` box in PLAN.md — or, with --steps
+#      "3 4 5", exactly those step ordinals (a parallel group closed together,
+#      AGENTS.md §8a). Skip with --no-tick.
 #   4. runs the prose budget (`make loop-hygiene`, warn-only).
 #   5. stages LOG.md + PLAN.md (plus everything with --all; otherwise stage the
 #      step's own files yourself first), runs the staged-diff secret scan
@@ -28,7 +30,7 @@
 #      unpushed == unreviewed is the invariant the batched review relies on.
 #
 # Usage:
-#   loop/step-done.sh --commit "<message>" [--push] [--all] [--no-tick]
+#   loop/step-done.sh --commit "<message>" [--push] [--all] [--no-tick | --steps "N M …"]
 #   loop/step-done.sh --dry-run            # run the gate, print the plan, change nothing
 #   make step-done MSG="<message>" [PUSH=1]
 #
@@ -52,6 +54,7 @@ PUSH=0
 ALL=0
 TICK=1
 DRY=0
+STEPS=""
 usage() { sed -n '/^# Usage:/,/^# Exit:/p' "$SCRIPT" | sed 's/^# \{0,1\}//' >&2; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -66,6 +69,14 @@ while [[ $# -gt 0 ]]; do
     --push) PUSH=1 && shift ;;
     --all) ALL=1 && shift ;;
     --no-tick) TICK=0 && shift ;;
+    --steps)
+      [[ $# -ge 2 && "$2" =~ ^[0-9]+([ ,][0-9]+)*$ ]] || {
+        echo "--steps needs step numbers, e.g. --steps \"3 4 5\"" >&2
+        exit 2
+      }
+      STEPS="${2//,/ }"
+      shift 2
+      ;;
     --dry-run) DRY=1 && shift ;;
     -h | --help)
       grep '^#' "$SCRIPT" | sed '1d; s/^# \{0,1\}//'
@@ -99,6 +110,10 @@ PLAN="$folder/PLAN.md"
 if [[ "$TICK" -eq 1 ]]; then
   [[ -f "$PLAN" ]] || die "no $PLAN"
   grep -qE '^- \[ \] ' "$PLAN" || die "no unchecked step in $PLAN (use --no-tick for a non-step commit)"
+  for n in $STEPS; do
+    grep -E '^- \[[ xX]\] ' "$PLAN" | sed -n "${n}p" | grep -qE '^- \[ \] ' \
+      || die "--steps: step $n is not an unchecked step of $PLAN"
+  done
 fi
 
 # ── 1. the gate ──────────────────────────────────────────────────────────────
@@ -119,7 +134,7 @@ fi
 echo ">> gate green (EXIT=0)"
 
 if [[ "$DRY" -eq 1 ]]; then
-  echo ">> dry-run: would append the gate tail to $LOG$([[ "$TICK" -eq 1 ]] && echo ", tick $PLAN step $(field step)"), stage, scan, commit$([[ "$PUSH" -eq 1 ]] && echo ', push')"
+  echo ">> dry-run: would append the gate tail to $LOG$([[ "$TICK" -eq 1 ]] && echo ", tick $PLAN step(s) ${STEPS:-$(field step)}"), stage, scan, commit$([[ "$PUSH" -eq 1 ]] && echo ', push')"
   exit 0
 fi
 
@@ -139,9 +154,13 @@ fi
 # ── 3. tick the step ─────────────────────────────────────────────────────────
 if [[ "$TICK" -eq 1 ]]; then
   tmp="$(mktemp)"
-  awk '!d && /^- \[ \] / {sub(/^- \[ \] /, "- [x] "); d = 1} {print}' "$PLAN" >"$tmp"
+  if [[ -n "$STEPS" ]]; then
+    awk -v want=" $STEPS " '/^- \[[ xX]\] / {o++; if (index(want, " " o " ")) sub(/^- \[ \] /, "- [x] ")} {print}' "$PLAN" >"$tmp"
+  else
+    awk '!d && /^- \[ \] / {sub(/^- \[ \] /, "- [x] "); d = 1} {print}' "$PLAN" >"$tmp"
+  fi
   cat "$tmp" >"$PLAN" && rm -f "$tmp"
-  echo ">> ticked step $(field step) in $PLAN"
+  echo ">> ticked step(s) ${STEPS:-$(field step)} in $PLAN"
 fi
 
 # ── 4. prose budget (warn-only) ──────────────────────────────────────────────

@@ -50,11 +50,20 @@ row, and `git status --porcelain`. Then:
      are found by EXECUTING them. Two real cases: a plan revised 16 -> 20 steps
      mid-objective because a whole area was missing, and a step that grew into
      "part 1...part 8" because one step was really eight.
+   - `.unasked_questions > 0` → ask ALL of them in ONE batch — interactively, one
+     message to the owner; in the loop, one LOG entry listing them for the human
+     — and set each `answer: asked <date>` in `PLAN.md`. That IS this increment;
+     later steps that do not wait on them proceed meanwhile.
+   - `.waiting_on` non-empty → the step needs an unanswered owner question. In
+     the loop: `<<LOOP:BLOCKED>>` naming the questions. Interactively: ask them
+     (one batch with any other pending ones) and wait.
    - `.spec_stub == true` → the governing spec is still a stub. **Write it first —
      that IS this iteration.** No code precedes its spec.
    - `.all_steps_done == true` → close the task: `OUTCOME.md`, tick the BRIEF's
      done-when boxes, strike any discharged carry-forward, check the phase gate,
      and emit the right marker per §7.
+   - `.parallel_steps` has more than one entry → the step opens a parallel
+     group: do the whole group as this increment (§3, AGENTS.md §8a).
    - otherwise → do step `.step` of `.steps`, titled `.step_title`.
 
 `loop/where.sh --human` (or `make where`) prints the same for a person — that is
@@ -79,6 +88,11 @@ reading the whole control plane.
 - Implement it. Stay inside the architecture boundaries (see RULES.md: vendor
   SDKs behind their adapter only; config in one place; small files; no forbidden
   dependencies).
+- **A parallel group is one increment** (`.parallel_steps`, AGENTS.md §8a): fan
+  out one subagent per step — read-only discovery or disjoint new files in the
+  same tree, anything else on its own branch in its own worktree — then
+  `loop/merge-gate.sh <branches>`, merge, ONE batched reviewer pass with every
+  step's text, one LOG entry per step, and `loop/step-done.sh --steps "<N M …>"`.
 - If the step is genuinely too big for one increment, split it: append an
   `## Amendments` note in `PLAN.md` breaking it into sub-steps, do the first
   sub-step, and continue.

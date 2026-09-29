@@ -23,12 +23,24 @@ eight. Both cost several iterations; this pass costs part of one.
    whole area is the expensive defect: one objective's plan was revised 16 → 20
    steps mid-flight because the process wiring was absent, and another grew a step
    into "part 1…part 8" because one step was really eight.
-2. **Steps that are not one increment.** Each step must be one verifiable change
-   with its own failing test. A step needing three unrelated tests is three steps.
+2. **Step sizing, both directions.** Each step must be one verifiable change. A
+   step needing three unrelated checks is three steps (**oversized**, HIGH when
+   it hides a whole area). A run of consecutive trivial steps that share ONE
+   check is one batch step (**undersized**, MEDIUM): each step pays a fixed
+   close-out cost, so over-splitting is measured time, not neatness.
 3. **Order.** Does any step depend on a later one? Does code precede its spec?
 4. **Acceptance.** Does every step name the check that proves it — a test name, a
    measured number, a gate — rather than "implement X"?
 5. **Budget.** Do the steps that spend LOC say so before spending it?
+6. **Owner questions.** Is every unknown only a human can resolve listed in
+   `## Questions for the owner`, and does every step that needs one say
+   `(needs Qn)`? A question the plan will discover mid-step is HIGH: it stalls
+   the task one step at a time.
+7. **Parallel groups.** Do the steps sharing a `[parallel: X]` tag write
+   disjoint files and consume none of each other's output? A tagged step that
+   changes a host, a secret or shared state is CRITICAL. Could an untagged run
+   of independent steps (typically discovery areas or per-area decision
+   records) be a group? That is MEDIUM.
 
 Findings here are cheap to act on and expensive to skip: the plan is immutable once
 the first box is checked (AGENTS §1), so this pass is the only chance.

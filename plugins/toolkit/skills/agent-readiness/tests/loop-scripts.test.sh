@@ -237,6 +237,57 @@ sd reset -q && sd checkout -q -- tasks
 check "--push publishes: nothing unreviewed afterwards" \
   test "$(cd "$S" && loop/where.sh --json | jq .unreviewed)" = 0
 
+echo "parallel groups, owner questions, merge-gate.sh"
+P="$ROOT/p"
+sfixture "$P"
+cat >"$P/tasks/phase-1_demo/PLAN.md" <<'EOF2'
+# Plan
+
+## Questions for the owner
+
+- Q1 — Which region? · blocks: 4 · answer: pending
+- Q2 — Budget cap? · blocks: none · answer: asked 2026-01-02
+- Q3 — Owner? · answer: Alice, 2026-01-03
+
+## Steps
+
+- [x] 1. **Done:** x — check: none.
+- [ ] 2. [parallel: A] **Area A:** discovery — check: page exists.
+- [ ] 3. [parallel: A] **Area B:** discovery — check: page exists.
+- [ ] 4. **Decide:** region (needs Q1, Q3) — check: record.
+- [ ] 5. [parallel: A] **Area C:** discovery — check: page exists.
+EOF2
+(cd "$P" && git add -A && git -c user.name=t -c user.email=t@t commit -qm plan)
+J3="$(cd "$P" && loop/where.sh --json)"
+check "the [parallel: A] tag is stripped from the title" test "$(jq -r .step_title <<<"$J3")" = "Area A"
+check "parallel_group and every unchecked step of it" \
+  test "$(jq -c '[.parallel_group, .parallel_steps]' <<<"$J3")" = '["A",[2,3,5]]'
+check "open_questions counts pending + asked, unasked only pending" \
+  test "$(jq -c '[.open_questions, .unasked_questions]' <<<"$J3")" = '[2,1]'
+(cd "$P" && GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t \
+  loop/step-done.sh --steps "2 3 5" --commit "docs: group A" >/dev/null 2>&1)
+check "step-done --steps ticks exactly the group" \
+  test "$(grep -cE '^- \[x\] (2|3|5)\.' "$P/tasks/phase-1_demo/PLAN.md")" = 3
+J4="$(cd "$P" && loop/where.sh --json)"
+check "the next step waits on its open question only (Q1, not the answered Q3)" \
+  test "$(jq -c '[.step, .waiting_on, .parallel_steps]' <<<"$J4")" = '[4,["Q1"],[]]'
+(cd "$P" && loop/step-done.sh --steps "2" --commit "x" >/dev/null 2>&1)
+check "step-done --steps refuses an already-ticked step (exit 3)" test $? -eq 3
+
+pg() { (cd "$P" && git -c user.name=t -c user.email=t@t "$@") >/dev/null 2>&1; }
+pg checkout -qb a && echo a >"$P/docs/a.md" && pg add -A && pg commit -qm a
+pg checkout -q main 2>/dev/null || pg checkout -q master
+base="$(cd "$P" && git symbolic-ref --short HEAD)"
+pg checkout -qb b && echo b >"$P/docs/b.md" && pg add -A && pg commit -qm b
+pg checkout -qb c "$base" && echo c >"$P/docs/a.md" && pg add -A && pg commit -qm c
+pg checkout -q "$base"
+if [[ "$base" != main ]]; then pg branch -m "$base" main; fi
+(cd "$P" && loop/merge-gate.sh a b >/dev/null 2>&1)
+check "merge-gate: disjoint branches are green together" test $? -eq 0
+(cd "$P" && loop/merge-gate.sh a c >/dev/null 2>&1)
+check "merge-gate: conflicting branches fail" test $? -ne 0
+check "merge-gate leaves main untouched" test ! -f "$P/docs/a.md"
+
 echo
 echo "$RUN run, $FAILED failed"
 [[ "$FAILED" -eq 0 ]]

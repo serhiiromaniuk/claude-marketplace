@@ -31,7 +31,9 @@ A task starts from a human prompt. Three flavours:
   is literally "investigate", with a time-boxed escape hatch.
 
 Output of triage: agreement on **what one task** this session advances and its
-**done-when** condition.
+**done-when** condition. Everything else the agent will need from the owner is
+collected by the planner into `PLAN.md`'s `## Questions for the owner` and asked
+in **one** batch right after the plan is written — not discovered step by step.
 
 ---
 
@@ -76,18 +78,21 @@ reviewed. Every later decision must trace to a conclusion here.
 # Plan
 > Written before work. Do not edit steps once work starts — append amendments.
 
+## Questions for the owner
+- Q1 — Is <option> already ruled out by a contract? · blocks: 3 · answer: pending
+
 ## Steps
-- [ ] 1. Section A research → recommendation
-- [ ] 2. Section B → recommendation
-- [ ] 3. Section C → decision
-- [ ] 4. Parameters table → filled with sourced values
-- [ ] 5. Dependency list → pinned versions
-- [ ] 6. Feasibility note; flag if a constraint is at risk
-- [ ] 7. Self-review (multi-lens) + request human review
+- [ ] 1. [parallel: A] Section A discovery → own page + recommendation
+- [ ] 2. [parallel: A] Section B discovery → own page + recommendation
+- [ ] 3. [parallel: A] Section C discovery → decision (needs Q1)
+- [ ] 4. Parameters table + dependency list → sourced values, pinned versions
+      (batch step: one check — every row has a source)
+- [ ] 5. Feasibility note; flag if a constraint is at risk
+- [ ] 6. Self-review (multi-lens) + request human review
 
 ## Risks / Dependencies
 - <external constraint that may rule out an option — verify early>.
-- Steps 1–5 are largely independent → can fan out parallel `researcher`/planner subagents.
+- Steps 1–3 write separate pages and read nothing from each other → group A.
 
 ## Escape hatches
 - If a section has no defensible recommendation after 3 attempts: log the blocker,
@@ -117,13 +122,13 @@ decision, or a carry-forward. Confirm with `make where`.
 
 ## Phase C — Execute the loop (agent, possibly unattended)
 
-Each iteration = **one step → verify → log → check box → commit/push → marker**
-(AGENTS.md §4). Independent steps can fan out in parallel:
+Each iteration = **one step → verify → review → log → `step-done.sh` → marker**
+(AGENTS.md §4). A `[parallel: A]` group is one iteration (AGENTS.md §8a):
 
 ```text
-Use several subagents in parallel, one each for the independent foundation
-sections. Each returns findings + a recommendation; I consolidate into the
-foundation doc and log per section.
+where.sh: .parallel_steps = [1,2,3] → spawn three discovery subagents in ONE
+turn, one page each → one batched reviewer pass over the three pages →
+one LOG entry per step → loop/step-done.sh --steps "1 2 3" --commit "docs(…): …"
 ```
 
 Good `LOG.md` entries are factual and carry evidence:
