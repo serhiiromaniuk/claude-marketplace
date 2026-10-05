@@ -3,7 +3,7 @@
 All notable changes to the `toolkit` plugin. Versions follow
 [Semantic Versioning](https://semver.org/); dates are YYYY-MM-DD.
 
-## [Unreleased]
+## [1.1.0] - 2026-10-05
 
 ### Added — status line
 
