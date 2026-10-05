@@ -36,6 +36,8 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ### Fixed — glab
 
+- **`glab ci trace` is no longer pre-approved.** Without an ID it opens an interactive
+  picker, and on a running job it streams until the job ends, so it could hang the call.
 - **Helpers work with current glab (≥ 1.54, checked against 1.74).** JSON is filtered by
   piping to `jq` (`glab api` has no `--jq` flag), and a failed API call now returns an
   error instead of a false "No failed jobs found." Cancel uses `glab ci cancel pipeline`;

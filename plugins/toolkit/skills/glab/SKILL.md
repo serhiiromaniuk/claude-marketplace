@@ -10,7 +10,6 @@ allowed-tools:
   - Bash(glab ci status *)
   - Bash(glab ci get --output json)
   - Bash(glab ci list *)
-  - Bash(glab ci trace *)
   - Bash(glab ci lint *)
   - Bash(glab mr list *)
   - Bash(glab mr view *)
