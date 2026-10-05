@@ -119,7 +119,7 @@ gl-failed-jobs
 ```bash
 # View pipeline jobs
 glab api "projects/:id/pipelines/123/jobs" \
-    | jq '.[] | select(.status == "pending") | {name, tags}'
+    | jq '.[] | select(.status == "pending") | {name, tag_list}'
 
 # Check project runners
 glab api "projects/:id/runners" | jq '.[].description'
@@ -135,13 +135,14 @@ glab api "projects/:id/runners" | jq '.[].description'
 
 **Debug:**
 ```bash
-# Add verbose output
-glab api "projects/:id/pipelines" --verbose
+# Show the HTTP request and response (glab has no verbose flag)
+GLAB_DEBUG_HTTP=true glab api "projects/:id/pipelines"
 
-# Check parameter format
-glab api "projects/:id/pipeline" -X POST \
-    -f ref=main \
-    -f "variables[KEY]=value"  # Note the bracket syntax
+# Check parameter format: nested values such as pipeline variables need a JSON body,
+# not bracketed -f field names (glab 1.118+ rejects those outright)
+jq -n '{ref: "main", variables: [{key: "KEY", value: "value"}]}' \
+    | glab api "projects/:id/pipeline" -X POST \
+        --header "Content-Type: application/json" --input -
 ```
 
 ### "422 Unprocessable Entity"
@@ -182,17 +183,18 @@ glab api "projects/:id" --include 2>&1 | grep -i ratelimit
 
 **Fix:**
 ```bash
-# Source the helpers
-source ~/.claude/skills/glab/scripts/glab-helpers.sh
+# Inside Claude Code: source in the same Bash call (every call is a new shell), using the
+# absolute path from the glab SKILL.md — its ${CLAUDE_PLUGIN_ROOT} is expanded when the
+# skill loads, but not in this file, and the variable is not set in the Bash environment.
+source "<plugin dir>/skills/glab/scripts/glab-helpers.sh" && gl-watch
 
-# Add to shell config for persistence
-echo 'source ~/.claude/skills/glab/scripts/glab-helpers.sh' >> ~/.bashrc
-# or for zsh
-echo 'source ~/.claude/skills/glab/scripts/glab-helpers.sh' >> ~/.zshrc
-
-# Reload shell
-source ~/.bashrc
+# In your own shell: source the installed plugin copy (newest version)
+source "$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/serhii/toolkit" \
+    -path '*/skills/glab/scripts/glab-helpers.sh' 2>/dev/null | sort -V | tail -n 1)"
 ```
+
+For a persistent setup that survives plugin updates, see
+[setup.md](setup.md#shell-helper-functions).
 
 ### Helpers Not Working in Scripts
 
@@ -200,9 +202,9 @@ source ~/.bashrc
 
 **Fix:**
 ```bash
-# Source at the start of your script
 #!/bin/bash
-source ~/.claude/skills/glab/scripts/glab-helpers.sh
+# Source at the start of your script (path to your copy of the helpers)
+source "${GLAB_HELPERS:?set GLAB_HELPERS to the path of glab-helpers.sh}"
 
 # Then use helpers
 gl-wait 30
@@ -244,24 +246,30 @@ glab auth login --hostname gitlab.example.com
 
 **Cause:** Self-signed certificate.
 
-**Fix (not recommended for production):**
+**Better fix:** Point glab at the instance's CA certificate (or add it to the system trust store):
 ```bash
-export GIT_SSL_NO_VERIFY=1
+glab config set ca_cert /path/to/gitlab-ca.pem --host gitlab.example.com
+```
+
+**Fix (not recommended for production):** Skip TLS verification for that host only.
+`GIT_SSL_NO_VERIFY` affects git, not glab's API client.
+```bash
+glab config set skip_tls_verify true --host gitlab.example.com
 glab auth login --hostname gitlab.example.com
 ```
 
-**Better fix:** Add CA certificate to system trust store.
-
 ## Debug Commands
 
-### Enable Verbose Output
+### Enable Debug Output
+
+glab has no `--verbose` flag; use environment variables:
 
 ```bash
-# For any glab command
-glab <command> --verbose
+# More logging: underlying git commands, expanded aliases, DNS errors
+DEBUG=true glab ci status
 
-# Example
-glab ci status --verbose
+# HTTP request/response details
+GLAB_DEBUG_HTTP=true glab api "projects/:id"
 ```
 
 ### Check Configuration
@@ -273,8 +281,11 @@ glab auth status
 # Current user
 glab api user | jq '{username, name, email}'
 
-# Config location
-glab config list
+# Read a setting (global config: ~/.config/glab-cli/config.yml)
+glab config get host
+
+# Open the config file in your editor
+glab config edit
 ```
 
 ### Test API Connectivity
@@ -302,7 +313,11 @@ glab api "projects/:id/pipelines/123"
 | Mistake | Correct |
 |---------|---------|
 | `glab api projects/org/app/pipelines` | `glab api "projects/org%2Fapp/pipelines"` |
-| `glab ci view 123` without being in repo | `glab ci view 123 -R org/app` |
+| `glab ci view 123` (`ci view` takes a branch/tag, not a pipeline ID) | `glab ci get --pipeline-id 123 -R org/app` |
+| `glab ci cancel 123` (prints help, cancels nothing) | `glab ci cancel pipeline 123` or `glab ci cancel job 123` |
+| `glab ci retry <pipeline-id>` (`ci retry` takes a job) | `glab api -X POST "projects/:id/pipelines/<id>/retry"` |
+| `glab ci status --output json` (no such flag) | `glab ci get --output json` |
+| `glab api ... --jq '.id'` on glab < 1.100 | `glab api ... \| jq '.id'` |
 | Forgetting quotes in jq | `jq '.[] \| .name'` → `jq '.[] | .name'` |
 | Using `--output json` with `glab api` | `glab api` already returns JSON |
 
@@ -313,6 +328,8 @@ glab api "projects/:id/pipelines/123"
 | `GITLAB_TOKEN` | Authentication token |
 | `GITLAB_HOST` | Self-hosted GitLab hostname |
 | `GITLAB_URI` | Full GitLab URL |
+| `DEBUG` | `true` for extra logging (git commands, aliases, DNS errors) |
+| `GLAB_DEBUG_HTTP` | `true` to print HTTP requests and responses |
 | `NO_COLOR` | Disable colored output |
 
 ```bash

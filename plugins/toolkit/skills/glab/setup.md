@@ -6,21 +6,30 @@ Complete setup instructions for `glab` CLI and helper functions.
 
 ### Install glab
 
-**macOS:**
+`glab` is maintained by GitLab at [gitlab-org/cli](https://gitlab.com/gitlab-org/cli).
+The skill and its helpers need **glab 1.54 or newer** (`glab ci cancel pipeline|job` arrived in
+1.53, and `glab ci get --pipeline-id` stopped requiring a branch in 1.54). Check with `glab --version`.
+
+**macOS / Linux (Homebrew):**
 ```bash
 brew install glab
 ```
 
-**Linux (Debian/Ubuntu):**
+**Linux (Debian/Ubuntu, Fedora/RHEL):**
+Download the `.deb` or `.rpm` for your architecture from the
+[official releases page](https://gitlab.com/gitlab-org/cli/-/releases), then:
 ```bash
-# Add repository
-curl -fsSL https://raw.githubusercontent.com/profclems/glab/trunk/scripts/install.sh | sh
+sudo apt install ./glab_*_linux_amd64.deb     # Debian/Ubuntu
+sudo dnf install ./glab_*_linux_amd64.rpm     # Fedora/RHEL
 ```
 
-**Linux (using snap):**
+**Linux (distribution packages):**
 ```bash
-sudo snap install glab
+sudo pacman -S glab      # Arch
+sudo apk add glab        # Alpine
+sudo snap install glab   # Snap
 ```
+Distribution packages can lag behind upstream — confirm `glab --version` is 1.54 or newer.
 
 **From source:**
 ```bash
@@ -91,27 +100,49 @@ glab api user | jq '{username, name}'
 ## Shell Helper Functions
 
 The helper functions provide convenient aliases and watch functions for common operations.
+They live in `scripts/glab-helpers.sh` inside this skill. Inside Claude Code the skill sources
+them itself; this section is for using them in your own terminal.
+
+### Where the Script Lives
+
+When the `toolkit` plugin is installed, Claude Code keeps a copy per plugin version:
+
+```
+${CLAUDE_CONFIG_DIR:-~/.claude}/plugins/cache/serhii/toolkit/<version>/skills/glab/scripts/glab-helpers.sh
+```
+
+The `<version>` directory changes on every plugin update and old versions may be removed, so
+don't paste that full path into your shell config. Either look the newest copy up at shell
+start-up (option A) or source a clone of the repository (option B).
 
 ### One-Time Setup
 
-**For Bash:**
+**Option A — the installed plugin (Bash or Zsh).** Add to `~/.bashrc` or `~/.zshrc`:
 ```bash
-echo 'source ~/.claude/skills/glab/scripts/glab-helpers.sh' >> ~/.bashrc
-source ~/.bashrc
+# Load glab helpers from the newest installed toolkit plugin, if present
+glab_helpers=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/serhii/toolkit" \
+    -path '*/skills/glab/scripts/glab-helpers.sh' 2>/dev/null | sort -V | tail -n 1)
+[ -n "$glab_helpers" ] && source "$glab_helpers"
+unset glab_helpers
 ```
 
-**For Zsh:**
+**Option B — a clone of the repository.** Clone once, then add one line to `~/.bashrc` or `~/.zshrc`:
 ```bash
-echo 'source ~/.claude/skills/glab/scripts/glab-helpers.sh' >> ~/.zshrc
-source ~/.zshrc
+git clone https://github.com/serhiiromaniuk/claude-marketplace.git ~/src/claude-marketplace
+
+# in ~/.bashrc or ~/.zshrc
+source ~/src/claude-marketplace/plugins/toolkit/skills/glab/scripts/glab-helpers.sh
 ```
+Run `git -C ~/src/claude-marketplace pull` to update.
+
+Then reload your shell (`exec "$SHELL"`) or source the file directly.
 
 **For Fish:**
 ```fish
 # Fish doesn't directly source bash scripts
 # Create a wrapper or use bass plugin
 # https://github.com/edc/bass
-bass source ~/.claude/skills/glab/scripts/glab-helpers.sh
+bass source ~/src/claude-marketplace/plugins/toolkit/skills/glab/scripts/glab-helpers.sh
 ```
 
 ### Verify Helpers are Loaded
@@ -126,18 +157,19 @@ glcis  # Should show pipeline status (or error if not in git repo)
 
 ### Manual Sourcing (Per Session)
 
-If you don't want persistent loading:
+If you don't want persistent loading, source the newest installed copy (or your clone) once:
 
 ```bash
-source ~/.claude/skills/glab/scripts/glab-helpers.sh
+source "$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/serhii/toolkit" \
+    -path '*/skills/glab/scripts/glab-helpers.sh' 2>/dev/null | sort -V | tail -n 1)"
 ```
 
 ### In Scripts
 
 ```bash
 #!/bin/bash
-# At the top of your script
-source ~/.claude/skills/glab/scripts/glab-helpers.sh
+# At the top of your script: source your clone (or set GLAB_HELPERS to the path)
+source "${GLAB_HELPERS:-$HOME/src/claude-marketplace/plugins/toolkit/skills/glab/scripts/glab-helpers.sh}"
 
 # Now you can use helpers
 gl-wait 30 && echo "Pipeline passed!"
@@ -159,8 +191,7 @@ export GITLAB_TOKEN=glpat-xxxxxxxxxxxx
 # Optional: Default editor for MR descriptions
 export EDITOR=vim
 
-# Load glab helpers
-source ~/.claude/skills/glab/scripts/glab-helpers.sh
+# Load glab helpers: see "Shell Helper Functions" above
 ```
 
 ## Shell Completions
@@ -225,10 +256,15 @@ echo $SHELL
 grep glab-helpers ~/.bashrc ~/.zshrc 2>/dev/null
 ```
 
-### Permission denied on helpers script
+### Helpers file not found
 
+The script is sourced, so it needs no execute permission. Check that the path resolves:
 ```bash
-chmod +x ~/.claude/skills/glab/scripts/glab-helpers.sh
+# Installed plugin copies (newest last)
+find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/serhii/toolkit" \
+    -path '*/skills/glab/scripts/glab-helpers.sh' 2>/dev/null | sort -V
+
+# No output: the toolkit plugin is not installed for this config dir — use a clone (option B)
 ```
 
 ### jq not found
@@ -247,9 +283,7 @@ brew install jq      # macOS
 To remove the helpers:
 
 ```bash
-# Remove from shell config
-# Edit ~/.bashrc or ~/.zshrc and remove the source line
-
-# Or comment it out
-sed -i 's/^source.*glab-helpers.sh/#&/' ~/.bashrc
+# Remove from shell config:
+# edit ~/.bashrc or ~/.zshrc and delete the lines added in "One-Time Setup"
+grep -n glab-helpers ~/.bashrc ~/.zshrc 2>/dev/null   # find them
 ```

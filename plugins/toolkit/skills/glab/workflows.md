@@ -36,9 +36,9 @@ glab ci list --per-page=10
 # Shows status symbols: ✓ success, ✗ failed, ● running, ○ pending
 gl-watch-jobs 123456
 
-# Direct API with formatting
+# Direct API with formatting (glab api has no --jq flag; pipe to jq)
 watch -n 10 'glab api "projects/:id/pipelines/123456/jobs" \
-    --jq ".[] | \"\(.status) \(.stage):\(.name)\""'
+    | jq -r ".[] | \"\(.status) \(.stage):\(.name)\""'
 ```
 
 ### Wait for Pipeline Completion
@@ -59,8 +59,10 @@ fi
 
 **Direct approach:**
 ```bash
+# glab ci status has no JSON output; glab ci get does
 while true; do
-    STATUS=$(glab ci status --output json | jq -r '.status')
+    JSON=$(glab ci get --output json) || exit 1   # fail fast: no pipeline, auth or network error
+    STATUS=$(printf '%s' "$JSON" | jq -r '.status')
     echo "$(date '+%H:%M:%S') Status: $STATUS"
     case "$STATUS" in
         success|passed) echo "Done!"; break ;;
@@ -87,7 +89,7 @@ glab api "projects/:id/pipelines/123456/jobs?scope=failed" \
 
 ```bash
 # Using alias
-glcit  # traces current branch's latest failed job
+glcit  # no ID: pick a job interactively from the current branch's pipeline
 
 # Specific job
 glab ci trace 789012
@@ -122,31 +124,45 @@ for id in 111 222 333; do
 done
 ```
 
-### Retry Failed Pipeline
+### Retry Failed Jobs or Pipelines
+
+`glab ci retry` retries a single **job**. A whole pipeline is retried through the API.
 
 ```bash
-# Using aliases
-glcir           # retry latest
-glcir 123456    # retry specific
+# Retry one job (alias for glab ci retry)
+glcir 789012    # by job ID
+glcir lint      # by job name, on the current branch's pipeline
+glcir           # pick a job interactively
 
-# Retry and watch
+# Retry a pipeline (re-runs its failed and canceled jobs)
+glab api --method POST "projects/:id/pipelines/123456/retry"
+
+# Retry a pipeline and watch it (default: current branch's latest pipeline)
 gl-retry-watch 123456
 ```
 
 ### Cancel Pipelines
 
 ```bash
-# Cancel specific pipeline
-glcic 123456
+# Cancel specific pipeline(s)
+glcic 123456                          # glab ci cancel pipeline 123456
+glab ci cancel pipeline 123456,123457 --dry-run
 
-# Cancel all running pipelines
-gl-cancel-all
+# Cancel a job
+glab ci cancel job 789012
 
-# Manual approach
-glab ci list --status running --output json \
+# Cancel running pipelines on the current branch
+gl-cancel-all          # dry run: lists what would be cancelled
+gl-cancel-all --yes    # actually cancel them
+
+# Manual approach (current branch only; drop --dry-run to cancel)
+glab ci list --status running --ref "$(git branch --show-current)" --output json \
     | jq -r '.[].id' \
-    | xargs -I {} glab ci cancel {}
+    | xargs -I {} glab ci cancel pipeline {} --dry-run
 ```
+
+The branch list includes pipelines anyone started on that branch, so check it before
+cancelling on a shared branch such as `main`.
 
 ## Merge Request Workflow
 
@@ -216,9 +232,9 @@ glab mr merge 78 --squash --remove-source-branch
 glab api "projects/:id/merge_requests/78/pipelines" \
     | jq '.[] | {id, status, ref}'
 
-# Wait for MR pipeline
+# Latest pipeline for the MR's head commit
 MR_SHA=$(glab mr view 78 --output json | jq -r '.sha')
-glab ci status --branch "$MR_SHA"
+glab ci list --sha "$MR_SHA" --output json | jq '.[0] | {id, status, ref}'
 ```
 
 ## Release Management
@@ -297,12 +313,18 @@ glab ci lint .gitlab-ci.yml --include-jobs
 # Trigger on specific branch
 glab ci run --branch release/v1.2
 
-# With variables
-glab api "projects/:id/pipeline" -X POST \
-    -f ref=main \
-    -f "variables[DEPLOY_ENV]=production" \
-    -f "variables[SKIP_TESTS]=false" \
-    -f "variables[VERSION]=1.2.0"
+# With variables (KEY:VALUE; repeat the flag or comma-separate)
+glab ci run --branch main \
+    --variables-env DEPLOY_ENV:production \
+    --variables-env SKIP_TESTS:false \
+    --variables-env VERSION:1.2.0
+
+# Same via the API: variables are a JSON array of {key, value}
+jq -n '{ref: "main", variables: [
+        {key: "DEPLOY_ENV", value: "production"},
+        {key: "VERSION", value: "1.2.0"}]}' \
+    | glab api "projects/:id/pipeline" --method POST \
+        --header "Content-Type: application/json" --input -
 ```
 
 ### Run and Watch
@@ -327,7 +349,7 @@ glab repo clone org/project
 glrepo
 
 # Search repositories
-glab repo search "keyword"
+glab repo search --search "keyword"
 
 # Work outside repository context
 glab mr list -R org/project

@@ -5,6 +5,28 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ## [Unreleased]
 
+### Fixed — glab
+
+- **Helpers work with current glab (≥ 1.54, checked against 1.74).** JSON is filtered by
+  piping to `jq` (`glab api` has no `--jq` flag), and a failed API call now returns an
+  error instead of a false "No failed jobs found." Cancel uses `glab ci cancel pipeline`;
+  `gl-wait` and `gl-pipeline-id` use `glab ci get --output json`.
+- **`gl-cancel-all` only touches the current branch**, lists what it would cancel by
+  default, and needs `--yes` to cancel anything. `gl-retry-watch` retries the whole
+  pipeline through the API instead of the job-only `glab ci retry`.
+- **Narrow pre-approval.** `allowed-tools` no longer grants all of Bash, only read-only
+  glab and git commands (no token-revealing wildcards).
+- **No hardcoded install path.** Claude sources the helpers from
+  `${CLAUDE_PLUGIN_ROOT}` in the same Bash call; the skill no longer edits `~/.bashrc`.
+  `setup.md` installs glab from gitlab-org/cli (not the archived 2022 fork) and states the
+  minimum version.
+- **Docs.** Pipeline variables via `--variables-env`, `DEBUG`/`GLAB_DEBUG_HTTP` instead of a
+  nonexistent `--verbose`, `tag_list`, `skip_tls_verify`, `/toolkit:glab`, and triggers for
+  self-hosted GitLab URLs and `.gitlab-ci.yml`.
+- **Tests (160).** Mocks assert the corrected commands, add regressions for each fix, and,
+  when glab is installed, check every glab subcommand and flag the helpers and docs use
+  against `glab <cmd> --help`.
+
 ### Fixed — cost-tracker (spend was overstated about 2.9x)
 
 - **One API response is counted once.** Claude Code writes a response as several

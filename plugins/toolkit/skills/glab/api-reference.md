@@ -82,11 +82,18 @@ glab api "projects/org%2Fapp/pipelines/123/jobs" \
 glab api "projects/org%2Fapp/pipelines/123/jobs?scope=failed" \
     | jq '.[] | {id, name, stage, failure_reason}'
 
-# Trigger pipeline with variables
-glab api "projects/org%2Fapp/pipeline" -X POST \
-    -f ref=main \
-    -f "variables[DEPLOY_ENV]=staging" \
-    -f "variables[SKIP_TESTS]=false"
+# Trigger pipeline with variables: send a JSON body, variables are an array of {key, value}
+jq -n '{ref: "main", variables: [
+        {key: "DEPLOY_ENV", value: "staging"},
+        {key: "SKIP_TESTS", value: "false"}]}' \
+    | glab api "projects/org%2Fapp/pipeline" -X POST \
+        --header "Content-Type: application/json" --input -
+
+# Simpler, from inside the repo
+glab ci run --branch main --variables-env DEPLOY_ENV:staging --variables-env SKIP_TESTS:false
+
+# Retry a pipeline (all failed and canceled jobs)
+glab api "projects/org%2Fapp/pipelines/123/retry" -X POST
 ```
 
 ### Job Operations
@@ -156,6 +163,9 @@ glab api "projects/org%2Fapp/pipelines?order_by=created_at&sort=desc&per_page=5"
 ```
 
 ## JSON Output with jq
+
+`glab api` prints the raw JSON response. Filter it by piping to `jq` — glab releases before 1.100
+have no `--jq` flag, so pipe to `jq` when you need scripts to work on any version.
 
 ### Common jq Patterns
 
