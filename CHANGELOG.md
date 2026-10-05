@@ -27,6 +27,18 @@ All notable changes to the `toolkit` plugin. Versions follow
   when glab is installed, check every glab subcommand and flag the helpers and docs use
   against `glab <cmd> --help`.
 
+### Removed
+
+- The skill template and the placeholder `/toolkit:example` command no longer ship to
+  installers: every directory under `skills/` loads (a leading `_` does not hide it), so
+  `toolkit:_skill-template` showed up in every session. The template moved to
+  `templates/skill/SKILL.md` at the repo root, with a corrected `allowed-tools` note
+  (it pre-approves tools; it does not restrict them).
+
+### Added
+
+- `LICENSE` (MIT), which both manifests already declared.
+
 ### Fixed — claude-in-chrome
 
 - `allowed-tools` no longer pre-approves Bash or every browser tool: only page reading
