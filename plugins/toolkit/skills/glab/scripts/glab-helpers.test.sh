@@ -23,7 +23,6 @@ SKILL_DIR=$(dirname "$SCRIPT_DIR")
 TESTS_RUN=0
 TESTS_PASSED=0
 TESTS_FAILED=0
-CURRENT_TEST=""
 
 # Colors
 RED='\033[0;31m'
@@ -33,7 +32,6 @@ NC='\033[0m' # No Color
 
 # Test helpers
 test_start() {
-    CURRENT_TEST="$1"
     TESTS_RUN=$((TESTS_RUN + 1))
     echo -n "  Testing: $1 ... "
 }
@@ -191,6 +189,7 @@ mock_pipeline_42() {
 # =============================================================================
 
 echo "Loading glab-helpers.sh..."
+# shellcheck source=glab-helpers.sh
 if ! source "$HELPERS"; then
     echo "Could not source $HELPERS" >&2
     exit 1
@@ -831,6 +830,7 @@ if [ -z "$REAL_GLAB" ] || [ "${SKIP_REAL_GLAB:-0}" = "1" ]; then
 else
     mkdir -p "$CHECK_DIR/config"
     echo "  Using $REAL_GLAB ($(real_glab --version | head -n 1))"
+    argv=()
     while IFS= read -r line; do
         [ -n "$line" ] || continue
         eval "argv=($line)"
