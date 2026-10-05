@@ -140,17 +140,17 @@ agent paid output-token time to emit it and input-token time forever after.
 5. **Trim the read contract itself.** Once position is computed, the next
    biggest resume cost on a second project was files read *in full* that the
    step needed a slice of: rules files `CLAUDE.md` already loads (read twice),
-   the whole active `LOG.md` (only the tail was wanted) and a 27 KB spec whose
+   the whole active `LOG.md` (only the tail was wanted) and a large spec whose
    step cited one section. `where.sh` now leaves imported rules in `.loaded`,
    drops `LOG.md` from `.read` and prints the tail plus the cited `§` sections
-   via `--context`: ~110 KB → ~28 KB per resume. An unresolved citation keeps
+   via `--context`, which cuts the resume read to a fraction. An unresolved citation keeps
    the whole spec — a miss costs a bigger read, never a missing one.
 6. **Cap the subagent reports too.** A reviewer's or verifier's output *is*
    main-context input. Bullets with `file:line`, a findings cap, evidence trimmed
    to the decisive lines. The reviewer template reports every CRITICAL/HIGH, at
-   most 3 MEDIUM and no LOW: on a real project ~30 reviews found 0 CRITICAL and
-   ~2 HIGH each, while every LOW became an amendment to carry to the close.
-7. **Script the ceremony.** Closing a step took 6-10 model round-trips (verifier
+   most 3 MEDIUM and no LOW: per-step reviews rarely find a CRITICAL and only a
+   couple of HIGH each, while every LOW becomes an amendment to carry to the close.
+7. **Script the ceremony.** Closing a step took many model round-trips (verifier
    spawn, paste the tail, tick, hygiene, scan, commit, push). `loop/step-done.sh`
    is one: it runs the gate, writes the tail into the LOG itself — better
    evidence than a retyped one — and commits. Its gate block is fixed-size

@@ -29,7 +29,7 @@ Produce a `PLAN.md` (use `tasks/_template/PLAN.md`) where:
   `## Questions for the owner` (`- Q1 — … · blocks: 4, 7 · answer: pending`) and
   mark each dependent step `(needs Q1)`. They are asked in ONE batch at task
   open; a plan that leaves them to be discovered mid-step stalls one step at a
-  time (on a real project ~40 owner questions surfaced that way).
+  time.
 - **Independent steps are tagged `[parallel: A]`** (right after the number) when
   they write disjoint files and none consumes another's output. Shared index or
   README rows are a separate step after the group. Never tag a host-, secret- or
@@ -39,15 +39,15 @@ Produce a `PLAN.md` (use `tasks/_template/PLAN.md`) where:
   network, dependencies…), each writing its own page or section; independent
   decision records are a second group, drafted side by side. One batched
   reviewer pass over each group catches the cross-document contradictions a
-  per-step pass cannot. On a real project the serial version of this was ~3 h
-  of a ~7 h run.
+  per-step pass cannot. Done serially, this phase can take a large share of
+  the whole run.
 - **Cite the spec section as `spec §<key>`** (the heading's number, or its
   text before ` — `) in every step that follows one. `loop/where.sh --context`
   then loads that section instead of the whole spec; a bare `§N` is read as a
   citation of some other document.
 - **Batch trivial items.** Mechanical items that one check proves (a row per
   table, the same edit across files) are ONE step. Every step carries a fixed
-  close-out cost, so a 37-step plan pays it 37 times; do not split what one
+  close-out cost, so a long plan pays it once per step; do not split what one
   check proves.
 - **Risks / Dependencies** call out unknowns and explain the parallel groups.
 - **Escape hatches** cover: 3-failure stop, destructive/secret-touching/

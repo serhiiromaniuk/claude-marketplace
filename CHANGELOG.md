@@ -163,9 +163,9 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ### Added (faster task open: fan out, ask once, batch the trivial)
 
-On the same project the research phase was ~3 h of a ~7 h run, done one area
-after another; ~40 owner questions surfaced one stalled step at a time; and a
-37-step plan paid the per-step close-out cost 37 times.
+Research done one area after another dominated a run; owner questions surfaced
+one stalled step at a time; and a long plan paid the per-step close-out cost once
+per step.
 
 - **Parallel plan groups.** The planner tags independent steps
   `- [ ] N. [parallel: A] …` (disjoint files, no shared state, ≤ 4 per group).
@@ -202,10 +202,10 @@ after another; ~40 owner questions surfaced one stalled step at a time; and a
 
 ### Changed (review by risk, close by script)
 
-On the same project, closing a step cost 6-10 model round-trips of ceremony,
-~1.5-2 h over a 37-step plan. ~30 per-step reviews found 0 CRITICAL and ~2 HIGH
-each (mostly on scripts, config and decision records), while every LOW became an
-amendment to carry to the close.
+Closing a step cost many model round-trips of ceremony, hours over a long plan.
+Per-step reviews rarely found a CRITICAL and only a couple of HIGH each (mostly on
+scripts, config and decision records), while every LOW became an amendment to
+carry to the close.
 
 - **New `templates/loop/step-done.sh`** (+ `make step-done MSG=… [PUSH=1]`)
   closes an increment in one command: runs the gate (red → exit 1, nothing
@@ -241,9 +241,9 @@ amendment to carry to the close.
 
 ### Changed (a lean resume read and a parallel gate)
 
-Measured on a second real project, run as long interactive sessions rather than
-a loop: every resume read about 110 KB before any work began, and the gate took
-26.7 s in sequence while running at least twice per increment.
+In long interactive sessions rather than a loop, every resume read far more than
+the step needed before any work began, and a sequential gate ran at least twice
+per increment.
 
 - **`templates/loop/where.sh` reads less.** Rules files that `CLAUDE.md`
   `@`-imports (directly or through another import) are reported in a new
@@ -256,8 +256,7 @@ a loop: every resume read about 110 KB before any work began, and the gate took
   ` — `; `§1` never matches `§10`; `FILE.md §6` cites another document and is
   ignored). The spec leaves `.read` only when every citation resolves, so a
   miss costs a bigger read, never a missing one. JSON gains `loaded`,
-  `spec_sections` and `context_cmd`. On the source project: ~110 KB → ~28 KB
-  per resume.
+  `spec_sections` and `context_cmd`. The resume read shrinks to a fraction.
 - **`where.sh` step position** is now the ordinal of the first unchecked box,
   not "checked + 1", which went wrong once a later box was ticked out of order.
 - **`templates/Makefile.sample` runs the gate in parallel.** `check` calls

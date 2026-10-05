@@ -382,9 +382,9 @@ in a fresh context before it is **pushed**.
 
 The deterministic gate needs no subagent: `loop/step-done.sh` runs it and writes
 the evidence. Skipping the reviewer, or pushing an unreviewed commit, is a loop
-violation. Why tiers and not every step: on a real project ~30 per-step reviews
-found 0 CRITICAL and ~2 HIGH each, the HIGH mostly on scripts, config and decision
-records — the classes that stay per-step. `planner` runs earlier — at an
+violation. Why tiers and not every step: per-step reviews rarely find a CRITICAL,
+and their HIGH findings land mostly on scripts, config and decision records — the
+classes that stay per-step. `planner` runs earlier — at an
 objective's start — to write `PLAN.md`; it is not part of the per-commit gate.
 
 ### 8a. Parallelize independent work (the default — with guardrails)
@@ -412,7 +412,7 @@ as `.parallel_steps`; the group is ONE increment):
 
 **Research-heavy tasks** open with such a group: one read-only discovery area per
 subagent, each writing its own page, then the decision records drafted side by
-side. On a real project the serial version of that phase was ~3 h of a ~7 h run.
+side. Done serially, that phase can dominate the whole run.
 
 This does **not** override §1's simplicity rule: map the dependencies first and
 only fan out work that is actually independent and non-trivial. If task B needs

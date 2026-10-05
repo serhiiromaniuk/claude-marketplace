@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # loop/step-done.sh — close one increment in ONE command.
 #
-# WHY THIS EXISTS (measured). On a real project the fixed cost of closing a step
-# was 6-10 model round-trips — spawn a verifier to re-run a deterministic gate,
-# read its report, paste the tail into LOG.md, tick the PLAN box, run hygiene,
-# run the staged scan, commit, push — each one a full model turn. At 37 steps a
-# plan that was ~1.5-2 h of ceremony alone. A script does the mechanical part in
+# WHY THIS EXISTS. Closing a step by hand costs many model round-trips — spawn a
+# verifier to re-run a deterministic gate, read its report, paste the tail into
+# LOG.md, tick the PLAN box, run hygiene, run the staged scan, commit, push —
+# each one a full model turn. Across a long plan that ceremony alone adds up to
+# hours. A script does the mechanical part in
 # one call, and the evidence gets BETTER: the gate tail in LOG.md is written by
 # the script from the real exit code, not retyped by the agent that wants green.
 #

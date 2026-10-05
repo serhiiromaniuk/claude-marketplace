@@ -49,8 +49,8 @@ test: $(ENV)                   ## run tests with coverage (>=80% target)
 
 # The single sanctioned gate — the loop and every commit run THIS.
 # Its gates run IN PARALLEL: they are independent, and the agent runs this at
-# least twice per increment, so its wall time is paid on every step. Measured on
-# a real project: four tool containers, 26.7 s in sequence. `--output-sync=target`
+# least twice per increment, so its wall time is paid on every step; a few tool
+# containers run in sequence can easily cost tens of seconds. `--output-sync=target`
 # keeps each gate's output together; any failing gate still fails `check`, and
 # the green line prints only when all passed. --output-sync needs GNU make >= 4.0;
 # on older make (macOS ships 3.81) the gates still run in parallel, with their

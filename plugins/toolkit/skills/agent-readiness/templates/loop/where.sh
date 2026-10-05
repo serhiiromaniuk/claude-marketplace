@@ -20,10 +20,11 @@
 # task's LOG.md out of context structurally instead of by asking the agent
 # nicely — closed folders are never named.
 #
-# THE READ CONTRACT IS LEAN ON PURPOSE. A second project measured the resume
-# read at ~110 KB: the rules files CLAUDE.md already loads (re-read in full),
-# the whole active LOG.md although only its tail was wanted, and the whole
-# 27 KB governing spec although the step cited one section of it. So:
+# THE READ CONTRACT IS LEAN ON PURPOSE. Once position is computed, most of a
+# resume read is files read in full when a slice was enough: the rules files
+# CLAUDE.md already loads (re-read in full), the whole active LOG.md although
+# only its tail was wanted, and the whole governing spec although the step
+# cited one section of it. So:
 #   · a rules file CLAUDE.md `@`-imports (directly or through another import) is
 #     reported in `.loaded` and left OUT of `.read`. Imports are parsed the way
 #     Claude Code parses them: relative to the importing file, and never inside

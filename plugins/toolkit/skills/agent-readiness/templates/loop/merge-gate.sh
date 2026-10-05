@@ -3,8 +3,8 @@
 #
 # AGENTS.md §8a fans out independent work: a `[parallel: A]` group of plan steps,
 # or decision records drafted side by side, each on its own branch in its own
-# git worktree. That is the largest available speed-up on a serial loop — on a
-# real project the research phase was ~3 h of ~7 h, done one area after another.
+# git worktree. That is the largest available speed-up on a serial loop, where a
+# research phase done one area after another can dominate the whole run.
 #
 # WHY THIS SCRIPT MUST EXIST FIRST. Two branches that are each green can be RED
 # together: a global size/LOC budget, a single coverage or test-count ratchet,
@@ -15,6 +15,10 @@
 #
 # Usage:  loop/merge-gate.sh <branch> [<branch> ...]
 #         MERGE_GATE_CMD="make check"  — the gate (default: make check)
+#           The gate runs in a fresh throwaway worktree, which has none of the
+#           ignored dependencies (node_modules, .venv, build caches). If the gate
+#           needs them, set e.g. MERGE_GATE_CMD="make install && make check", or a
+#           RED here can be the environment, not the merge.
 #         MERGE_GATE_BASE=<branch>     — the base (default: the branch origin/HEAD
 #                                        names, else main, else master)
 #

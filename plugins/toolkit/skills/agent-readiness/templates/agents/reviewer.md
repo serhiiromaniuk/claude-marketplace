@@ -83,8 +83,8 @@ MEDIUM   <id> file:line — …
 Then one closing line: `<n> CRITICAL / <n> HIGH / <n> MEDIUM (+<k> MEDIUM dropped)`.
 No preamble, no restating the diff, no praise.
 
-Why no LOW: on a real project ~30 reviews found 0 CRITICAL and ~2 HIGH each — the
-value — while every LOW became a `## Amendments` entry to carry, count and dispose
+Why no LOW: in practice per-step reviews rarely find a CRITICAL and only a couple of
+HIGH each — the value — while every LOW became a `## Amendments` entry to carry, count and dispose
 of at the close. A finding that touches a golden rule is never LOW; it is at least
 HIGH, so dropping LOW never drops a rule violation. **Flag only gaps that affect
 correctness, safety, or a stated rule** — not style or speculative hardening
