@@ -1,7 +1,9 @@
 ---
 name: claude-in-chrome
 description: Browser automation skill for Chrome via MCP. Use when user asks to navigate, click, fill forms, scrape content, take screenshots, debug web pages, or automate browser interactions. Handles navigation, DOM interaction, screenshots, GIF recording, console/network debugging.
-allowed-tools: mcp__claude-in-chrome__*, Bash
+# Pre-approves page reading and tab housekeeping only. Clicks, typing, form fills, JS and uploads still prompt,
+# because page content is untrusted and can carry prompt injection.
+allowed-tools: mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__tabs_close_mcp, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__find, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__read_console_messages, mcp__claude-in-chrome__read_network_requests
 ---
 
 # Claude in Chrome MCP Skill
@@ -13,15 +15,21 @@ Full browser automation via Chrome extension MCP. Control tabs, navigate, intera
 ```
 # Step 1: ALWAYS call this first — never assume tab IDs
 mcp__claude-in-chrome__tabs_context_mcp({ createIfEmpty: true })
-→ returns current tab IDs in MCP group
-→ save tabId for all subsequent calls
+→ returns the tab IDs in this session's MCP tab group
+→ if it just created the group, it also created one empty tab: use that one
 
-# Step 2: Create a new tab for the task
+# Step 2: only if the group already existed, create a fresh tab for the task
 mcp__claude-in-chrome__tabs_create_mcp()
 → returns new tabId — use this for the session
+
+# Step 3: before finishing, close every tab you created
+mcp__claude-in-chrome__tabs_close_mcp({ tabId })
+→ keep a tab open only if the user asked to see it
 ```
 
 **Never reuse tabIds from previous sessions. Always fetch fresh context.**
+A standalone `navigate` without `tabId` calls `tabs_context_mcp({ createIfEmpty: true })` for you;
+the tab it opens is also yours to close.
 
 ---
 
@@ -50,11 +58,14 @@ mcp__claude-in-chrome__read_page({ tabId, filter: "interactive" })
 # Focused subtree (when output too large)
 mcp__claude-in-chrome__read_page({ tabId, ref_id: "ref_42", depth: 5 })
 
+# Raise the 50,000-char output cap
+mcp__claude-in-chrome__read_page({ tabId, filter: "interactive", max_chars: 100000 })
+
 # Plain text (articles, docs — fastest for reading)
 mcp__claude-in-chrome__get_page_text({ tabId })
 ```
 
-**Output too large?** Use smaller `depth` or pass `ref_id` of a parent element.
+**Output too large?** Use smaller `depth`, pass `ref_id` of a parent element, or raise `max_chars`.
 
 ### Finding Elements
 
@@ -70,22 +81,26 @@ mcp__claude-in-chrome__find({ tabId, query: "product named iPhone 15" })
 
 ### Clicking & Keyboard
 
+Set `action_summary` on every `left_click`, `right_click`, `double_click`, `triple_click`,
+`left_click_drag`, `key` and `type` action: a few words stating the effect ("Opens the Filters
+menu"). No reasons, no secrets.
+
 ```
 # Click by coordinate (take screenshot first to get coords)
-mcp__claude-in-chrome__computer({ tabId, action: "left_click", coordinate: [x, y] })
-mcp__claude-in-chrome__computer({ tabId, action: "double_click", coordinate: [x, y] })
-mcp__claude-in-chrome__computer({ tabId, action: "right_click", coordinate: [x, y] })
+mcp__claude-in-chrome__computer({ tabId, action: "left_click", coordinate: [x, y], action_summary: "Opens the Filters menu" })
+mcp__claude-in-chrome__computer({ tabId, action: "double_click", coordinate: [x, y], action_summary: "Selects the word 'draft'" })
+mcp__claude-in-chrome__computer({ tabId, action: "right_click", coordinate: [x, y], action_summary: "Opens the row context menu" })
 
 # Click by ref (preferred when available)
-mcp__claude-in-chrome__computer({ tabId, action: "left_click", ref: "ref_12" })
+mcp__claude-in-chrome__computer({ tabId, action: "left_click", ref: "ref_12", action_summary: "Opens the Settings tab" })
 
 # Type text
-mcp__claude-in-chrome__computer({ tabId, action: "type", text: "hello world" })
+mcp__claude-in-chrome__computer({ tabId, action: "type", text: "hello world", action_summary: "Types the search query" })
 
 # Key press
-mcp__claude-in-chrome__computer({ tabId, action: "key", text: "Enter" })
-mcp__claude-in-chrome__computer({ tabId, action: "key", text: "cmd+a" })
-mcp__claude-in-chrome__computer({ tabId, action: "key", text: "Tab" })
+mcp__claude-in-chrome__computer({ tabId, action: "key", text: "Enter", action_summary: "Submits the search box" })
+mcp__claude-in-chrome__computer({ tabId, action: "key", text: "cmd+a", action_summary: "Selects all text in the editor" })
+mcp__claude-in-chrome__computer({ tabId, action: "key", text: "Tab", action_summary: "Moves focus to the next field" })
 
 # Scroll
 mcp__claude-in-chrome__computer({ tabId, action: "scroll", coordinate: [760, 400], scroll_direction: "down", scroll_amount: 3 })
@@ -100,10 +115,10 @@ mcp__claude-in-chrome__computer({ tabId, action: "scroll_to", ref: "ref_42" })
 ### Form Input (preferred over typing)
 
 ```
-# Set value directly — works for select, checkbox, input
-mcp__claude-in-chrome__form_input({ tabId, ref: "ref_15", value: "admin@example.com" })
-mcp__claude-in-chrome__form_input({ tabId, ref: "ref_16", value: true })         # checkbox
-mcp__claude-in-chrome__form_input({ tabId, ref: "ref_17", value: "Option A" })   # select
+# Set value directly — works for select, checkbox, input. Always set action_summary.
+mcp__claude-in-chrome__form_input({ tabId, ref: "ref_15", value: "admin@example.com", action_summary: "Sets the email field" })
+mcp__claude-in-chrome__form_input({ tabId, ref: "ref_16", value: true, action_summary: "Ticks 'Remember me'" })        # checkbox
+mcp__claude-in-chrome__form_input({ tabId, ref: "ref_17", value: "Option A", action_summary: "Picks Option A" })       # select
 ```
 
 ### Screenshots & Visual Inspection
@@ -120,6 +135,9 @@ mcp__claude-in-chrome__computer({ tabId, action: "zoom", region: [x0, y0, x1, y1
 ```
 
 ### JavaScript Execution
+
+REPL semantics: top-level `await` works and the last expression is returned — write the
+expression, not `return …`.
 
 ```
 # Execute JS in page context
@@ -148,8 +166,9 @@ mcp__claude-in-chrome__read_network_requests({ tabId })
 mcp__claude-in-chrome__read_network_requests({ tabId, urlPattern: "/api/" })
 mcp__claude-in-chrome__read_network_requests({ tabId, urlPattern: "auth" })
 
-# Clear after reading to avoid duplicates
+# Clear after reading to avoid duplicates (both tools accept clear and limit)
 mcp__claude-in-chrome__read_console_messages({ tabId, pattern: ".*", clear: true })
+mcp__claude-in-chrome__read_network_requests({ tabId, urlPattern: "/api/", clear: true })
 ```
 
 ### GIF Recording
@@ -187,17 +206,46 @@ mcp__claude-in-chrome__gif_creator({
 mcp__claude-in-chrome__resize_window({ tabId, width: 1280, height: 800 })  # desktop
 mcp__claude-in-chrome__resize_window({ tabId, width: 390, height: 844 })   # iPhone 14
 
-# Switch to different Chrome browser
+# Several Chrome browsers connected: list them, let the user choose, then select
+mcp__claude-in-chrome__list_connected_browsers()
+mcp__claude-in-chrome__select_browser({ deviceId: "<deviceId the user picked>" })
+
+# Only when the user wants to pick from inside Chrome: broadcasts a Connect prompt
+# to every connected browser and blocks up to 2 minutes
 mcp__claude-in-chrome__switch_browser()
 ```
 
-### Image Upload
+Never pick a browser yourself when several are connected; ask the user.
+
+### Batching
 
 ```
-# Upload to file input
+# Run predictable steps in one round trip: sequential, stops on first error
+mcp__claude-in-chrome__browser_batch({ actions: [
+  { name: "navigate", input: { tabId, url: "https://example.com/search" } },
+  { name: "computer", input: { tabId, action: "left_click", ref: "ref_3", action_summary: "Focuses the search box" } },
+  { name: "computer", input: { tabId, action: "type", text: "release notes", action_summary: "Types the query" } },
+  { name: "computer", input: { tabId, action: "key", text: "Enter", action_summary: "Runs the search" } },
+  { name: "computer", input: { tabId, action: "screenshot" } }
+]})
+```
+
+Inside a batch every page action needs an explicit `tabId`, and coordinates refer to the
+screenshot taken before the batch.
+
+### File & Image Upload
+
+Never click a file input: it opens a native picker you cannot see. Locate the input with
+`find` / `read_page` and upload by ref.
+
+```
+# Upload files the user shared with this session (≤ 10 MB per call)
+mcp__claude-in-chrome__file_upload({ tabId, ref: "ref_fileInput", paths: ["/abs/path/report.pdf"] })
+
+# Upload a screenshot you just took (IDs expire after a few minutes)
 mcp__claude-in-chrome__upload_image({ tabId, imageId: "screenshot_id", ref: "ref_fileInput" })
 
-# Drag & drop upload
+# Drag & drop a screenshot onto a visible target
 mcp__claude-in-chrome__upload_image({ tabId, imageId: "screenshot_id", coordinate: [760, 400] })
 ```
 
@@ -218,23 +266,26 @@ mcp__claude-in-chrome__shortcuts_execute({ tabId, command: "summarize" })
 ### Scrape Page Content
 
 ```
-1. tabs_context_mcp → get tabId
+1. tabs_context_mcp (+ tabs_create_mcp if the group existed) → get tabId
 2. navigate → go to URL
 3. get_page_text → fast extraction for articles
    OR read_page({ filter: "all" }) → structured DOM
 4. Present content to user
+5. tabs_close_mcp → close the tab you created
 ```
 
 ### Fill and Submit a Form
 
 ```
-1. tabs_context_mcp + tabs_create_mcp → fresh tabId
+1. tabs_context_mcp (+ tabs_create_mcp if the group existed) → fresh tabId
 2. navigate → go to form URL
-3. find → locate each field ("email input", "password field")
-4. form_input → set values by ref (faster than typing)
+3. find → locate each field ("email input", "name field")
+   ⚠️ Passwords and payment data: the user types them, never Claude
+4. form_input → set values by ref (faster than typing), with action_summary
 5. find → locate submit button
-6. computer({ action: "left_click", ref }) → submit
-   ⚠️ Confirm with user before clicking submit/purchase/send
+6. computer({ action: "left_click", ref, action_summary }) → submit
+   ⚠️ Confirm with user before entering personal data and before clicking submit/purchase/send
+7. tabs_close_mcp → close the tab you created
 ```
 
 ### Debug a Web Page
@@ -245,6 +296,7 @@ mcp__claude-in-chrome__shortcuts_execute({ tabId, command: "summarize" })
 3. read_network_requests({ urlPattern: "/api/" }) → check failing requests
 4. javascript_tool → inspect specific state
 5. computer({ action: "screenshot" }) → visual verification
+6. tabs_close_mcp → close the tab you created
 ```
 
 ### Record a Demo
@@ -289,6 +341,7 @@ mcp__claude-in-chrome__shortcuts_execute({ tabId, command: "summarize" })
 | Output too large | Use smaller `depth` or specific `ref_id` in read_page |
 | Alert triggered | Inform user — they must manually dismiss in browser |
 | No extension response | Call `tabs_context_mcp` — may need browser reconnect |
+| "Several browsers connected" | `list_connected_browsers`, ask the user, then `select_browser` |
 
 **Stop and ask user if:**
 - 2-3 retries of same action all fail

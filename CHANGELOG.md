@@ -27,6 +27,17 @@ All notable changes to the `toolkit` plugin. Versions follow
   when glab is installed, check every glab subcommand and flag the helpers and docs use
   against `glab <cmd> --help`.
 
+### Fixed — claude-in-chrome
+
+- `allowed-tools` no longer pre-approves Bash or every browser tool: only page reading
+  and tab housekeeping run without a prompt, so clicks, typing, form fills, JavaScript and
+  uploads on untrusted pages still ask.
+- Start-up no longer opens two tabs, and every workflow closes the tabs it created.
+- Examples set `action_summary` on clicks, keys, typing and form fills; browser choice
+  goes through `list_connected_browsers` → `select_browser`, with `switch_browser` only
+  for picking inside Chrome. Adds `browser_batch`, `file_upload` and `read_page`'s
+  `max_chars`.
+
 ### Fixed — cost-tracker (spend was overstated about 2.9x)
 
 - **One API response is counted once.** Claude Code writes a response as several
