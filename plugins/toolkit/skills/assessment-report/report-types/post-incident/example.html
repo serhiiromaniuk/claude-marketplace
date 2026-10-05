@@ -45,7 +45,7 @@
   .avoid{break-inside:avoid;}
 
   /* ── COVER ─────────────────────────────────────────────── */
-  .cover{height:244mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
+  .cover{height:268mm;display:flex;flex-direction:column;color:#fff;border-radius:6px;
     padding:17mm 16mm 14mm;position:relative;overflow:hidden;
     background:
       repeating-linear-gradient(30deg,rgba(143,214,232,.045) 0 1px,transparent 1px 26px),
@@ -207,7 +207,7 @@
       <polygon points="40,33 30,39 30,49 40,43" fill="#9f4a2c" fill-opacity=".9"/>
       <polygon points="30,30 40,36 30,42 20,36" fill="#e6a589" fill-opacity=".95"/>
     </svg>
-    <div class="wm"><b>CARTWRIGHT</b> · SAMPLE</div>
+    <div class="wm"><b>CARTWRIGHT</b> · FICTIONAL SAMPLE</div>
   </div>
 
   <!-- line-art incident waveform fills the lower band: calm → error spike → recovery -->
@@ -368,12 +368,11 @@
         <circle cx="112" cy="86" r="9.5" fill="#dc2626" opacity=".9"/><text x="112" y="89" text-anchor="middle" fill="#fff">04</text>
         <!-- strategic: high impact / high effort -->
         <circle cx="252" cy="52" r="10.5" fill="#dc2626" opacity=".9"/><text x="252" y="55" text-anchor="middle" fill="#fff">03</text>
-        <circle cx="312" cy="72" r="9" fill="#d97706" opacity=".92"/><text x="312" y="75" text-anchor="middle" fill="#fff">07</text>
+        <circle cx="312" cy="72" r="9" fill="#dc2626" opacity=".9"/><text x="312" y="75" text-anchor="middle" fill="#fff">07</text>
         <!-- fill-ins: low impact / low effort -->
         <circle cx="96" cy="152" r="8" fill="#2563eb" opacity=".82"/><text x="96" y="155" text-anchor="middle" fill="#fff">10</text>
-        <circle cx="140" cy="182" r="8" fill="#2563eb" opacity=".82"/><text x="140" y="185" text-anchor="middle" fill="#fff">09</text>
+        <circle cx="140" cy="182" r="8" fill="#d97706" opacity=".84"/><text x="140" y="185" text-anchor="middle" fill="#fff">09</text>
         <!-- lower priority: needs a window -->
-        <circle cx="244" cy="150" r="9" fill="#d97706" opacity=".9"/><text x="244" y="153" text-anchor="middle" fill="#fff">07b</text>
         <circle cx="300" cy="160" r="9" fill="#d97706" opacity=".84"/><text x="300" y="163" text-anchor="middle" fill="#fff">05</text>
         <circle cx="252" cy="188" r="9" fill="#d97706" opacity=".84"/><text x="252" y="191" text-anchor="middle" fill="#fff">06</text>
         <circle cx="308" cy="190" r="9" fill="#d97706" opacity=".8"/><text x="308" y="193" text-anchor="middle" fill="#fff">08</text>
@@ -680,12 +679,12 @@
   <tr><td>AI-03<span class="cd cv"></span></td><td><b>Add connection-pool backpressure</b> — bounded max-wait, fail-fast, bounded queue depth</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">16</td><td>Checkout service team</td><td>1 week</td><td><span class="st st-now">Planned</span></td></tr>
   <tr><td>AI-04<span class="cd cv"></span></td><td><b>Tighten the checkout 5xx alert</b> — lower threshold, 1-min window, add rate-of-change trigger</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">15</td><td>SRE</td><td>3 days</td><td><span class="st" style="background:#dcfce7;color:#166534;">Done</span></td></tr>
   <tr><td colspan="7" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--cyan-d);font-weight:700;padding:4px 8px;">Next — this quarter</td></tr>
-  <tr><td>AI-07<span class="cd ci"></span></td><td><b>Failover-aware health checks</b> + faster writer-endpoint reconnection handling</td><td><span class="sev s-med">MED</span></td><td class="score-cell">12</td><td>DB team</td><td>4 weeks</td><td><span class="st st-now">Planned</span></td></tr>
+  <tr><td>AI-07<span class="cd ci"></span></td><td><b>Failover-aware health checks</b> + faster writer-endpoint reconnection handling</td><td><span class="sev s-high">HIGH</span></td><td class="score-cell">12</td><td>DB team</td><td>4 weeks</td><td><span class="st st-now">Planned</span></td></tr>
   <tr><td>AI-05<span class="cd cv"></span></td><td><b>Rewrite &amp; validate the checkout DB-failover runbook</b>; add a quarterly game-day</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>SRE + DB team</td><td>3 weeks</td><td><span class="st st-now">Planned</span></td></tr>
   <tr><td>AI-06<span class="cd cv"></span></td><td><b>Move DB minor-version patching</b> to a low-traffic window; require a canary/failover test</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>DB team</td><td>3 weeks</td><td><span class="st st-now">Planned</span></td></tr>
   <tr><td>AI-08<span class="cd ci"></span></td><td><b>Chaos drill</b> — load-test checkout against a simulated writer failover to prove the guardrails</td><td><span class="sev s-med">MED</span></td><td class="score-cell">9</td><td>SRE</td><td>5 weeks</td><td><span class="st st-now">Planned</span></td></tr>
   <tr><td colspan="7" style="background:var(--panel2);font-family:var(--mono);font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--slate);font-weight:700;padding:4px 8px;">Later — hygiene &amp; ownership</td></tr>
-  <tr><td>AI-09<span class="cd ci"></span></td><td><b>Assign explicit ownership</b> of the checkout↔data resilience path (RACI)</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">6</td><td>Eng leadership</td><td>6 weeks</td><td><span class="st st-acc">Open</span></td></tr>
+  <tr><td>AI-09<span class="cd ci"></span></td><td><b>Assign explicit ownership</b> of the checkout↔data resilience path (RACI)</td><td><span class="sev s-med">MED</span></td><td class="score-cell">6</td><td>Eng leadership</td><td>6 weeks</td><td><span class="st st-acc">Open</span></td></tr>
   <tr><td>AI-10<span class="cd ca"></span></td><td><b>Refine SEV-declaration guidance</b> — auto-SEV1 criteria for checkout-path outages</td><td><span class="sev s-low">LOW</span></td><td class="score-cell">4</td><td>Incident program</td><td>6 weeks</td><td><span class="st st-acc">Open</span></td></tr>
 </table>
 <small style="display:block;margin-top:6px"><b>Now</b> 4 items · <b>Next</b> 4 items · <b>Later</b> 2 items. The four "Now" items remove the amplifier and cut detection lag; AI-04 is already shipped. Owners are <b>roles</b>, assigned to teams, not named individuals.</small>

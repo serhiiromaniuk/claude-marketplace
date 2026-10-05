@@ -17,7 +17,7 @@ Trigger on requests like: "do a gap/risk analysis of X", "audit this AWS account
 1. **Pick the report type.** Look in `report-types/`. If one matches, load its `type.md`. If none fits, use `gap-risk` as the general base and adapt. If genuinely ambiguous, ask the user.
 2. **Gather data — read-only first.** Follow `reference/discovery-playbook.md` (AWS describe/list, SSH read commands, Terraform, Confluence/Jira). **Never mutate** anything during discovery. Record each finding's evidence and a confidence level (Verified / Inferred / Assumed).
 3. **Score it.** Apply `reference/scoring.md`: per-finding risk = Likelihood × Impact (1–25); per-area letter grade across 5 weighted dimensions; residual risk after fix; a deferral stance (Fix now / Schedule / Accept-interim). Compute a composite posture score.
-4. **Build the HTML.** Copy `assets/template.html` to your scratchpad and fill it in following the active `type.md` section list and `assets/STYLE.md` for components. Keep it clean — do NOT overflood; if a section gets heavy, push detail to an appendix.
+4. **Build the HTML.** Copy the active type's `example.html` to your scratchpad — it has the full section set wired up — and replace its content section by section, following the type's `type.md` section list and `assets/STYLE.md` for components. Start from the bare `assets/template.html` only for a new type with no example yet. Keep it clean — do NOT overflood; if a section gets heavy, push detail to an appendix.
 5. **Render the PDF.** Use the canonical renderer (see below). Never use `chrome --print-to-pdf` directly — it shifts layout and drops page numbers/bookmarks.
 6. **Verify visually.** Rasterize a few pages with `pdftoppm -png -r 80 -f N -l N out.pdf chk` and Read the PNGs. Check for: overflow (especially cover height vs A4), footer collisions, SVG-text clipping (mono is wider — long captions can spill their viewBox), matrix bubble collisions, and any page that reads 50%+ empty (add a pull-quote / insight cards).
 7. **Publish (optional, only if asked).** Follow `reference/confluence-publish.md` — create the page via the Atlassian MCP, then attach the PDF. **Publishing is an outward-facing action: confirm with the user first.**
@@ -25,18 +25,14 @@ Trigger on requests like: "do a gap/risk analysis of X", "audit this AWS account
 ## Rendering (canonical, copy-paste)
 
 ```bash
-SK=~/.claude/skills/assessment-report
-PORT=9333
-google-chrome --headless=new --disable-gpu --no-sandbox \
-  --remote-debugging-port=$PORT --remote-allow-origins=* about:blank >/tmp/chrome.log 2>&1 &
-CHROME_PID=$!
-for i in $(seq 1 30); do curl -s http://127.0.0.1:$PORT/json/version >/dev/null 2>&1 && break; sleep 0.3; done
-node "$SK/assets/render.mjs" "/abs/path/report.html" "$HOME/report.pdf" $PORT "My Report · Confidential"
-kill $CHROME_PID 2>/dev/null
-pdfinfo "$HOME/report.pdf" | grep -i pages
+SK="${CLAUDE_PLUGIN_ROOT}/skills/assessment-report"
+node "$SK/assets/render.mjs" "report.html" "report.pdf" "My Report · Confidential"
+pdfinfo report.pdf | grep -i pages
 ```
 
-Requirements: `google-chrome` (headless) + `node` (18+, global `WebSocket`). No npm installs, no PDF libraries. `pdftoppm`/`pdfinfo` (poppler) are used only for verification. If those HTML→PDF libraries (weasyprint/wkhtmltopdf) happen to exist they are NOT preferred — the CDP path gives the bookmarks/page-numbers the others can't.
+The renderer starts its own headless Chrome (temporary profile, random debugging port), prints, and shuts it down again — nothing to start or kill by hand. It exits non-zero with a message if the input is missing, the page fails to load, or Chrome is not found; check the exit code rather than trusting that a PDF exists. To reuse a Chrome you already run with `--remote-debugging-port=N`, add `--port N`.
+
+Requirements: Chrome or Chromium + **Node ≥ 22** (for the global `WebSocket`). The renderer finds Chrome via `$CHROME`, then the standard install locations on Linux (`google-chrome`, `chromium`), macOS (`/Applications/…`) and Windows (Chrome or Edge); set `CHROME=/path/to/chrome` when it lives elsewhere, and `CHROME_NO_SANDBOX=1` if Chrome cannot start its sandbox (automatic when running as root). No npm installs, no PDF libraries. `pdftoppm`/`pdfinfo` (poppler) are used only for verification. If other HTML→PDF tools (weasyprint/wkhtmltopdf) happen to exist they are NOT preferred — the CDP path gives the bookmarks/page-numbers the others can't.
 
 ## Design identity (the "blueprint" system — see assets/STYLE.md)
 The look is deliberate and ownable, not a generic corporate report. Three things must appear on every report:
@@ -47,19 +43,20 @@ The look is deliberate and ownable, not a generic corporate report. Three things
 
 ## Key conventions (don't relearn these)
 - **One renderer.** The CDP path (`render.mjs`) is canonical. The old `--print-to-pdf` CLI produced subtly different margins — never mix the two within a project.
-- **Cover height.** A4 printable height ≈ 246 mm after default margins. Set `.cover { height: 244mm }` or it spills a sliver onto page 2.
+- **Cover height.** With the template's `@page` margins (13 mm top, 15 mm bottom) the A4 printable height is 269 mm. Keep `.cover { height: 268mm }`: it fills page 1, and at 270 mm it spills onto page 2. Change the margins and you must recompute it.
 - **Footer.** Page numbers come from the renderer's `footerTemplate`, not from in-page CSS. Keep any in-page `.footer { display:none }`. CSS `position:fixed` footers collide in paged media — avoid.
 - **Print color.** Every page needs `-webkit-print-color-adjust:exact; print-color-adjust:exact;`.
 - **Self-contained.** All CSS/SVG inline; no external fonts/images/CDNs (the renderer reads a local file://). The serif/mono/sans stacks are all system fonts — no embedding needed.
-- **TOC + bookmarks.** Internal `<a href="#id">` links stay clickable in the PDF; real `<h2>` headings become bookmarks automatically. Use `01/02/03` numerals, not `①②③` glyphs (they render inconsistently).
+- **TOC + bookmarks.** Internal `<a href="#id">` links stay clickable in the PDF. The renderer builds the bookmark outline from `<h1>`–`<h3>` only — it marks `<h4>`–`<h6>` as presentational at print time, so the mono `h4` labels don't flood the outline. Section titles therefore belong in `<h2>` (sub-sections in `<h3>`), never in an `h4`. Use `01/02/03` numerals, not `①②③` glyphs (they render inconsistently).
 
 ## Files
 - `assets/template.html` — design-system skeleton with one live example of every component.
 - `assets/STYLE.md` — design tokens (palette, type, spacing) + component catalog.
 - `assets/render.mjs` — the canonical renderer.
 - `report-types/README.md` — how report types work + the registry of available types.
-- `report-types/gap-risk/` — the general gap/risk type (`type.md` spec + `example.html`, a full worked report).
-- `report-types/{security-review,cost-review,due-diligence,architecture-review,post-incident}/` — the specialized types, each a `type.md` spec + a full synthetic `example.html`.
+- `report-types/gap-risk/` — the general gap/risk type (`type.md` spec + a fictional worked `example.html`).
+- `report-types/{security-review,cost-review,due-diligence,architecture-review,post-incident}/` — the specialized types, each a `type.md` spec + a fictional worked `example.html`.
+- Every bundled example is **fictional**. Never save a real engagement's report into this skill: reports you produce for real systems go to the user's own location, not into `report-types/`.
 - `reference/scoring.md` — scoring rubric.
 - `reference/discovery-playbook.md` — read-only data-gathering recipes.
 - `reference/confluence-publish.md` — publish + attach flow and its gotchas.

@@ -50,6 +50,31 @@ All notable changes to the `toolkit` plugin. Versions follow
   for picking inside Chrome. Adds `browser_batch`, `file_upload` and `read_page`'s
   `max_chars`.
 
+### Fixed — assessment-report
+
+- **Every bundled example is invented and says so.** The gap-risk example is rewritten
+  from scratch for a fictional parcel-locker operator. The due-diligence and
+  architecture-review examples use invented company names. Every cover is labelled as a fictional sample, and no example
+  names a real author. The docs now say examples are written from scratch and must never
+  be a real engagement, even with names replaced.
+- **Numbers follow the rubric.** In due-diligence and in the post-incident action items,
+  findings scored 12 were badged MEDIUM and findings scored 6 were badged LOW. They are
+  re-badged per `scoring.md`, and every dependent count, bar, bubble, KPI and cover line
+  is updated. The "N of M verified" counts in the
+  security-review and cost-review examples are corrected.
+- **`render.mjs` starts and cleans up its own headless Chrome.** It looks for `CHROME`
+  first, then the usual Linux, macOS and Windows install paths. It uses a temporary
+  profile and a random port, or reuses a running Chrome with `--port N`.
+- **`render.mjs` fails loudly.** It requires Node ≥ 22. A missing file, a page that fails
+  to load or a DevTools error exits non-zero instead of writing a PDF of Chrome's error
+  page. Paths with spaces or `#` work, and the footer text is escaped.
+- **PDF bookmarks list only h1–h3.** Every h4 label used to appear as well, 42–51 entries
+  per report. The cover is 268 mm, so it now fills page 1 without spilling onto page 2.
+- **`SKILL.md`** renders via `${CLAUDE_PLUGIN_ROOT}` (the old `~/.claude/skills/...` path
+  does not exist for a plugin install). It says to copy the type's `example.html`.
+  `confluence-publish.md` notes that `createConfluencePage` accepts a space key and needs
+  `getContentFormatGuide` first.
+
 ### Fixed — cost-tracker (spend was overstated about 2.9x)
 
 - **One API response is counted once.** Claude Code writes a response as several

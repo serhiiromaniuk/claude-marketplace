@@ -1,6 +1,6 @@
 # Report type: gap-risk (general scored gap/risk assessment)
 
-The general base type. Assesses a system / estate / project, organizes findings by **area** (e.g. infrastructure tenants, services, domains), scores each, and produces a costed remediation roadmap. The Acme Widgets infrastructure audit (`example.html`) is the canonical worked example.
+The general base type. Assesses a system / estate / project, organizes findings by **area** (e.g. infrastructure tenants, services, domains), scores each, and produces a costed remediation roadmap. The fictional Kestrelbox platform assessment (`example.html`) is the canonical worked example.
 
 ## When to use
 "gap/risk analysis", "audit X", "infrastructure/cloud review", "assess the state of Y", or any request that's *findings → scored → executive dashboard → PDF* and doesn't match a more specific type.
@@ -34,4 +34,4 @@ Inventory + posture of each area. For cloud: identity/keys, network exposure (op
 - Call out genuine **strengths** too — it builds trust and makes the criticism land.
 
 ## Reuse note
-`example.html` is a synthetic sample report (fictional data) rendered with the canonical pipeline. Fastest path for a new gap-risk report: copy `example.html` (not the bare template) and replace content area-by-area — it already has the full section set wired up.
+`example.html` is a fictional sample report (invented organisation, identifiers, findings and costs) rendered with the canonical pipeline. Fastest path for a new gap-risk report: copy `example.html` (not the bare template) and replace content area-by-area — it already has the full section set wired up.

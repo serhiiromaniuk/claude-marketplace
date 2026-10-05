@@ -6,7 +6,7 @@ A **report type** defines the *shape* of one kind of report — its section list
 ```
 report-types/<type>/
 ├── type.md       # spec: when to use, sections in order, scoring scheme, data to gather, example
-└── example.html  # (optional but recommended) a full real report of this type, for reference
+└── example.html  # (optional but recommended) a full FICTIONAL worked report of this type, for reference
 ```
 
 ## How Claude picks a type
@@ -25,4 +25,6 @@ report-types/<type>/
 | **architecture-review** | ✅ available | Well-Architected-style design review of a single system, across the 6 WAF pillars. |
 | **post-incident** | ✅ available | Blameless post-mortem: SEV, timeline, root-cause chain, contributing factors, action items. |
 
-To add a type: copy `gap-risk/type.md` as a starting point, adjust the section list and scoring, register it in the table above, and (ideally) drop a real `example.html` once you've produced one.
+To add a type: copy `gap-risk/type.md` as a starting point, adjust the section list and scoring, register it in the table above, and (ideally) add an `example.html`.
+
+**Examples are synthetic only — never commit a real engagement.** Even with names find-and-replaced, a real report still carries the real topology, versions, resource names, exposures and costs. Write the example from scratch for a fictional organisation, mark it fictional on the cover, and keep its numbers consistent with `../reference/scoring.md`.

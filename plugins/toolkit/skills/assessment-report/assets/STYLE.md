@@ -47,7 +47,7 @@ The severity and grade scales are **unchanged and semantic** — never restyle t
 - **Subject motif** — a faint line-art SVG (here an isometric skyline) filling the cover's lower band. **Re-skin per report** (topology, map, org chart…) but keep it line-art, low-opacity, atmospheric.
 
 ## Brand chrome
-- **Cover** (`height:244mm`): blueprint navy→deep gradient + a faint **isometric grid texture** (two `repeating-linear-gradient`s at ±30°) + a cyan radial glow top-right. Lockup top-to-bottom: brandmark → kicker (mono, tracked, cyan-l) → big serif title → sans subtitle → numbered chips (`01/02/03`, mono) → **verdict box** (big serif grade + `vsep` + so-what) → **statstrip** (4 quick stats) → spacer → meta row (mono labels). The skyline sits behind, low-opacity.
+- **Cover** (`height:268mm` — fills the 269 mm printable A4 height left by the `@page` margins): blueprint navy→deep gradient + a faint **isometric grid texture** (two `repeating-linear-gradient`s at ±30°) + a cyan radial glow top-right. Lockup top-to-bottom: brandmark → kicker (mono, tracked, cyan-l) → big serif title → sans subtitle → numbered chips (`01/02/03`, mono) → **verdict box** (big serif grade + `vsep` + so-what) → **statstrip** (4 quick stats) → spacer → meta row (mono labels). The skyline sits behind, low-opacity.
 - **Section header** `.sec-head`: navy rounded **number/letter tile** (serif numeral, lighter top edge for a 3D-block read) + `h2` + the scale-tick rule.
 - **Footer**: supplied by the renderer (page numbers). In-page `.footer{display:none}`.
 

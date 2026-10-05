@@ -1,6 +1,6 @@
 # Report type: due-diligence (technical / vendor due-diligence)
 
-A deal-facing type. Assesses an acquisition or partnership **target's** technology, organized by **engineering domain**, scores each against the investment thesis, and produces a costed value-creation / remediation plan plus an overall **RAG investability verdict**. The Meridian Capital → Loomly Labs review (`example.html`) is the canonical worked example.
+A deal-facing type. Assesses an acquisition or partnership **target's** technology, organized by **engineering domain**, scores each against the investment thesis, and produces a costed value-creation / remediation plan plus an overall **RAG investability verdict**. The fictional Velloran Capital → Brindlewick Labs review (`example.html`) is the canonical worked example.
 
 ## When to use
 "tech/vendor due-diligence", "diligence on a target we're acquiring", "review this company's engineering before we invest/partner", "is this codebase/team worth buying", or any request that's *target findings → scored against a deal thesis → investment recommendation → PDF*. If the request is a general internal audit with no deal context, use `gap-risk` instead.

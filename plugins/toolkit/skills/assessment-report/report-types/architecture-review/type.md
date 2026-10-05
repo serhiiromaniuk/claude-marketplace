@@ -3,7 +3,7 @@
 A structured design review of a **single system or workload** against the six
 **AWS Well-Architected Framework (WAF) pillars**. Findings are the WAF
 High/Medium/Low **Risk Items (HRIs)**; each pillar is scored 0–100 → letter
-grade; the six pillars roll up to a composite posture. The Beacon IoT telemetry
+grade; the six pillars roll up to a composite posture. The Larkspan IoT telemetry
 platform review (`example.html`) is the canonical worked example.
 
 ## When to use
@@ -60,7 +60,7 @@ Capture evidence + a confidence flag per finding.
 - State the grade is a **posture** scale ("C" = fair), not academic, and that pillar weighting is a business choice.
 
 ## Reuse note
-`example.html` is a synthetic sample report (fictional workload "Beacon") rendered
+`example.html` is a synthetic sample report (fictional workload "Larkspan") rendered
 with the canonical pipeline. Fastest path for a new architecture-review: copy
 `example.html` (not the bare template) and replace content pillar-by-pillar — it
 already has the full section set (cover, exec dashboard, 6 pillar pages, register,

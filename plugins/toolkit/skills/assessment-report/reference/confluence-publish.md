@@ -5,12 +5,15 @@ Publishing is **outward-facing** — confirm with the user before creating/updat
 ## 1. Resolve IDs
 ```
 getConfluencePage(cloudId="<site>.atlassian.net", pageId=<parent>)   # confirm parent + space key
-getConfluenceSpaces(cloudId=..., keys="<SPACEKEY>")                   # -> numeric spaceId (needed to create)
+getConfluenceSpaces(cloudId=..., keys="<SPACEKEY>")                   # optional: numeric spaceId
 ```
+`createConfluencePage.spaceId` accepts the space **key** as well as the numeric id, so the space lookup is only needed when you have neither.
+
+Before the first HTML body, call `getContentFormatGuide(toolName="createConfluencePage")` — the tool requires it, and it lists the HTML/storage constructs the page body may use.
 
 ## 2. Create the page
 ```
-createConfluencePage(cloudId, spaceId=<numeric>, parentId=<parent>,
+createConfluencePage(cloudId, spaceId=<key or numeric id>, parentId=<parent>,
   title="...", contentFormat="html", body="<html-ish storage>")
 ```
 - **Title is plain text** — pass a literal `&`, NOT `&amp;` (it renders as the literal word "amp" otherwise).
