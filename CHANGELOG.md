@@ -83,6 +83,9 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ### Fixed — assessment-report
 
+- **A numeric footer stays a footer.** `render.mjs` reads a numeric third argument as
+  the old `<port>` only when a fourth (the footer) follows, so a footer such as `2026`
+  is no longer taken for a port.
 - **Every bundled example is invented and says so.** The gap-risk example is rewritten
   from scratch for a fictional parcel-locker operator. The due-diligence and
   architecture-review examples use invented company names. Every cover is labelled as a fictional sample, and no example

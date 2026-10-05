@@ -13,7 +13,7 @@
 // debugging port) and shuts it down afterwards. Chrome is found via $CHROME, then
 // the usual install paths for Linux / macOS / Windows. CHROME_NO_SANDBOX=1 adds
 // --no-sandbox (automatic when running as root, e.g. in a container).
-// --port N (or a numeric third argument, the old calling convention) instead
+// --port N (or the old four-argument form <in> <out> <port> "footer") instead
 // reuses a Chrome you already started with --remote-debugging-port=N.
 //
 // Exit codes: 0 PDF written · 1 render failed · 2 usage / environment error.
@@ -41,8 +41,9 @@ function parseArgs(argv) {
     else if (argv[i] === '-h' || argv[i] === '--help') { console.log(USAGE); process.exit(0); }
     else pos.push(argv[i]);
   }
-  // Old convention: <in> <out> <port> ["footer"].
-  if (port === null && /^\d+$/.test(pos[2] ?? '')) port = pos.splice(2, 1)[0];
+  // Old convention: <in> <out> <port> "footer". Only with all four, so a numeric
+  // footer such as "2026" is still a footer.
+  if (port === null && pos.length === 4 && /^\d+$/.test(pos[2])) port = pos.splice(2, 1)[0];
   const [htmlPath, outPath, footerLeft = 'Confidential'] = pos;
   if (!htmlPath || !outPath || pos.length > 3) throw fail(2, USAGE);
   if (port !== null && !/^\d+$/.test(port)) throw fail(2, `--port must be a number, got "${port}"`);
