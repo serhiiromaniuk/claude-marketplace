@@ -2,117 +2,72 @@
 """Claude Code cost tracker — token/USD usage from local transcripts.
 
 Reads Claude Code's own session transcripts (`<config-dir>/projects/**/*.jsonl`)
-and records one row per assistant message in a local SQLite database. Runs as a
-`Stop` hook for continuous capture, and as a CLI for backfilling history.
+and records one row per API response in a local SQLite database. Runs as a
+`Stop` hook (which fires at the end of every turn) and as a CLI.
 
-    track.py                  # scan every known config dir, ingest what is new
-    track.py <file.jsonl> ... # ingest specific transcripts
-    track.py --status         # when did the last ingest run, and did it see data
-    track.py --self-test      # synthetic end-to-end check, touches only a temp dir
+    track.py                  # hook: ingest the session named on stdin; with no
+                              #   stdin payload, every transcript, incrementally
+    track.py --backfill       # re-read every transcript in every known config dir
+    track.py <file.jsonl> ... # re-read specific transcripts
+    track.py --status         # collector health: last run, last error, gaps
+    track.py --report         # spend by day, project, model, session and tool
+    track.py --csv FILE       # export every row
+    track.py --reprice        # recompute every row's cost from its stored tokens
+    track.py --self-test      # run the bundled tests, in a temp dir only
 
-Idempotent: rows are keyed by assistant-message uuid, so re-running is free and
-losing the hook for a while costs nothing as long as the transcripts survive.
+One response is one row. Claude Code writes a response as several transcript
+lines (thinking, text, each tool_use), each with its own uuid and a copy of the
+response's usage, so rows are keyed by API message id + request id: the last
+line's usage wins and tool names are merged across the lines.
 
-Privacy: only metadata is stored — message uuid, timestamp, project directory
-*name*, tool name, model, token counts, computed cost, session id. Prompt and
+Privacy: only metadata is stored — message ids, timestamp, project directory
+*name*, tool names, model, token counts, computed cost, session id. Prompt and
 response text are never read into the database.
 
 Environment overrides:
     CLAUDE_CONFIG_DIR    extra config dir to scan (Claude Code's own variable)
-    CLAUDE_COST_DB       database path (default ~/.claude-cost-tracker/usage.db)
-    CLAUDE_COST_PRICING  path to a JSON file of per-model rates, see PRICING
+    CLAUDE_COST_DB       database path (default ~/.claude-cost-tracker/usage.db);
+                         last-run.json and last-error.json live next to it
+    CLAUDE_COST_PRICING  JSON file of extra or replacement rates, see pricing.py
+    CLAUDE_COST_QUIET    same as --quiet
 """
+import argparse
 import glob
 import json
 import os
+import select
 import sqlite3
 import sys
-import tempfile
 import time
+
+sys.dont_write_bytecode = True  # runs from a plugin cache dir: leave it clean
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pricing  # noqa: E402
+import store  # noqa: E402
 
 HOME = os.path.expanduser("~")
 DB_PATH = os.environ.get("CLAUDE_COST_DB") or os.path.join(
     HOME, ".claude-cost-tracker", "usage.db"
 )
-
-# Pricing in USD per 1,000,000 tokens, as (input, output, cache_write, cache_read).
-# ESTIMATES — verify against your own plan. Anthropic first-party rates; Bedrock
-# and Vertex are partner-operated and priced separately.
-#
-# Cache multipliers are structural, not per-model: write = 1.25x input,
-# read = 0.10x input. Keep them derived from the input rate when editing a row.
-#
-# LONG-CONTEXT TIER: every current model (Opus 5/4.8/4.7/4.6, Sonnet 5/4.6,
-# Fable 5, Mythos 5) has a 1M window at a SINGLE price — there is no >200K
-# premium to apply, so "long" equals "std" for every family below. The tier
-# machinery is kept because the CLAUDE_COST_PRICING override uses it and older
-# 1M-context betas did carry a ~2x premium; do not reintroduce a premium for a
-# current model without a published rate for it.
-#
-# Order matters: first substring match wins.
-# Override the whole table with CLAUDE_COST_PRICING pointing at a JSON file:
-#   {"threshold": 200000, "default": {...},
-#    "models": [["opus", {"std": [5,25,6.25,0.50], "long": [...]}], ...]}
-LONG_CTX_THRESHOLD = 200_000
-PRICING = [
-    # Opus 5 / 4.8 / 4.7 / 4.6 — $5 in, $25 out. NOT the retired Claude 3 Opus
-    # $15/$75, which is the single easiest way to overstate a bill by 3x.
-    ("opus",   {"std": (5.0, 25.0, 6.25, 0.50), "long": (5.0, 25.0, 6.25, 0.50)}),
-    # Sonnet 5 / 4.6 — $3/$15 is the durable rate. Sonnet 5 carries a $2/$10
-    # introductory rate through 2026-08-31; this table deliberately does NOT
-    # encode it, because a hardcoded intro price silently overstates the
-    # discount the day it lapses. Undercounts Sonnet slightly until then.
-    ("sonnet", {"std": (3.0, 15.0, 3.75, 0.30), "long": (3.0, 15.0, 3.75, 0.30)}),
-    ("haiku",  {"std": (1.0,  5.0, 1.25, 0.10), "long": (1.0,  5.0, 1.25, 0.10)}),
-    # Fable 5 and Mythos 5 — $10 in, $50 out. Above the Opus tier, not equal to it.
-    ("fable",  {"std": (10.0, 50.0, 12.50, 1.00), "long": (10.0, 50.0, 12.50, 1.00)}),
-    ("mythos", {"std": (10.0, 50.0, 12.50, 1.00), "long": (10.0, 50.0, 12.50, 1.00)}),
-]
-# Unknown / unreleased model: assume the Sonnet tier rather than the top tier —
-# a new id is far more often mid-tier than frontier, and guessing high turns
-# every unrecognised model into a phantom bill. Verify before quoting.
-DEFAULT_PRICE = {"std": (3.0, 15.0, 3.75, 0.30), "long": (3.0, 15.0, 3.75, 0.30)}
+STDIN_TIMEOUT = 2.0  # seconds to wait for a hook payload on a non-TTY stdin
+# Unattended runs (hook, scan, post-migration rescan) stop starting new files
+# after this many seconds, well inside the hook's 30 s timeout; per-file
+# offsets let the next turn carry on where this one stopped.
+TIME_BUDGET = 15.0
 
 
-def load_pricing():
-    """Return (threshold, models, default), honouring CLAUDE_COST_PRICING."""
-    path = os.environ.get("CLAUDE_COST_PRICING")
-    if not path:
-        return LONG_CTX_THRESHOLD, PRICING, DEFAULT_PRICE
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            cfg = json.load(fh)
-        models = [(str(k).lower(), v) for k, v in cfg.get("models", [])]
-        return (
-            int(cfg.get("threshold", LONG_CTX_THRESHOLD)),
-            models or PRICING,
-            cfg.get("default", DEFAULT_PRICE),
-        )
-    except (OSError, ValueError, TypeError):
-        # A malformed override must not stop collection — fall back to built-ins.
-        return LONG_CTX_THRESHOLD, PRICING, DEFAULT_PRICE
+class UsageError(Exception):
+    pass
 
 
-def price_for(model, ctx_tokens, threshold, models, default):
-    m = (model or "").lower()
-    fam = default
-    for key, tiers in models:
-        if key in m:
-            fam = tiers
-            break
-    return fam["long"] if ctx_tokens > threshold else fam["std"]
+class Parser(argparse.ArgumentParser):
+    # argparse exits 2 on a bad flag, and a Stop hook that exits 2 blocks
+    # Claude from stopping. Raise instead; __main__ picks a safe exit code.
+    def error(self, message):
+        raise UsageError(message)
 
 
-def cost_usd(model, in_tok, out_tok, cache_w, cache_r, pricing):
-    threshold, models, default = pricing
-    # A request's billable context is fresh input plus cache traffic; that sum is
-    # what crosses into the long-context tier, not output.
-    ctx = in_tok + cache_w + cache_r
-    pi, po, pcw, pcr = price_for(model, ctx, threshold, models, default)
-    return round(
-        (in_tok * pi + out_tok * po + cache_w * pcw + cache_r * pcr) / 1_000_000, 6
-    )
-
+# ---------------------------------------------------------------- discovery
 
 def config_dirs():
     """Every plausible Claude Code config dir, in priority order, de-duplicated.
@@ -136,7 +91,8 @@ def config_dirs():
 def transcript_files():
     files, seen = [], set()
     for d in config_dirs():
-        for path in glob.glob(os.path.join(d, "projects", "**", "*.jsonl"), recursive=True):
+        for path in glob.glob(os.path.join(glob.escape(d), "projects", "**", "*.jsonl"),
+                              recursive=True):
             real = os.path.realpath(path)
             if real not in seen:
                 seen.add(real)
@@ -144,126 +100,300 @@ def transcript_files():
     return files
 
 
+def session_files(payload):
+    """The hook's transcript plus its subagents' (`<session>/subagents/*.jsonl`)."""
+    path = payload.get("transcript_path") if isinstance(payload, dict) else None
+    if not isinstance(path, str) or not path.endswith(".jsonl"):
+        return None
+    path = os.path.expanduser(path)
+    if not os.path.isfile(path):
+        return None
+    stem = glob.escape(path[: -len(".jsonl")])
+    nested = glob.glob(os.path.join(stem, "**", "*.jsonl"), recursive=True)
+    return [path] + sorted(nested)
+
+
+def read_hook_payload(timeout=STDIN_TIMEOUT):
+    """The Stop hook's stdin JSON, or None. Never waits on a terminal."""
+    stdin = sys.stdin
+    try:
+        if stdin is None or stdin.closed or stdin.isatty():
+            return None
+        fd = stdin.fileno()
+    except (OSError, ValueError):
+        return None
+    chunks, deadline = [], time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            ready, _, _ = select.select([fd], [], [], remaining)
+        except (OSError, ValueError):  # select() cannot poll this stdin
+            break
+        if not ready:
+            break
+        chunk = os.read(fd, 65536)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        payload = _parse_payload(chunks)
+        if payload is not None:  # complete; do not wait for the writer to close
+            return payload
+    return _parse_payload(chunks)
+
+
+def _parse_payload(chunks):
+    try:
+        payload = json.loads(b"".join(chunks).decode("utf-8", "replace"))
+    except ValueError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+# ---------------------------------------------------------------- parsing
+
 def project_from_cwd(cwd):
     if not cwd:
         return "unknown"
     return os.path.basename(cwd.rstrip("/")) or cwd
 
 
-def primary_tool(content):
+def tool_names(content):
+    names = []
     if isinstance(content, list):
         for block in content:
             if isinstance(block, dict) and block.get("type") == "tool_use":
-                return block.get("name", "tool")
-    return "text"
+                names.append(str(block.get("name") or "tool"))
+    return names
 
 
-def connect(db_path):
-    directory = os.path.dirname(db_path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-        try:
-            os.chmod(directory, 0o700)
-        except OSError:
-            pass
-    fresh = not os.path.exists(db_path)
-    conn = sqlite3.connect(db_path)
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS usage (
-            uuid          TEXT PRIMARY KEY,
-            timestamp     TEXT,
-            project       TEXT,
-            tool_name     TEXT,
-            model         TEXT,
-            input_tokens  INTEGER,
-            output_tokens INTEGER,
-            cache_write   INTEGER,
-            cache_read    INTEGER,
-            cost_usd      REAL,
-            session_id    TEXT
-        )
-        """
-    )
-    conn.execute("CREATE INDEX IF NOT EXISTS usage_ts ON usage(timestamp)")
-    conn.commit()
-    if fresh:
-        # Spend and project names are nobody else's business on a shared box.
-        try:
-            os.chmod(db_path, 0o600)
-        except OSError:
-            pass
-    return conn
+def merge_tools(*lists):
+    out = []
+    for names in lists:
+        for name in names:
+            if name and name != "text" and name not in out:
+                out.append(name)
+    return out
 
 
-def ingest_file(conn, path, pricing):
-    added = 0
-    try:
-        # Streamed line by line: transcripts reach tens of MB and a Stop hook
-        # must not hold one in memory.
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line or '"assistant"' not in line:
-                    continue
-                try:
-                    rec = json.loads(line)
-                except ValueError:
-                    continue
-                if not isinstance(rec, dict) or rec.get("type") != "assistant":
-                    continue
-                msg = rec.get("message") or {}
-                usage = msg.get("usage") if isinstance(msg, dict) else None
-                uuid = rec.get("uuid")
-                if not isinstance(usage, dict) or not uuid:
-                    continue
-
-                def count(key):
-                    value = usage.get(key, 0)
-                    return value if isinstance(value, int) and value >= 0 else 0
-
-                in_tok = count("input_tokens")
-                out_tok = count("output_tokens")
-                cache_w = count("cache_creation_input_tokens")
-                cache_r = count("cache_read_input_tokens")
-                model = msg.get("model") or "unknown"
-                row = (
-                    str(uuid),
-                    str(rec.get("timestamp", "")),
-                    project_from_cwd(str(rec.get("cwd", ""))),
-                    primary_tool(msg.get("content")),
-                    str(model),
-                    in_tok,
-                    out_tok,
-                    cache_w,
-                    cache_r,
-                    cost_usd(model, in_tok, out_tok, cache_w, cache_r, pricing),
-                    str(rec.get("sessionId", "")),
-                )
-                cur = conn.execute(
-                    "INSERT OR IGNORE INTO usage VALUES (?,?,?,?,?,?,?,?,?,?,?)", row
-                )
-                added += cur.rowcount
-    except OSError:
+def count(usage, key):
+    value = usage.get(key, 0)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         return 0
-    conn.commit()
-    return added
+    return value
 
 
-def write_status(db_path, files_seen, rows_added):
-    """Leave a breadcrumb so a silently-broken tracker is discoverable.
+def read_messages(path, offset):
+    """Parse assistant responses from byte `offset`; return ({key: msg}, next_offset).
 
-    The hook exits 0 whatever happens; without this, a moved config dir looks
-    exactly like a quiet week.
+    A trailing line without a newline may still be being written: it is parsed
+    if complete, but the offset stays before it so the next run reads it again.
     """
-    path = os.path.join(os.path.dirname(db_path) or ".", "last-run.json")
-    payload = {
-        "ran_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-        "config_dirs": config_dirs(),
-        "transcripts_seen": files_seen,
-        "rows_added": rows_added,
+    msgs, pos = {}, offset
+    with open(path, "rb") as fh:
+        fh.seek(offset)
+        for raw in fh:
+            if raw.endswith(b"\n"):
+                pos += len(raw)
+            if b'"assistant"' not in raw:
+                continue
+            try:
+                rec = json.loads(raw.decode("utf-8", "replace"))
+            except (ValueError, RecursionError):
+                continue
+            if not isinstance(rec, dict) or rec.get("type") != "assistant":
+                continue
+            msg = rec.get("message")
+            usage = msg.get("usage") if isinstance(msg, dict) else None
+            uuid = rec.get("uuid")
+            if not isinstance(usage, dict) or not uuid:
+                continue
+            mid = msg.get("id")
+            key = "msg:%s:%s" % (mid, rec.get("requestId") or "") if mid else "uuid:%s" % uuid
+            m = msgs.get(key)
+            if m is None:
+                m = msgs[key] = {
+                    "timestamp": str(rec.get("timestamp", "")),
+                    "project": project_from_cwd(str(rec.get("cwd", ""))),
+                    "session_id": str(rec.get("sessionId", "")),
+                    "model": str(msg.get("model") or "unknown"),
+                    "uuids": [], "tools": [],
+                }
+            m["uuids"].append(str(uuid))
+            m["usage"] = usage  # earlier lines carry partial output; the last wins
+            m["tools"] = merge_tools(m["tools"], tool_names(msg.get("content")))
+    return msgs, pos
+
+
+def build_row(key, m, table):
+    usage = m["usage"]
+    cache = usage.get("cache_creation")
+    in_tok, out_tok = count(usage, "input_tokens"), count(usage, "output_tokens")
+    cache_w = count(usage, "cache_creation_input_tokens")
+    cache_w_1h = 0
+    if isinstance(cache, dict):
+        cache_w_1h = count(cache, "ephemeral_1h_input_tokens")
+        cache_w = max(cache_w, count(cache, "ephemeral_5m_input_tokens") + cache_w_1h)
+    cache_r = count(usage, "cache_read_input_tokens")
+    speed = usage.get("speed") if isinstance(usage.get("speed"), str) else None
+    cost, priced_as = pricing.cost_usd(m["model"], speed, in_tok, out_tok, cache_w,
+                                       cache_w_1h, cache_r, table)
+    return {
+        "msg_key": key, "uuid": m["uuids"][-1], "timestamp": m["timestamp"],
+        "project": m["project"], "tool_name": ",".join(m["tools"]) or "text",
+        "model": m["model"], "input_tokens": in_tok, "output_tokens": out_tok,
+        "cache_write": cache_w, "cache_write_1h": cache_w_1h, "cache_read": cache_r,
+        "speed": speed, "cost_usd": cost, "priced_as": priced_as,
+        "session_id": m["session_id"], "legacy": 0,
     }
+
+
+# ---------------------------------------------------------------- ingest
+
+INSERT_SQL = "INSERT OR IGNORE INTO usage (%s) VALUES (%s)" % (
+    ", ".join(store.COLUMNS), ", ".join("?" * len(store.COLUMNS)))
+TOKEN_COLUMNS = ("uuid", "input_tokens", "output_tokens", "cache_write", "cache_write_1h",
+                 "cache_read", "speed", "cost_usd", "priced_as")
+
+
+def store_messages(conn, msgs, table, collapse_legacy, stats):
+    for key, m in msgs.items():
+        if collapse_legacy:
+            legacy_keys = ["uuid:" + u for u in m["uuids"]]
+            stats["legacy_collapsed"] += conn.execute(
+                "DELETE FROM usage WHERE legacy = 1 AND msg_key IN (%s)"
+                % ",".join("?" * len(legacy_keys)), legacy_keys).rowcount
+        row = build_row(key, m, table)
+        if conn.execute(INSERT_SQL, [row[c] for c in store.COLUMNS]).rowcount:
+            stats["rows_added"] += 1
+            continue
+        # Seen before: from an earlier offset, another file (a forked session),
+        # or a run that caught it mid-stream. Keep the fullest usage, union tools.
+        old_out, old_tools = conn.execute(
+            "SELECT output_tokens, tool_name FROM usage WHERE msg_key = ?", (key,)).fetchone()
+        tools = ",".join(merge_tools((old_tools or "").split(","), m["tools"])) or "text"
+        sets = {"tool_name": tools}
+        if row["output_tokens"] > (old_out or 0):
+            sets.update((c, row[c]) for c in TOKEN_COLUMNS)
+        elif tools == old_tools:
+            continue
+        conn.execute("UPDATE usage SET %s WHERE msg_key = ?" % ", ".join("%s = ?" % c for c in sets),
+                     list(sets.values()) + [key])
+        stats["rows_updated"] += 1
+
+
+def ingest_file(conn, path, table, full, collapse_legacy, stats):
+    real = os.path.realpath(path)
     try:
+        st = os.stat(real)
+    except OSError:
+        return
+    prev = conn.execute("SELECT size, mtime_ns, offset FROM files WHERE path = ?",
+                        (real,)).fetchone()
+    if prev and not full and prev[0] == st.st_size and prev[1] == st.st_mtime_ns:
+        return  # unchanged since the last run
+    offset = prev[2] if prev and not full and st.st_size >= prev[2] else 0
+    try:
+        msgs, next_offset = read_messages(real, offset)
+    except OSError:
+        return
+    stats["transcripts_read"] += 1
+    # Legacy rows predate the migration, so their lines are never past a saved
+    # offset: only a read from the start of a file can collapse them.
+    collapse = collapse_legacy and offset == 0
+
+    def write(conn):
+        store_messages(conn, msgs, table, collapse, stats)
+        conn.execute("INSERT OR REPLACE INTO files (path, size, mtime_ns, offset)"
+                     " VALUES (?, ?, ?, ?)", (real, st.st_size, st.st_mtime_ns, next_offset))
+
+    store.transaction(conn, write)
+
+
+def ingest(db_path, paths=None, backfill=False, payload=None, budget=TIME_BUDGET):
+    """Explicit paths > --backfill > a pending post-migration rescan > the hook
+    payload's session > every transcript. Only the first two ignore offsets and
+    the time budget; the rest are unattended and resume where they stopped."""
+    started = time.monotonic()
+    table = pricing.load_pricing()
+    conn = store.connect(db_path)
+    try:
+        rescan = store.get_meta(conn, "needs_rescan") == "1"
+        if paths:
+            mode, files, full = "paths", list(paths), True
+        elif backfill:
+            mode, files, full = "backfill", transcript_files(), True
+        elif rescan:
+            mode, files, full = "rescan", transcript_files(), False
+        else:
+            files = session_files(payload) if payload else None
+            mode, full = ("hook" if files else "scan"), False
+            files = files or transcript_files()
+        collapse = bool(conn.execute(
+            "SELECT EXISTS(SELECT 1 FROM usage WHERE legacy = 1)").fetchone()[0])
+        stats = {"rows_added": 0, "rows_updated": 0, "legacy_collapsed": 0,
+                 "transcripts_read": 0, "file_errors": 0, "complete": True}
+        for n, path in enumerate(files):
+            if not full and n and time.monotonic() - started > budget:
+                stats["complete"] = False
+                break
+            try:
+                ingest_file(conn, path, table, full, collapse, stats)
+            except sqlite3.Error:
+                raise  # the database itself is unwell: stop, leave a breadcrumb
+            except Exception as exc:  # one odd transcript must not starve the rest
+                stats["file_errors"] += 1
+                stats["file_error"] = ("%s: %s: %s" % (path, type(exc).__name__, exc))[:500]
+        if rescan and mode in ("backfill", "rescan") and stats["complete"]:
+            store.set_meta(conn, "needs_rescan", None)
+        if store.get_meta(conn, "priced_with") != table.fingerprint():
+            store.set_meta(conn, "reprice_hint", "1")
+    finally:
+        conn.close()
+    stats.update(mode=mode, transcripts_seen=len(files),
+                 elapsed_ms=int((time.monotonic() - started) * 1000),
+                 pricing_warning=table.warning)
+    write_state(db_path, "last-run.json", stats)
+    return stats
+
+
+def cmd_reprice(db_path):
+    if not os.path.exists(db_path):
+        print("no database at %s — nothing to reprice" % db_path)
+        return 0
+    table = pricing.load_pricing()
+    conn = store.connect(db_path)
+    try:
+        before = conn.execute("SELECT ROUND(SUM(cost_usd), 2) FROM usage").fetchone()[0]
+
+        def write(conn):
+            result = store.reprice_rows(conn, table)
+            store.set_meta(conn, "reprice_hint", None)
+            return result
+
+        total, changed = store.transaction(conn, write)
+        after = conn.execute("SELECT ROUND(SUM(cost_usd), 2) FROM usage").fetchone()[0]
+    finally:
+        conn.close()
+    if table.warning:
+        print("WARNING: " + table.warning)
+    print("repriced %d rows (%d changed): $%s -> $%s" % (total, changed, before, after))
+    return 0
+
+
+# ---------------------------------------------------------------- state
+
+def write_state(db_path, name, payload):
+    """Leave a breadcrumb next to the database so a broken tracker is visible.
+
+    The hook exits 0 whatever happens; without this, a moved config dir or a
+    crashing ingest looks exactly like a quiet week.
+    """
+    path = os.path.join(os.path.dirname(db_path) or ".", name)
+    payload = dict(payload, at=time.strftime("%Y-%m-%dT%H:%M:%S%z"), config_dirs=config_dirs())
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2)
         os.chmod(path, 0o600)
@@ -271,143 +401,88 @@ def write_status(db_path, files_seen, rows_added):
         pass
 
 
-def cmd_status(db_path):
-    path = os.path.join(os.path.dirname(db_path) or ".", "last-run.json")
-    print(f"database:    {db_path}")
-    print(f"config dirs: {', '.join(config_dirs()) or '(none found)'}")
-    print(f"transcripts: {len(transcript_files())}")
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            last = json.load(fh)
-        print(f"last run:    {last.get('ran_at')} "
-              f"(+{last.get('rows_added')} rows from {last.get('transcripts_seen')} files)")
-    except (OSError, ValueError):
-        print("last run:    never (no last-run.json)")
-    if os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        try:
-            row = conn.execute(
-                "SELECT MIN(date(timestamp)), MAX(date(timestamp)), COUNT(*),"
-                " COUNT(DISTINCT session_id), ROUND(SUM(cost_usd), 2) FROM usage"
-            ).fetchone()
-            print(f"rows:        {row[2]} over {row[3]} sessions, {row[0]} .. {row[1]}")
-            print(f"estimated:   ${row[4]}")
-            stale = conn.execute(
-                "SELECT julianday('now') - julianday(MAX(timestamp)) FROM usage"
-            ).fetchone()[0]
-            if stale is not None and stale > 3:
-                print(f"WARNING:     newest row is {stale:.0f} days old — "
-                      "check CLAUDE_CONFIG_DIR and re-run a backfill")
-        finally:
-            conn.close()
-    return 0
+# ---------------------------------------------------------------- CLI
 
-
-def cmd_self_test():
-    """End-to-end check on synthetic data in a temp dir. Touches nothing real."""
-    sample = {
-        "type": "assistant",
-        "uuid": "test-uuid-1",
-        "timestamp": "2026-01-01T00:00:00Z",
-        "cwd": "/tmp/demo-project",
-        "sessionId": "sess-1",
-        "message": {
-            "model": "claude-sonnet-test",
-            "usage": {
-                "input_tokens": 100_000,
-                "output_tokens": 10_000,
-                "cache_creation_input_tokens": 0,
-                "cache_read_input_tokens": 0,
-            },
-            "content": [{"type": "tool_use", "name": "Bash"}],
-        },
-    }
-    with tempfile.TemporaryDirectory() as tmp:
-        transcript = os.path.join(tmp, "t.jsonl")
-        with open(transcript, "w", encoding="utf-8") as fh:
-            fh.write(json.dumps(sample) + "\n")
-            fh.write("not json\n")
-            fh.write(json.dumps({"type": "user", "uuid": "u1"}) + "\n")
-            fh.write(json.dumps(sample) + "\n")  # duplicate uuid
-        db = os.path.join(tmp, "usage.db")
-        conn = connect(db)
-        added = ingest_file(conn, transcript, load_pricing())
-        row = conn.execute(
-            "SELECT tool_name, project, input_tokens, cost_usd FROM usage"
-        ).fetchone()
-        total = conn.execute("SELECT COUNT(*) FROM usage").fetchone()[0]
-        conn.close()
-
-        checks = [
-            ("one row added", added == 1),
-            ("duplicate uuid ignored", total == 1),
-            ("tool captured", row[0] == "Bash"),
-            ("project is dir name", row[1] == "demo-project"),
-            ("tokens captured", row[2] == 100_000),
-            # 100k in @ $3/M + 10k out @ $15/M = $0.45 on the Sonnet tier
-            ("standard tier priced", abs(row[3] - 0.45) < 1e-6),
-            # Crossing 200k must NOT change the rate: no current model has a
-            # long-context premium. This is the regression guard for the phantom
-            # ~2x that shipped in 0.12.0.
-            ("no long-context premium",
-             abs(cost_usd("claude-sonnet-test", 300_000, 10_000, 0, 0, load_pricing())
-                 - (300_000 * 3.0 + 10_000 * 15.0) / 1_000_000) < 1e-9),
-            # Opus must be the $5/$25 tier, never Claude 3 Opus $15/$75.
-            ("opus priced at 5/25",
-             abs(cost_usd("claude-opus-5", 1_000_000, 1_000_000, 0, 0, load_pricing())
-                 - 30.0) < 1e-9),
-            # Cache read is a tenth of input; write is 1.25x.
-            ("opus cache multipliers",
-             abs(cost_usd("claude-opus-5", 0, 0, 1_000_000, 1_000_000, load_pricing())
-                 - (6.25 + 0.50)) < 1e-9),
-            # Fable is above the Opus tier.
-            ("fable priced at 10/50",
-             abs(cost_usd("claude-fable-5", 1_000_000, 0, 0, 0, load_pricing())
-                 - 10.0) < 1e-9),
-            ("unknown model falls back", cost_usd("mystery", 1_000, 0, 0, 0,
-                                                 load_pricing()) > 0),
-        ]
-        failed = [name for name, ok in checks if not ok]
-        for name, ok in checks:
-            print(f"  {'ok  ' if ok else 'FAIL'} {name}")
-        if failed:
-            print(f"self-test FAILED: {', '.join(failed)}")
-            return 1
-        print("self-test passed")
-        return 0
+def build_parser():
+    p = Parser(
+        prog="track.py",
+        description="Claude Code token spend from local transcripts, into SQLite.",
+        epilog="Exit status: 0 on success and always with --quiet; 1 on error. "
+               "With --quiet, failures land in last-error.json next to the database.",
+    )
+    p.add_argument("paths", nargs="*", metavar="FILE.jsonl",
+                   help="transcripts to re-read (default: the hook payload's session, "
+                        "else every transcript, incrementally)")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--backfill", action="store_true",
+                      help="re-read every transcript in every known config dir")
+    mode.add_argument("--status", action="store_true", help="collector health")
+    mode.add_argument("--report", action="store_true", help="print the spend report")
+    mode.add_argument("--csv", metavar="FILE", help="export every row to FILE")
+    mode.add_argument("--reprice", action="store_true",
+                      help="recompute every row's cost with the current price table")
+    mode.add_argument("--self-test", action="store_true", help="run the bundled tests")
+    p.add_argument("--quiet", action="store_true",
+                   help="hook mode: no output, exit 0 even on error")
+    return p
 
 
 def main(argv):
-    args = [a for a in argv[1:] if not a.startswith("-")]
-    flags = {a for a in argv[1:] if a.startswith("-")}
+    args = build_parser().parse_args(argv)
+    modal = args.status or args.report or args.csv or args.reprice or args.self_test
+    if args.paths and (modal or args.backfill):
+        raise UsageError("transcript paths cannot be combined with --%s" % (
+            "backfill" if args.backfill else "status/--report/--csv/--reprice/--self-test"))
+    if modal:
+        import report  # only the read-side modes need it; keeps the hook lean
+    if args.self_test:
+        return report.self_test(os.path.dirname(os.path.abspath(__file__)))
+    if args.status:
+        return report.status(DB_PATH, config_dirs(), transcript_files())
+    if args.report:
+        return report.text_report(DB_PATH)
+    if args.csv:
+        return report.csv_export(DB_PATH, args.csv)
+    if args.reprice:
+        return cmd_reprice(DB_PATH)
 
-    if "--self-test" in flags:
-        return cmd_self_test()
-    if "--status" in flags:
-        return cmd_status(DB_PATH)
-
-    quiet = "--quiet" in flags or bool(os.environ.get("CLAUDE_COST_QUIET"))
-    pricing = load_pricing()
-    files = args or transcript_files()
-    conn = connect(DB_PATH)
-    total = 0
-    try:
-        for path in files:
-            total += ingest_file(conn, path, pricing)
-    finally:
-        conn.close()
-    write_status(DB_PATH, len(files), total)
+    quiet = args.quiet or bool(os.environ.get("CLAUDE_COST_QUIET"))
+    payload = None if (args.paths or args.backfill) else read_hook_payload()
+    stats = ingest(DB_PATH, paths=args.paths, backfill=args.backfill, payload=payload)
     if not quiet:
-        print(f"Ingested {total} new message rows from {len(files)} transcript(s) "
-              f"into {DB_PATH}")
+        print("Ingested %d new and %d updated responses (%d legacy rows collapsed) from "
+              "%d of %d transcript(s) into %s [%s, %d ms]" % (
+                  stats["rows_added"], stats["rows_updated"], stats["legacy_collapsed"],
+                  stats["transcripts_read"], stats["transcripts_seen"], DB_PATH,
+                  stats["mode"], stats["elapsed_ms"]))
+        if stats["pricing_warning"]:
+            print("WARNING: " + stats["pricing_warning"])
+        if stats["file_errors"]:
+            print("WARNING: %d transcript(s) failed, last: %s" % (
+                stats["file_errors"], stats["file_error"]))
     return 0
 
 
-if __name__ == "__main__":
+def run(argv):
+    quiet = "--quiet" in argv or bool(os.environ.get("CLAUDE_COST_QUIET"))
     try:
-        sys.exit(main(sys.argv))
+        return main(argv)
     except KeyboardInterrupt:
-        sys.exit(130)
+        return 0 if quiet else 130
+    except UsageError as exc:
+        if quiet:  # a bad flag in hooks.json must still be visible in --status
+            write_state(DB_PATH, "last-error.json", {"error": "usage: %s" % exc})
+            return 0
+        sys.stderr.write("track.py: error: %s (see --help)\n" % exc)
+        return 1
     except Exception as exc:  # never let a hook break the session
-        sys.stderr.write(f"cost-tracker: {type(exc).__name__}: {exc}\n")
-        sys.exit(0)
+        if quiet:  # unattended: the breadcrumb is the only place anyone sees it
+            write_state(DB_PATH, "last-error.json",
+                        {"error": ("%s: %s" % (type(exc).__name__, exc))[:500]})
+            return 0
+        sys.stderr.write("cost-tracker: %s: %s\n" % (type(exc).__name__, exc))
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(run(sys.argv[1:]))

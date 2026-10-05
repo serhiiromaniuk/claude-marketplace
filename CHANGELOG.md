@@ -1,5 +1,41 @@
 # Changelog
 
+All notable changes to the `toolkit` plugin. Versions follow
+[Semantic Versioning](https://semver.org/); dates are YYYY-MM-DD.
+
+## [Unreleased]
+
+### Fixed — cost-tracker (spend was overstated about 2.9x)
+
+- **One API response is counted once.** Claude Code writes a response as several
+  transcript lines (thinking, text, tool use), each carrying the full usage; every line
+  was counted. Rows are now keyed by message id + request id, the last line's usage
+  wins, and tool names are merged across lines.
+- **Exact per-version pricing.** `hooks/cost-tracker/pricing.py` holds Anthropic's
+  published rates per model version, with separate input, output, 5-minute cache-write,
+  1-hour cache-write and cache-read rates (Fable 5.1, Opus 5.5, Sonnet 5.5 and older).
+  1-hour cache writes are priced from `cache_creation.ephemeral_1h_input_tokens`. An
+  unknown model is stored unpriced and listed as `UNPRICED` instead of inheriting an
+  older model's price. `CLAUDE_COST_PRICING` now maps an exact model id to five rates;
+  files in the old format are ignored with a warning.
+- **The Stop hook stays out of the way.** It reads its own session from the hook payload
+  and resumes from saved offsets (about 0.2 s per turn instead of about 2 s rescanning
+  all history), uses WAL and a busy timeout, never exits 2, prints nothing with
+  `--quiet`, and records failures in `last-error.json` for `--status`. `hooks.json`
+  sets a 30 s timeout.
+- **Databases migrate in place without losing a row.** Schema v2 (`PRAGMA user_version`)
+  backs up first, de-duplicates rows whose transcript still exists, keeps rows whose
+  transcript is gone (with an estimate of their overstatement in `--status`), and
+  reprices everything. `--reprice` recomputes all costs after a future price change.
+- **CLI.** argparse with `--backfill`, `--status`, `--report`, `--csv FILE`, `--reprice`,
+  `--self-test`; an unknown flag errors instead of running an ingest. 33 unit tests in
+  `test_track.py`. The code is split into `track.py`, `pricing.py`, `store.py` and
+  `report.py`.
+- **`/toolkit:cost-report`** runs one self-contained `track.py` call per step (the Bash
+  tool keeps no variables between calls, so later steps used to query an empty path), no
+  longer needs the `sqlite3` CLI, and drops two false claims (cache reads are not always
+  a tenth of input; Stop fires after every turn, not once per session).
+
 ## [0.19.1] - 2026-09-29
 
 ### Fixed (a foreign `§N` could hide the spec)
@@ -572,7 +608,18 @@ earlier decision records had already implied.
   toolchain on `PATH` for the non-interactive child agents, and documented all
   of it in `templates/loop/README.md`.
 
-## [Unreleased]
+## [0.2.0] - 2026-07-04
+
+### Added
+- `assessment-report` — five new report types, each a `type.md` spec + a full synthetic,
+  rendered-and-verified `example.html` on the shared blueprint design system:
+  `security-review` (OWASP/CIS/NIST threat-centric posture), `cost-review` (FinOps,
+  Savings×Effort), `due-diligence` (tech DD with a RAG verdict, Likelihood×Deal-impact),
+  `architecture-review` (Well-Architected 6-pillar), and `post-incident` (blameless
+  post-mortem: SEV, timeline, root-cause chain, action items).
+- `CLAUDE.md` with repository guidance.
+
+## [0.1.0] - 2026-07-03
 
 ### Added
 - Initial marketplace scaffold with one placeholder plugin.
@@ -584,11 +631,5 @@ earlier decision records had already implied.
   agentic work (7-pillar rubric → A–F grade + diffable `.agent-readiness/score.json`), then
   plans & applies the fixes. Reuses the assessment-report scoring/renderer; ships a domain-free
   reference implementation (loop, tasks, rules, subagents) under `templates/`.
-- `assessment-report` skill — scored gap/risk assessment reports as branded PDFs. Ships
-  with a fully synthetic (fictional data) worked example under `report-types/gap-risk/`.
-- `assessment-report` — five new report types, each a `type.md` spec + a full synthetic,
-  rendered-and-verified `example.html` on the shared blueprint design system:
-  `security-review` (OWASP/CIS/NIST threat-centric posture), `cost-review` (FinOps,
-  Savings×Effort), `due-diligence` (tech DD with a RAG verdict, Likelihood×Deal-impact),
-  `architecture-review` (Well-Architected 6-pillar), and `post-incident` (blameless
-  post-mortem: SEV, timeline, root-cause chain, action items).
+- `assessment-report` skill — scored gap/risk assessment reports as branded PDFs, with a
+  worked example under `report-types/gap-risk/` (rewritten from scratch in 1.0.0).
