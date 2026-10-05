@@ -3,6 +3,24 @@
 All notable changes to the `toolkit` plugin. Versions follow
 [Semantic Versioning](https://semver.org/); dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Added — status line
+
+- **`/toolkit:statusline [preview|install|uninstall]`** and
+  `statusline/statusline.sh`: a two-row, width-aware status line (Tokyo Night
+  palette, truecolor, no Nerd Font). Columns: caveman mode and output tokens ·
+  model and effort · context bar and tokens · 5-hour and weekly limits with reset
+  countdowns · cost and elapsed time · git branch, changes, ahead/behind ·
+  `AWS_PROFILE` (red for `prd`/`prod`). Narrow panes drop cost, git, model and
+  limits in that order.
+- A plugin cannot set `statusLine`, so `install` copies the script into the config
+  dir and points `settings.json` at the copy. It asks before replacing another
+  status line and backs it up; `uninstall` restores it.
+- The caveman column appears only when the caveman plugin's flag file exists. The
+  script needs bash ≥ 4.2 and `jq`, prints a one-line notice instead of failing
+  without them, always exits 0, and never writes its cache through a symlink.
+
 ## [1.0.0] - 2026-10-05
 
 ### Changed — agent-readiness (re-install the templates; layout and names changed)

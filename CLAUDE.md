@@ -16,9 +16,10 @@ plus a few helper scripts. Contributions are prose-and-config, not a compiled pr
 plugins/toolkit/                  # the single (currently) plugin, installed as toolkit@serhii
   .claude-plugin/plugin.json      # plugin manifest — bump "version" here when adding a skill
   skills/<name>/SKILL.md          # auto-discovered skills; each also invocable as /toolkit:<name>
-  commands/<name>.md              # explicit slash commands (currently: cost-report)
+  commands/<name>.md              # explicit slash commands (currently: cost-report, statusline)
   agents/<name>.md                # subagents — none yet; create the dir when adding one
   hooks/hooks.json                # event automation: a Stop hook running hooks/cost-tracker/track.py
+  statusline/statusline.sh        # status line script; /toolkit:statusline copies it into the config dir
 templates/skill/SKILL.md          # copy-to-start skill template — outside the plugin so it never ships
 docs/                             # human-facing notes — NOT loaded into Claude's context
 ```
@@ -85,5 +86,6 @@ No repo-wide build. Run what covers the area you changed:
 - agent-readiness loop scripts: `bash plugins/toolkit/skills/agent-readiness/tests/loop-scripts.test.sh`.
 - cost-tracker: `python3 -m unittest discover -s plugins/toolkit/hooks/cost-tracker -p 'test_*.py'`.
   Never point a test or experiment at the real DB — set `CLAUDE_COST_DB` to a scratch path.
+- status line: `bash plugins/toolkit/statusline/statusline.test.sh`.
 - assessment-report renderer: render each `report-types/*/example.html` with
   `node plugins/toolkit/skills/assessment-report/assets/render.mjs` and open the PDFs.

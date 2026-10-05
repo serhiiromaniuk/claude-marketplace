@@ -37,6 +37,7 @@ Most auto-trigger by description; each is also invocable as `/toolkit:<name>`.
 | Command | What it does |
 |---|---|
 | `/toolkit:cost-report [csv\|status\|backfill\|reprice]` | Local token-spend report by day, project, model and session, from the cost-tracker database. |
+| `/toolkit:statusline [preview\|install\|uninstall]` | A two-row, width-aware status line: model and effort, context bar, 5-hour and weekly limits with reset countdowns, cost, git, AWS profile (and the caveman mode when that plugin is in use). `install` asks before replacing an existing status line and backs it up. |
 
 ### Hooks
 
@@ -46,7 +47,7 @@ Most auto-trigger by description; each is also invocable as `/toolkit:<name>`.
 
 ## Requirements
 
-Only for the parts you use: `python3` (cost-tracker), `node` ≥ 22 and Chrome/Chromium
+Only for the parts you use: `python3` (cost-tracker), bash ≥ 4.2 and `jq` (status line), `node` ≥ 22 and Chrome/Chromium
 (assessment-report PDF rendering), `glab` ≥ 1.54 and `jq` (glab helpers), `bash`, `git`
 and `make` (agent-readiness loop templates; their tests also need `jq`).
 
@@ -60,6 +61,7 @@ plugins/
     skills/                       # auto-discovered skills (one dir each, SKILL.md)
     commands/                     # slash commands (/toolkit:<name>)
     hooks/                        # hooks.json + the cost-tracker it runs
+    statusline/                   # status line script (installed by /toolkit:statusline)
 templates/skill/                  # copy-to-start skill template (not shipped in the plugin)
 docs/                             # human-facing notes, NOT loaded into Claude's context
 ```
