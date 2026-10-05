@@ -20,7 +20,7 @@ which is also what Mode 2 installs).
 | P2 | **Filesystem-as-memory** | 20 | Progress lives on disk, not in the context window: a task ledger with a contract/plan/append-only-log/closure per unit of work, an index, a template. |
 | P3 | **Long-running loop** | 20 | An invariant re-fed prompt, a bounded harness (iteration cap), a completion-marker protocol, a "you-are-here" state pointer, one-verified-increment discipline, and a **bounded** control plane (position computed, not narrated; a prose budget on what each iteration appends). |
 | P4 | **Verification gates** | 18 | A single sanctioned entrypoint (e.g. `make check`); every step names a check; hard thresholds that must never be self-lowered; a gate-failed path; and a path for a *falsified* threshold, so a wrong gate escalates instead of deadlocking the loop. |
-| P5 | **Role-specialized subagents** | 10 | Defined agent roles (planner / reviewer / verifier / researcher), tool- and model-scoped; separation of plan → implement → verify → adversarial review. **Each grader must read what it grades**: a reviewer given only the diff cannot see whether the increment did the step it claimed, and a plan nobody reviews fails by being executed. |
+| P5 | **Role-specialized subagents** | 10 | Defined agent roles (planner / plan-reviewer / reviewer / adjudicator, optionally a verifier), tool- and model-scoped; separation of plan → implement → verify → adversarial review. **Each grader must read what it grades**: a reviewer given only the diff cannot see whether the increment did the step it claimed, and a plan nobody reviews fails by being executed. |
 | P6 | **Autonomy boundaries** | 10 | Human-only actions enumerated (secrets, prod deploys, destructive infra, irreversible external actions); the loop halts and hands back at them. |
 | P7 | **Change hygiene** | 7 | Conventional commits + scope, staged-diff secret/forbidden-path scan, clean-tree discipline, milestone tagging tied to gates, artifact/secret `.gitignore`. |
 
@@ -74,7 +74,7 @@ A script that runs the deterministic gate and writes its output into the log its
 - **Confidence flag per pillar** (reused verbatim): 🟢 Verified (signal file read directly) · 🟡 Inferred (present but not confirmed to be wired in) · ⚪ Assumed (couldn't inspect — say so).
 - **Each gap** (a missing/weak signal) gets a **severity** (how much it hurts autonomous operation: CRITICAL/HIGH/MEDIUM/LOW) and a **remediation stance** — this is what drives Mode 2:
   - **Fix now** → Mode 2 applies it on-the-fly from `../templates/`.
-  - **Schedule** → Mode 2 writes it into a `tasks/agent-readiness-uplift/` PLAN in the target repo.
+  - **Schedule** → Mode 2 writes it into a `tasks/YYYY-MM-DD_agent-readiness-uplift/` PLAN (plus its `todo` ledger row) in the target repo.
   - **Accept (interim)** → noted in the report, not actioned.
 - **Prioritize** uplift actions on **Impact × Effort** (reuse the matrix): high-impact / low-effort pillars first (usually P2/P3/P4).
 

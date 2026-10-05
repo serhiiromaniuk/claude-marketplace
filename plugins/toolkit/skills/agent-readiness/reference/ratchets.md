@@ -171,8 +171,8 @@ thing besides the finding and the deferral: a **count of what is still open**.
 Without it "deferred" and "dropped" are the same state, and nothing distinguishes
 them at the close.
 
-Measured on one real project, once the count existed: **m1-06 74 entries / 50 open ·
-m1-07 46 / 26 · m1-08 44 / 34 · m1-10 81 / 39 · m1-11 138 / 69 · m1-12 40 / 8.**
+Measured on one real project, once the count existed — six consecutive objectives,
+entries / still open: **74 / 50 · 46 / 26 · 44 / 34 · 81 / 39 · 138 / 69 · 40 / 8.**
 Nobody had been dishonest — the mechanism simply had no reader. Its own
 carry-forward file maintained the open list **by hand**, and one entry admitted
 outright that its obligations' "only check is re-measure at the close".
@@ -182,18 +182,31 @@ amendment ids out of the whole plan and matched them against 400 commit messages
 Its one field result — "16 of 16 discharged" — was false at *both* ends: the ids it
 found were cross-references to *other* objectives' amendments, and the evidence was
 bare numbers inside unrelated strings (`.29.`, `=202`, `/35/`). The commit grep went
-away. An amendment's disposition is written **in the amendment**, by the increment
-that dealt with it, which is local and exact:
+away. The second version matched disposition *verbs* anywhere in an entry's text,
+across three free-form entry formats — and counted "never **closed** the handle" as
+closed and "un**resolv**ed" as resolved. So the template makes the disposition an
+explicit field, written **in the amendment** by the increment that dealt with it,
+which is local and exact:
 
-- scope the scan to the `## Amendments` section, never the whole plan;
-- accept every entry format the project actually uses (three were in use here:
-  `- **#162 …`, `**#151 · …`, `12. **2026-08-23 — …`) and treat a zero count as a
-  signal to look, not a clean bill;
-- fold continuation lines into their entry — the disposition verb is often on the
-  second line;
-- an entry is disposed when its own text says so: *discharged, fixed, folded,
-  resolved, closed, actioned, taken, superseded, declined, re-targeted, withdrawn,
-  satisfied, done*.
+```
+- A3 · 2026-08-23 · MEDIUM `src/x.py:42` — <the finding> · disposition: open
+                                                         … · disposition: fixed in a1b2c3d
+                                                         … · disposition: re-targeted → CF-2
+                                                         … · disposition: declined — <reason>
+```
+
+- scope the scan to the `## Amendments` section, never the whole plan, and skip
+  comments and fenced blocks (the template's own example is in a comment);
+- one `- A<n>` list item per finding; other items (dated plan notes) are not
+  findings, and a section with items but zero findings is a signal to look, not a
+  clean bill;
+- fold continuation lines into their entry, and read the **last** `disposition:`
+  word, so an appended "→ later: disposition: declined — …" settles it;
+- disposed = *fixed, done, discharged, re-targeted, declined, withdrawn, superseded,
+  folded, obsolete, moot*; `open`, `deferred`, any other word or no field is open.
+
+The close step runs it (`make amendments`, PROMPT §1) and every open id gets its
+disposition in `OUTCOME.md`'s `## Amendments`.
 
 Warn-only, for the same reason as the prose budget: an amendment can legitimately
 stay open for a whole objective. The point is that the number is visible at every

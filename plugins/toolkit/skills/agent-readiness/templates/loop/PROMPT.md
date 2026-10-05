@@ -44,8 +44,8 @@ row, and `git status --porcelain`. Then:
      spec, then the **`plan-reviewer`** audits it. Act on CRITICAL/HIGH before the
      commit: the plan is immutable once step 1's box is checked. That decomposition
      **plus its review** IS this iteration, then stop.
-     **§4b's both-graders rule does NOT apply here** — a plan has no diff and no
-     gate to re-run, so its grader turn is the `plan-reviewer` alone.
+     **§4b's per-commit reviewer rule does NOT apply here** — a plan has no diff
+     and no gate to re-run, so its grader turn is the `plan-reviewer` alone.
      Why it earns an iteration: plan defects are the expensive kind, because they
      are found by EXECUTING them. Two real cases: a plan revised 16 -> 20 steps
      mid-objective because a whole area was missing, and a step that grew into
@@ -59,15 +59,19 @@ row, and `git status --porcelain`. Then:
      (one batch with any other pending ones) and wait.
    - `.spec_stub == true` → the governing spec is still a stub. **Write it first —
      that IS this iteration.** No code precedes its spec.
-   - `.all_steps_done == true` → close the task: `OUTCOME.md`, tick the BRIEF's
-     done-when boxes, strike any discharged carry-forward, check the phase gate,
-     and emit the right marker per §7.
+   - `.all_steps_done == true` → close the task: run `make amendments` (or
+     `loop/amendments-guard.sh`) and give every still-open deferred finding its
+     disposition — in its PLAN entry and in `OUTCOME.md` `## Amendments` (fixed,
+     re-targeted to a carry-forward, or declined with a reason; never dropped) —
+     then write the rest of `OUTCOME.md`, tick the BRIEF's done-when boxes, strike
+     any discharged carry-forward, check the phase gate, and emit the right
+     marker per §7.
    - `.parallel_steps` has more than one entry → the step opens a parallel
      group: do the whole group as this increment (§3, AGENTS.md §8a).
    - otherwise → do step `.step` of `.steps`, titled `.step_title`.
 
 `loop/where.sh --human` (or `make where`) prints the same for a person — that is
-what `/status` runs. If the oracle is wrong, fix the script; never fall back to
+what `/where` runs. If the oracle is wrong, fix the script; never fall back to
 reading the whole control plane.
 
 ## 2. Respect the gates BEFORE doing anything (AGENTS.md §6)
@@ -126,7 +130,7 @@ The writer is never its own grader. What changed decides WHEN the grader runs:
 How to run it — **pipelined, never skipped:**
 
 1. The gate is green (`make check`, run once). Spawn the **`reviewer`**
-   (`agents/reviewer.md`) **in the background** in a fresh context, and give it
+   (`.claude/agents/reviewer.md`) **in the background** in a fresh context, and give it
    **THIS STEP'S OWN TEXT** — number, title, acceptance criteria, verbatim from
    `PLAN.md` (for a batch: the commit range `@{u}..HEAD` and every covered step's
    text). It answers `INTENT: satisfied | shortfall | creep` before the rule
@@ -139,9 +143,12 @@ How to run it — **pipelined, never skipped:**
      findings are false or imprecise, and acting on a misread costs a whole
      fix-and-re-review round.
    - **MEDIUM** (the reviewer reports at most 3, and no LOW) → do **not** fix in
-     this increment. Append each, with its `file:line` and the finding text, to
-     the active `PLAN.md` `## Amendments`. A disposition, not a dismissal.
-   - Record every disposition in `LOG.md` (fixed / deferred to amendment #n).
+     this increment. Append each to the active `PLAN.md` `## Amendments` as one
+     list item, next free id:
+     ``- A<n> · <date> · MEDIUM `<file:line>` — <the finding> · disposition: open``.
+     A disposition, not a dismissal: `make amendments` counts the open ones, and
+     the task close settles each.
+   - Record every disposition in `LOG.md` (fixed / deferred to amendment A<n>).
    - A **second** pass is warranted only when a CRITICAL/HIGH fix changed logic —
      re-review that fix, not the whole diff. Otherwise stop at one.
 4. Close with `loop/step-done.sh` (§5): it re-runs the gate on the final tree and
@@ -219,7 +226,7 @@ the reason instead. Never end silently.
   arithmetically unreachable alongside the project's other mandated
   requirements, and fixable only by re-scoping *what is counted* while keeping a
   hard gate on the part moved out — spawn the **`adjudicator`**
-  (`agents/adjudicator.md`) first. It has no stake in the increment continuing,
+  (`.claude/agents/adjudicator.md`) first. It has no stake in the increment continuing,
   which you do. Act on its ruling exactly: **`fits`** → re-run, confirm green,
   continue and do NOT emit this marker; **`re-scope`** → build the replacement gate
   as the next increment; **`raise-with-basis`** → actionable ONLY once the measured

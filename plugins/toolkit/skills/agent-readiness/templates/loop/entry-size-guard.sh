@@ -8,7 +8,8 @@
 #   newest <task>/LOG.md entry   <=  40 lines   (detail, but bounded; the
 #                                               step-done.sh gate block is not prose)
 #   loop/STATE.md, whole file    <=  40 lines   (a pointer, not a report)
-#   every tasks/INDEX.md row     <= 200 bytes   (a ledger row, not a history)
+#   every tasks/INDEX.md row     <= 200 bytes   (a ledger row, not a history;
+#                                               bytes, not characters)
 #
 # WARN-ONLY, and deliberately NOT wired into the project's `check`/`verify` gate:
 # that gate is for correctness and must never fail on prose style. A warning
@@ -27,20 +28,21 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+REPO_ROOT="$(dirname "$(dirname "$SCRIPT")")"
 cd "$REPO_ROOT" || exit 1
 
 STRICT=0
 case "${1:-}" in
   "") ;;
   --strict) STRICT=1 ;;
-  -h|--help) grep '^#' "$0" | sed '1d; s/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$SCRIPT"; exit 0 ;;
   *) echo "unknown arg: $1 (try --help)" >&2; exit 2 ;;
 esac
 
 INDEX="${LOOP_INDEX:-tasks/INDEX.md}"
 STATE="${LOOP_STATE:-loop/STATE.md}"
-WHERE="${LOOP_WHERE:-loop/where.sh}"
+WHERE="${LOOP_WHERE:-$(basename "$(dirname "$SCRIPT")")/where.sh}"
 
 MAX_LOG_ENTRY=40
 MAX_STATE=40
@@ -58,12 +60,19 @@ if [[ -x "$WHERE" ]]; then
   [[ -n "$folder" ]] && LOG="$folder/LOG.md"
 fi
 if [[ -n "$LOG" && -f "$LOG" ]]; then
-  start="$(grep -nE '^## ' "$LOG" | tail -n1 | cut -d: -f1)"
+  # The newest real entry: `## ` headings inside HTML comments (the template's
+  # entry skeleton) or fenced blocks are not entries.
+  start="$(awk '/^[ \t]*(```|~~~)/ { if (!c) fence = !fence }
+                /<!--/ { if (!fence) c = 1 }
+                { if (!c && !fence && /^## /) print NR }
+                /-->/ { c = 0 }' "$LOG" | tail -n1)"
   if [[ -n "$start" ]]; then
     # The gate block loop/step-done.sh appends is machine-written evidence of a
     # fixed size (its tail length + 7 lines), not prose — it is not counted.
     entry="$(awk -v s="$start" 'NR >= s && /<!-- gate:begin/ {g = 1}
-                                 NR >= s && !g {n++}
+                                 NR >= s && !g && !c && /<!--/ && !/-->/ {c = 1}
+                                 NR >= s && !g && !c {n++}
+                                 c && /-->/ {c = 0}
                                  /<!-- gate:end -->/ {g = 0}
                                  END {print n + 0}' "$LOG")"
     if [[ "$entry" -gt "$MAX_LOG_ENTRY" ]]; then
@@ -94,7 +103,7 @@ fi
 
 # ── 3. ledger rows ───────────────────────────────────────────────────────────
 if [[ -f "$INDEX" ]]; then
-  fat="$(awk -v m="$MAX_INDEX_ROW" 'length($0) > m {printf "%d(%dB) ", NR, length($0)}' "$INDEX")"
+  fat="$(LC_ALL=C awk -v m="$MAX_INDEX_ROW" 'length($0) > m {printf "%d(%dB) ", NR, length($0)}' "$INDEX")"
   if [[ -n "$fat" ]]; then
     warn "$INDEX rows over ${MAX_INDEX_ROW}B: $fat"
     printf '         One line per task — started · phase · title · folder+OUTCOME · status · tag.\n'

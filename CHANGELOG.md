@@ -5,6 +5,35 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ## [Unreleased]
 
+### Changed — agent-readiness (re-install the templates; layout and names changed)
+
+- **One installed layout.** Every template now assumes repo-root `CLAUDE.md`, `RULES.md`,
+  `AGENTS.md` and `WORKFLOW.md`, subagents in `.claude/agents/`, commands in
+  `.claude/commands/`, the loop in `loop/` (no `ralph/` alternative) and tasks in
+  `tasks/`. Every link resolves from where its file lands. Mode 2 copies from
+  `${CLAUDE_PLUGIN_ROOT}/skills/agent-readiness/templates`, keeps the scripts executable
+  and says to fill `<PROJECT>` and the golden rules.
+- **`/status` is now `/where`.** `/status` is a Claude Code built-in and shadowed the
+  template command. `/where` pre-approves only read-only git (`git tag --list`).
+- **`loop.sh` exits with a distinct, documented code** for DONE, BLOCKED, GATE_FAILED,
+  the iteration cap and a usage error. It bounds rate-limit waits, forwards signals to
+  the child, keeps its lock in the real git dir (worktree-safe), validates
+  `--max-iterations` and no longer silences stderr.
+- **`step-done.sh` can be re-run after exit 3**: it restores LOG/PLAN and unstages on
+  failure. Its secret scan no longer skips added lines that start with `+`, and gate
+  evidence is stripped of colour codes on BSD sed too.
+- **`merge-gate.sh`** merges with `--no-verify` and an inline identity, takes
+  `MERGE_GATE_BASE` (default: `origin/HEAD`, else `main`) and no longer reports a hook
+  refusal as a conflict.
+- **`amendments-guard.sh`** parses an explicit disposition marker; every template that
+  describes an amendments entry uses the same format, and PROMPT §1 runs `make amendments`
+  at task close.
+- **`where.sh`** skips fenced blocks when following `@`-imports and resolves them relative
+  to the importing file; ledger links, step titles and `[parallel:X]` groups parse
+  consistently.
+- **Templates are domain-free**: leftovers from the project they were extracted from are
+  gone. The test suite covers the new behaviour.
+
 ### Fixed — glab
 
 - **Helpers work with current glab (≥ 1.54, checked against 1.74).** JSON is filtered by

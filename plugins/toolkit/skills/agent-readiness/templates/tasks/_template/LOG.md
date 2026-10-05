@@ -34,7 +34,7 @@ smoke result, measured acceptance numbers — the decisive lines.
 **reviewer:** <n> CRITICAL / <n> HIGH / <n> MEDIUM · or `batched` (low-risk,
 reviewed with the next batch before the push)
 - CRITICAL|HIGH <id>: <finding> → fixed in <where>.
-- MEDIUM <id>: <finding> → deferred to PLAN `## Amendments` #<n>.
+- MEDIUM <id>: <finding> → deferred to PLAN `## Amendments` A<n>.
 
 **Decision:** <a choice the next iteration must not relitigate · none>
 **Carry-forward:** <raised/discharged in loop/STATE.md · none>

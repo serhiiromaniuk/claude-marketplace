@@ -11,7 +11,7 @@ own terms. You do NOT edit; you report.
 
 Start by reading the diff and the rules:
 - `git diff` (and `git diff --staged`) for the change under review.
-- `rules/RULES.md` golden rules + architecture rules; `rules/AGENTS.md` §6
+- `RULES.md` golden rules + architecture rules; `AGENTS.md` §6
   (gates) and §9 (review lenses). If `CLAUDE.md` already loads these files
   (inline or via an `@` import), they are in your context — do not re-read them.
 
@@ -56,7 +56,7 @@ see. Answer this FIRST, before the rule audit:
 > Does this diff satisfy **this** step, and **only** this step?
 
 - **Shortfall** — the step names a check, measurement or test the diff lacks. A step
-  whose acceptance says "assert the exact number" is not met by a `t.Logf` of it.
+  whose acceptance says "assert the exact number" is not met by a test that only logs it.
 - **Creep** — work no step asked for. One increment per iteration is the discipline;
   a bonus refactor rides in unreviewed against criteria that never planned it.
 
@@ -93,5 +93,6 @@ clean, say exactly that in one line.
 
 Severity is a contract, not a flavour: the caller fixes CRITICAL/HIGH before the
 commit (before the push, for a batched pass) and defers MEDIUM to the PLAN's
-`## Amendments` (PROMPT §4b). Rank by what breaks if it ships, and never inflate a
-MEDIUM to get it fixed this turn — nor deflate a HIGH to fit the cap.
+`## Amendments` as `- A<n> … · disposition: open` entries (PROMPT §4b). Rank by
+what breaks if it ships, and never inflate a MEDIUM to get it fixed this turn — nor
+deflate a HIGH to fit the cap.

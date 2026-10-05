@@ -37,4 +37,11 @@
 - (gate phases) if the gate fails: `<<LOOP:GATE_FAILED>>` — fix the work, never the threshold.
 
 ## Amendments
-<!-- Append dated plan changes here during work. Never edit the steps above. -->
+<!-- Append here during work; never edit the steps above. Two kinds of entry:
+       - YYYY-MM-DD — plan: <a change to the plan, e.g. step 4 split into 4a/4b>
+       - A1 · YYYY-MM-DD · MEDIUM `<file:line>` — <deferred reviewer finding> · disposition: open
+     A1, A2, … are deferred reviewer findings (PROMPT §4b), one list item each.
+     The increment that settles one rewrites its field: `disposition: fixed in <sha>`
+     · `re-targeted → <CF-n or task>` · `declined — <reason>`. `make amendments`
+     counts the ones still open; at the close every open one gets a disposition
+     here and in OUTCOME.md. Only `- A<n>` items are counted. -->

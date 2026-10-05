@@ -1,7 +1,10 @@
 ---
 description: Report where the project stands — active phase, task, next step, gate status, and what's blocking the next milestone.
-allowed-tools: Read, Bash(loop/where.sh*), Bash(git status*), Bash(git tag*), Bash(git log*), Grep, Glob
+allowed-tools: Read, Bash(loop/where.sh*), Bash(loop/amendments-guard.sh*), Bash(git status*), Bash(git tag --list*), Bash(git log*), Grep, Glob
 ---
+
+<!-- Named /where, after the loop/where.sh oracle it runs — /status is a Claude Code
+     built-in and would shadow it. -->
 
 Report the current state of the `<PROJECT>` agentic workflow. Be concise — a
 status readout, not an essay. Do not change anything.
@@ -13,8 +16,9 @@ status readout, not an essay. Do not change anything.
    `loop/where.sh --context` for the step text and the LOG tail. Closed tasks'
    folders are archive — do not open them.
 3. Read `loop/STATE.md`'s carry-forward + decision sections only if the question
-   needs them.
-4. Run `git tag` (which milestones are tagged) and `git log --oneline -5`.
+   needs them. Run `loop/amendments-guard.sh` when the question is about what is
+   still open.
+4. Run `git tag --list` (which milestones are tagged) and `git log --oneline -5`.
 5. Cross-check the gate: which phase gate is the next blocker (see RULES.md phase
    table + AGENTS.md §6)?
 

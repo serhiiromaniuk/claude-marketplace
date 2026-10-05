@@ -5,9 +5,13 @@
 
 # Pin the language/runtime version in ONE place so local and CI can't drift.
 # (e.g. read from a version file: `$(shell cat .tool-version)`)
+# (A comment after a value on the same line becomes part of the value, spaces
+# and all — keep comments on their own lines.)
 TOOLVER := <pinned-version>
-ENV     ?= .devenv          # isolated environment dir (venv / node_modules / etc.)
-BIN     := $(ENV)/bin       # the environment's own binaries
+# the isolated environment dir (venv / node_modules / etc.)
+ENV     ?= .devenv
+# the environment's own binaries
+BIN     := $(ENV)/bin
 
 # Use bash and fail loudly.
 SHELL := bash
@@ -48,14 +52,16 @@ test: $(ENV)                   ## run tests with coverage (>=80% target)
 # least twice per increment, so its wall time is paid on every step. Measured on
 # a real project: four tool containers, 26.7 s in sequence. `--output-sync=target`
 # keeps each gate's output together; any failing gate still fails `check`, and
-# the green line prints only when all passed. Needs GNU make >= 4.0. A gate that
-# shares mutable state with another (one database, one port) belongs in a
-# serial prerequisite chain instead.
+# the green line prints only when all passed. --output-sync needs GNU make >= 4.0;
+# on older make (macOS ships 3.81) the gates still run in parallel, with their
+# output interleaved. A gate that shares mutable state with another (one
+# database, one port) belongs in a serial prerequisite chain instead.
 CHECK_JOBS ?= 6
+OUTPUT_SYNC := $(if $(filter 4.% 5.% 6.%,$(MAKE_VERSION)),--output-sync=target)
 
 .PHONY: check check-gates
 check:                          ## lint + typecheck + test, in parallel (run before committing)
-	@$(MAKE) --no-print-directory --jobs=$(CHECK_JOBS) --output-sync=target check-gates
+	@$(MAKE) --no-print-directory --jobs=$(CHECK_JOBS) $(OUTPUT_SYNC) check-gates
 	@echo ">> make check: all gates green"
 
 check-gates: lint typecheck test
@@ -76,13 +82,15 @@ where:                          ## print the loop's position (loop/where.sh --hu
 loop-hygiene:                   ## warn if the newest LOG entry / STATE.md / INDEX rows exceed their budgets
 	@./loop/entry-size-guard.sh
 
+# make reports any failure of the script as its own exit 2; the loop calls
+# loop/step-done.sh directly when it needs the 1 (gate red) / 3 (refused) split.
 .PHONY: step-done
 step-done:                      ## close a step: gate → LOG evidence → tick → hygiene → scan → commit (MSG=…, PUSH=1)
 	@test -n "$(MSG)" || { echo 'usage: make step-done MSG="<type>(<scope>): <subject>" [PUSH=1]' >&2; exit 2; }
 	@./loop/step-done.sh --commit "$(MSG)" $(if $(PUSH),--push)
 
 .PHONY: amendments
-amendments:                     ## warn which deferred reviewer findings (PLAN ## Amendments) are still open
+amendments:                     ## warn which deferred reviewer findings (the PLAN Amendments section) are still open
 	@./loop/amendments-guard.sh
 
 # ── Project-specific targets ──────────────────────────────────────────────
@@ -97,5 +105,6 @@ amendments:                     ## warn which deferred reviewer findings (PLAN #
 
 .PHONY: help
 help:                           ## list targets
-	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) \
+		| awk '{ i = index($$0, "## "); t = substr($$0, 1, index($$0, ":") - 1); \
+		         printf "  \033[36m%-16s\033[0m %s\n", t, substr($$0, i + 3) }'

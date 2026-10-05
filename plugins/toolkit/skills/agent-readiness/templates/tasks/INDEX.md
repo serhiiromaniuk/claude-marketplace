@@ -9,7 +9,7 @@ step. Status: `todo · in-progress · blocked · done`.
 > `in-progress`: that is what `loop/where.sh` reads to find the active task, and its
 > first markdown link must be the task folder.
 
-See [`../rules/AGENTS.md`](../rules/AGENTS.md) for how tasks work,
+See [`../AGENTS.md`](../AGENTS.md) for how tasks work,
 `loop/where.sh --human` for the live position, and
 [`../loop/STATE.md`](../loop/STATE.md) for the gate + carry-forwards.
 

@@ -27,5 +27,5 @@
 
 <!-- Does NOT belong here: step position / "next step" (where.sh computes it) ·
      last iteration's story (that task's LOG.md tail) · a task's outcome or lessons
-     (its OUTCOME.md) · the phase table (rules/RULES.md) · iteration counters and
+     (its OUTCOME.md) · the phase table (RULES.md) · iteration counters and
      the last marker (git log). Tempted to paste a paragraph? It goes in the LOG. -->

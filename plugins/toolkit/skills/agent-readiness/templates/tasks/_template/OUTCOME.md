@@ -14,5 +14,11 @@ What was achieved, in 2–4 sentences.
 - [ ] Anything left undone
 - [ ] Follow-up tasks to open
 
+## Amendments
+<!-- `make amendments` at the close. Every deferred finding still open in PLAN
+     `## Amendments` gets its disposition here AND in its PLAN entry:
+       - A3 — fixed in <sha> · re-targeted → <CF-n / task> · declined — <reason>
+     None were deferred, or all were already disposed? Say so in one line. -->
+
 ## Lessons / Notes
 What's worth remembering next time (gotchas, dead ends, decisions and why).

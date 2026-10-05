@@ -25,7 +25,9 @@
 # the whole active LOG.md although only its tail was wanted, and the whole
 # 27 KB governing spec although the step cited one section of it. So:
 #   · a rules file CLAUDE.md `@`-imports (directly or through another import) is
-#     reported in `.loaded` and left OUT of `.read`;
+#     reported in `.loaded` and left OUT of `.read`. Imports are parsed the way
+#     Claude Code parses them: relative to the importing file, and never inside
+#     a fenced block or a `code span`;
 #   · LOG.md is never in `.read` — `--context` prints its newest two entries;
 #   · the spec leaves `.read` when every `spec §<key>` the current step cites
 #     resolves to a heading of it — `--context` prints just those sections.
@@ -36,14 +38,15 @@
 #   loop/where.sh            # JSON (default) — what the loop consumes
 #   loop/where.sh --read     # just the file list, one path per line
 #   loop/where.sh --context  # the step slice: full step text, LOG tail, cited spec sections
-#   loop/where.sh --human    # one-screen summary for a person (see /status)
+#   loop/where.sh --human    # one-screen summary for a person (see /where)
 #
 # Exit 0 = position determined (read .needs_open / .needs_plan / .spec_stub to
 # see what the iteration owes). Exit 2 = cannot determine; JSON still prints with
 # .error set.
 #
 # ADAPTING IT: only the paths below are project-specific. If your layout
-# differs (no rules/ dir, specs elsewhere), change them here and nowhere else.
+# differs (rules in a subdirectory, specs elsewhere), change them here and
+# nowhere else.
 
 set -uo pipefail
 
@@ -56,7 +59,7 @@ INDEX="${LOOP_INDEX:-tasks/INDEX.md}"
 STATE="${LOOP_STATE:-loop/STATE.md}"
 TASKS_DIR="${LOOP_TASKS_DIR:-tasks}"
 TEMPLATE_DIR="${LOOP_TEMPLATE_DIR:-tasks/_template}"
-RULE_FILES="${LOOP_RULES:-rules/RULES.md rules/AGENTS.md RULES.md AGENTS.md}"
+RULE_FILES="${LOOP_RULES:-RULES.md AGENTS.md}"
 LOG_TAIL_MAX="${LOOP_LOG_TAIL_MAX:-80}"
 
 MODE="json"
@@ -66,7 +69,7 @@ case "${1:-}" in
   --context) MODE="context" ;;
   --human) MODE="human" ;;
   -h | --help)
-    grep '^#' "$REPO_ROOT/$SELF" | sed '1d; s/^# \{0,1\}//'
+    awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$REPO_ROOT/$SELF"
     exit 0
     ;;
   *)
@@ -83,19 +86,46 @@ ERROR=""
 LOADED=()
 RULES=()
 [[ -f CLAUDE.md ]] && LOADED+=(CLAUDE.md)
-imports() { # imports <file> <target>: does <file> contain an `@<target>` import?
-  local re="${2//./\\.}"
-  grep -qE "(^|[[:space:]])@(\./)?${re}([[:space:]]|$)" "$1" 2>/dev/null
+imports_of() { # imports_of <file> → the repo-relative paths it `@`-imports, one per line
+  # Resolved relative to the importing file's directory; fenced blocks and code
+  # spans are skipped; home (~) and absolute imports are ignored. A token with
+  # trailing punctuation (`@AGENTS.md.`) resolves to no file, so it is a miss:
+  # the safe direction — a bigger read, never a missing one.
+  awk -v d="$(dirname "$1")" '
+    function norm(p,   n, i, a, k, s, out) {
+      n = split(p, a, "/"); k = 0
+      for (i = 1; i <= n; i++) {
+        if (a[i] == "" || a[i] == ".") continue
+        if (a[i] == "..") { if (k == 0) return ""; k--; continue }
+        s[++k] = a[i]
+      }
+      out = ""
+      for (i = 1; i <= k; i++) out = out (i > 1 ? "/" : "") s[i]
+      return out
+    }
+    /^[ \t]*(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    {
+      line = " " $0
+      gsub(/`[^`]*`/, "", line)
+      while (match(line, /[ \t]@[^ \t]+/)) {
+        tok = substr(line, RSTART + 2, RLENGTH - 2)
+        line = substr(line, RSTART + RLENGTH)
+        if (tok ~ /^[~\/]/) continue
+        p = norm((d == "." ? "" : d "/") tok)
+        if (p != "") print p
+      }
+    }' "$1" 2>/dev/null
 }
 pending=()
 for f in $RULE_FILES; do [[ -f "$f" ]] && pending+=("$f"); done
 # Transitive, bounded: CLAUDE.md -> RULES.md -> AGENTS.md is two hops.
 for _ in 1 2 3; do
+  IMPORTED=""
+  for l in ${LOADED[@]+"${LOADED[@]}"}; do IMPORTED="$IMPORTED$(imports_of "$l")"$'\n'; done
   rest=()
   for f in ${pending[@]+"${pending[@]}"}; do
-    hit=false
-    for l in ${LOADED[@]+"${LOADED[@]}"}; do imports "$l" "$f" && hit=true && break; done
-    if [[ "$hit" == true ]]; then LOADED+=("$f"); else rest+=("$f"); fi
+    if grep -qxF -- "$f" <<<"$IMPORTED"; then LOADED+=("$f"); else rest+=("$f"); fi
   done
   pending=(${rest[@]+"${rest[@]}"})
 done
@@ -103,13 +133,13 @@ RULES=(${pending[@]+"${pending[@]}"})
 
 # ── the ledger row ───────────────────────────────────────────────────────────
 # The single row of tasks/INDEX.md whose status is in-progress. Its first
-# markdown link is the task folder.
+# markdown link is the task folder (`./phase-1_x/` and `phase-1_x/` alike).
 row="$(grep -m1 -E '\|[^|]*in-progress[^|]*\|' "$INDEX" 2>/dev/null || true)"
 folder=""
 task=""
 phase=""
 if [[ -n "$row" ]]; then
-  rel="$(printf '%s' "$row" | grep -oE '\]\(\./[^)]+\)' | head -1 | sed -E 's#^\]\(\./##; s#\)$##; s#/$##')"
+  rel="$(printf '%s' "$row" | grep -oE '\]\([^)]+\)' | head -1 | sed -E 's#^\]\((\./)?##; s#\)$##; s#/$##')"
   [[ -n "$rel" ]] && folder="$TASKS_DIR/$rel"
   task="$(basename "${folder:-}")"
   phase="$(printf '%s' "$row" | awk -F'|' 'NF>3 {gsub(/^[ \t`]+|[ \t`]+$/,"",$3); print $3}')"
@@ -155,13 +185,16 @@ else
                       f && (/^- \[/ || /^#/) {exit}
                       f {print}' "$PLAN")"
     # A step title may wrap onto indented continuation lines and end at a bolded
-    # `:**`. Join up to 4 lines, cut there, strip marker/number/emphasis.
+    # `:**`. Join up to 4 lines of THIS step (never into the next checkbox, a
+    # heading or a blank line), cut at `:**` or ` — check:`, strip
+    # marker/number/emphasis.
     # NB: awk runs END on `exit`, so the fallback print is guarded by `p`.
-    raw="$(awk '/^- \[ \] /{f=1}
-                f{buf = buf " " $0; if (buf ~ /:\*\*/ || ++n >= 4) {print buf; p=1; exit}}
-                END{if (!p && f && buf != "") print buf}' "$PLAN")"
+    raw="$(awk '!f && /^- \[ \] / {f = 1; buf = $0; n = 1; if (buf ~ /:\*\*/) {print buf; p = 1; exit}; next}
+                f && (/^- \[/ || /^#/ || /^[ \t]*$/) {exit}
+                f {buf = buf " " $0; if (buf ~ /:\*\*/ || ++n >= 4) {print buf; p = 1; exit}}
+                END {if (!p && f && buf != "") print buf}' "$PLAN")"
     step_title="$(printf '%s' "$raw" \
-      | sed -E 's/:\*\*.*$//; s/^ *- \[ \] *//; s/^[0-9]+[a-z]?\.? *//; s/^\[parallel: *[A-Za-z0-9_-]+\] *//; s/\*\*//g;
+      | sed -E 's/:\*\*.*$//; s/ — check:.*$//; s/^ *- \[ \] *//; s/^[0-9]+[a-z]?\.? *//; s/^\[parallel: *[A-Za-z0-9_-]+\] *//; s/\*\*//g;
                 s/[[:space:]]+/ /g; s/^ +//; s/ +$//' | cut -c1-160)"
   fi
 fi
@@ -176,8 +209,13 @@ if [[ -n "$step_text" ]]; then
   parallel_group="$(head -1 <<<"$step_text" | sed -nE 's/^- \[ \] [0-9]+[a-z]?\.? *\[parallel: *([A-Za-z0-9_-]+)\].*/\1/p')"
 fi
 if [[ -n "$parallel_group" ]]; then
+  # Same tag grammar as the line above: `[parallel:A]` and `[parallel: A]` alike.
   while IFS= read -r n; do PAR_STEPS+=("$n"); done < <(grep -E '^- \[[ xX]\] ' "$PLAN" \
-    | awk -v g="$parallel_group" '{o++} /^- \[ \] / && index($0, "[parallel: " g "]") {print o}')
+    | awk -v g="$parallel_group" '{o++}
+        /^- \[ \] / && match($0, /^- \[ \] [0-9]+[a-z]?\.? *\[parallel: *[A-Za-z0-9_-]+\]/) {
+          t = substr($0, RSTART, RLENGTH); sub(/^.*\[parallel: */, "", t); sub(/\]$/, "", t)
+          if (t == g) print o
+        }')
 fi
 
 # ── owner questions: asked in ONE batch, not discovered step by step ─────────
@@ -302,10 +340,19 @@ unreviewed="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo -1)"
 # ── last result: the newest LOG.md entry heading ─────────────────────────────
 # Deliberately NOT read from the pointer files. Deriving it here is what lets a
 # normal increment write prose in ONE place (its LOG) instead of three.
+log_headings() { # log_headings <log> → line numbers of real `## ` entries (not in comments or fences)
+  awk '/^[ \t]*(```|~~~)/ { if (!c) fence = !fence }
+       /<!--/ { if (!fence) c = 1 }
+       { if (!c && !fence && /^## /) print NR }
+       /-->/ { c = 0 }' "$1"
+}
 last_result=""
 if [[ -n "$LOG" ]]; then
-  last_result="$(grep -E '^## ' "$LOG" | tail -n1 \
-    | sed -E 's/^## *//; s/[[:space:]]+/ /g; s/ $//' | cut -c1-240)"
+  ln="$(log_headings "$LOG" | tail -n1)"
+  if [[ -n "$ln" ]]; then
+    last_result="$(sed -n "${ln}p" "$LOG" \
+      | sed -E 's/^## *//; s/[[:space:]]+/ /g; s/ $//' | cut -c1-240)"
+  fi
 fi
 
 # ── the non-derivable bits STATE.md still owns ───────────────────────────────
@@ -351,11 +398,8 @@ for s in ${SECTIONS[@]+"${SECTIONS[@]}"}; do LABELS+=("$(section_label "$s")"); 
 
 log_tail() { # the newest two `## ` entries, skipping headings in comments and fences
   local start total
-  start="$(awk '/^[ \t]*(```|~~~)/ { if (!c) fence = !fence }
-                /<!--/ { if (!fence) c = 1 }
-                { if (!c && !fence && /^## /) h[++n] = NR }
-                /-->/ { c = 0 }
-                END { print (n >= 2 ? h[n - 1] : (n == 1 ? h[1] : 1)) }' "$LOG")"
+  start="$(log_headings "$LOG" | tail -n2 | head -n1)"
+  [[ -n "$start" ]] || start=1
   total="$(sed -n "${start},\$p" "$LOG" | wc -l)"
   if [[ "$total" -gt "$LOG_TAIL_MAX" ]]; then
     echo "(… $((total - LOG_TAIL_MAX)) earlier lines of these entries omitted — open $LOG only if you need them)"
@@ -367,7 +411,7 @@ log_tail() { # the newest two `## ` entries, skipping headings in comments and f
 
 case "$MODE" in
   read)
-    printf '%s\n' "${READ[@]}"
+    [[ ${#READ[@]} -gt 0 ]] && printf '%s\n' "${READ[@]}"
     ;;
   context)
     if [[ -n "$step_text" ]]; then
@@ -400,7 +444,7 @@ case "$MODE" in
     else
       echo "step        : $step of $steps — $step_title"
     fi
-    [[ -n "$parallel_group" ]] && echo "parallel    : group $parallel_group — unchecked steps ${PAR_STEPS[*]} may fan out (AGENTS.md §8a)"
+    [[ -n "$parallel_group" ]] && echo "parallel    : group $parallel_group — unchecked steps ${PAR_STEPS[*]:-} may fan out (AGENTS.md §8a)"
     [[ ${#OPEN_Q[@]} -gt 0 ]] && echo "questions   : ${#OPEN_Q[@]} open (${OPEN_Q[*]}), ${#UNASKED_Q[@]} not yet asked — ask them in ONE batch$([[ ${#WAIT_Q[@]} -gt 0 ]] && echo "; this step waits on ${WAIT_Q[*]}")"
     [[ -n "$spec" ]] && echo "spec        : $spec$([[ "$spec_stub" == true ]] && echo '  [STUB — write it first]')"
     [[ ${#LABELS[@]} -gt 0 ]] && echo "cited       : ${LABELS[*]}"
@@ -409,7 +453,7 @@ case "$MODE" in
     echo "unreviewed  : $([[ "$unreviewed" -lt 0 ]] && echo 'no upstream — review every step' || echo "$unreviewed commit(s) ahead of upstream")"
     echo "last result : ${last_result:-<none>}"
     echo "loaded      : ${LOADED[*]:-<none>}"
-    echo "read        : ${READ[*]}"
+    echo "read        : ${READ[*]:-<none>}"
     echo "context     : $SELF --context"
     [[ -n "$ERROR" ]] && echo "error       : $ERROR"
     ;;
@@ -442,7 +486,7 @@ case "$MODE" in
     printf '  "unreviewed": %s,\n' "$unreviewed"
     printf '  "last_result": "%s",\n' "$(jesc "$last_result")"
     printf '  "loaded": %s,\n' "$(jarr ${LOADED[@]+"${LOADED[@]}"})"
-    printf '  "read": %s,\n' "$(jarr "${READ[@]}")"
+    printf '  "read": %s,\n' "$(jarr ${READ[@]+"${READ[@]}"})"
     printf '  "context_cmd": "%s",\n' "$(jesc "$SELF --context")"
     printf '  "error": "%s"\n' "$(jesc "$ERROR")"
     printf '}\n'

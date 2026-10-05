@@ -1,104 +1,137 @@
 #!/usr/bin/env bash
-# hack/amendments-guard.sh — make deferred findings arrive as a NUMBER.
+# loop/amendments-guard.sh — make deferred findings arrive as a NUMBER.
 #
-# PROMPT §4b defers every MEDIUM reviewer finding (the reviewer reports no LOW) to the active PLAN's
-# `## Amendments`. The mechanism works; what never existed is a count of how many
-# are still OPEN. loop/STATE.md maintains its open list by hand, and CF-6
-# admits its reservations' "only check is re-measure at the M1 close".
+# PROMPT §4b defers every MEDIUM reviewer finding (the reviewer reports no LOW)
+# to the active PLAN's `## Amendments`. Deferral only works if something counts
+# what is still OPEN; without a count, "deferred" and "dropped" are the same
+# state and nothing tells them apart at the close.
 #
-# HOW IT DECIDES, and why not the obvious way. The first version of this script
-# grepped ids out of the whole PLAN and matched them against 400 commit subjects.
-# Its one field result — "16 of 16 discharged" on m1-12 — was false at both ends:
-# the ids it found were cross-references to OTHER objectives' amendments, and the
-# "evidence" was bare numbers inside unrelated strings ('.29.', '=202', '/35/').
-# So the commit grep is gone. An amendment's disposition is written in the
-# amendment, by the increment that dealt with it, which is both local and exact.
+# HOW IT DECIDES. A disposition is written IN the amendment, by the increment
+# that dealt with it — local and exact. (A first version of this guard matched
+# amendment ids against commit subjects instead; its one field result, "16 of 16
+# discharged", was false at both ends: the ids were cross-references to other
+# tasks' amendments, the "evidence" bare numbers inside unrelated strings.)
+# Substring verbs are not enough either: "never closed" is not closed. So the
+# format is explicit, one entry per deferred finding:
 #
-# Two entry formats are in use and both are supported, scoped to `## Amendments`:
-#   `- **#162 (M1)** …`   m1-07 .. m1-10   (global #NNN sequence)
-#   `12. **2026-08-23 — …` m1-11, m1-12    (per-objective numbered list)
+#   - A3 · 2026-08-23 · MEDIUM `src/x.py:42` — <the finding> · disposition: open
 #
-# An entry counts as DISPOSED when its own text carries a disposition verb:
-# discharged, fixed, folded, resolved, closed, actioned, taken, superseded,
-# declined, re-targeted, withdrawn, satisfied, done. Anything else is OPEN.
+# and the increment that settles it rewrites the field:
+#
+#   … · disposition: fixed in a1b2c3d
+#   … · disposition: re-targeted → CF-2          (or → <task folder>)
+#   … · disposition: declined — <the reason>
+#
+# DISPOSED = the LAST `disposition:` word of the entry is one of: fixed, done,
+# discharged, re-targeted, retargeted, declined, withdrawn, superseded, folded,
+# obsolete, moot. `open`, `deferred`, any other word, or no field at all is
+# OPEN. Only `- A<n>` list items are findings; other items in the section (dated
+# plan notes, a step split into sub-steps) are not counted. HTML comments and
+# fenced blocks are ignored. Continuation lines (up to a blank line or the next
+# item) belong to their entry.
 #
 # WARN-ONLY, like entry-size-guard: an amendment may legitimately stay open for a
-# whole objective. The point is that the number is visible at every close.
+# whole task. The point is that the number is visible at every close (PROMPT §1).
 #
-# Usage:  make amendments                  # the active objective
-#         hack/amendments-guard.sh --all   # every tasks/*/PLAN.md, closed included
-#         hack/amendments-guard.sh --strict
+# Usage:  make amendments                    # the active task's PLAN.md
+#         loop/amendments-guard.sh --all     # every tasks/*/PLAN.md, closed included
+#         loop/amendments-guard.sh --strict  # exit 1 when any finding is open (CI)
 set -uo pipefail
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$REPO_ROOT" || exit 1
+SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+REPO_ROOT="$(dirname "$(dirname "$SCRIPT")")"
+cd "$REPO_ROOT" || exit 1
+WHERE="${LOOP_WHERE:-$(basename "$(dirname "$SCRIPT")")/where.sh}"
+TASKS_DIR="${LOOP_TASKS_DIR:-tasks}"
 
-STRICT=0; ALL=0
+STRICT=0
+ALL=0
 for a in "$@"; do
   case "$a" in
     --strict) STRICT=1 ;;
-    --all)    ALL=1 ;;
-    -h|--help) grep '^#' "$0" | sed '1d; s/^# \{0,1\}//'; exit 0 ;;
-    *) echo "unknown arg: $a (try --help)" >&2; exit 2 ;;
+    --all) ALL=1 ;;
+    -h | --help)
+      awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$SCRIPT"
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $a (try --help)" >&2
+      exit 2
+      ;;
   esac
 done
 
-# Disposition verbs, written by the increment that dealt with the amendment.
-DISPOSED='discharg|fixed|folded|resolv|closed|actioned|taken|supersed|declin|re-target|retarget|withdraw|satisfi|done|obsolete|moot'
+DISPOSED='fixed|done|discharged|re-targeted|retargeted|declined|withdrawn|superseded|folded|obsolete|moot'
 
-# THREE entry formats are in use. All three are matched; a fourth will silently
-# count zero, so the "0 entries" line is a signal to look, not a clean bill.
-#   `- **#162 (M1)** …`      m1-07, m1-08, m1-10
-#   `**#151 · 2026-08-05 …`  m1-09
-#   `12. **2026-08-23 — …`   m1-11, m1-12
 plans=()
 if [ "$ALL" -eq 1 ]; then
-  for f in tasks/*/PLAN.md; do [ -f "$f" ] && plans+=("$f"); done
+  for f in "$TASKS_DIR"/*/PLAN.md; do
+    case "$f" in */_template/*) continue ;; esac
+    [ -f "$f" ] && plans+=("$f")
+  done
 else
-  p="$(loop/where.sh --read 2>/dev/null | grep -E '/PLAN\.md$' | head -1)"
+  p="$("$WHERE" --read 2>/dev/null | grep -E '/PLAN\.md$' | head -1)"
   [ -n "$p" ] && [ -f "$p" ] && plans+=("$p")
 fi
-[ "${#plans[@]}" -gt 0 ] || { echo ">> no PLAN.md to check"; exit 0; }
+[ "${#plans[@]}" -gt 0 ] || {
+  echo ">> no PLAN.md to check"
+  exit 0
+}
 
 warnings=0
 for plan in "${plans[@]}"; do
-  # One record per amendment: id, disposed flag, and the entry folded to one line so
-  # a verb on a continuation line still counts. awk owns the id extraction — the sed
-  # version leaked whole entry bodies into the id list on nested `**`.
-  read -r total open_n open_list <<<"$(awk -v disp="$DISPOSED" '
-    function flush() {
+  # → "<findings> <open> <other items> <open id list>"
+  read -r total open_n other open_list <<<"$(awk -v disp="^($DISPOSED)\$" '
+    function flush(   s, w, last) {
       if (buf == "") return
-      total++
-      id = ""
-      if (match(buf, /#[0-9]+/))      id = substr(buf, RSTART, RLENGTH)
-      else if (match(buf, /^[0-9]+/)) id = "#" substr(buf, RSTART, RLENGTH)
-      if (tolower(buf) !~ disp) { if (!(id in seen)) { seen[id]=1; open[++o]=id } }
+      total++; s = tolower(buf); last = ""
+      while (match(s, /disposition:[ \t*_`]*[a-z-]+/)) {
+        w = substr(s, RSTART, RLENGTH); sub(/^disposition:[ \t*_`]*/, "", w)
+        last = w; s = substr(s, RSTART + RLENGTH)
+      }
+      if (last !~ disp) open[++o] = id
       buf = ""
     }
-    /^## Amendments/ { f=1; next }
+    /^## / { if (f) { flush(); f = 0 } }
+    /^## Amendments/ { f = 1; next }
     !f { next }
-    /^- \*\*#[0-9]+/ || /^\*\*#[0-9]+/ || /^[0-9]+\. / { flush(); buf = $0; next }
-    /^### / { next }
+    /^[ \t]*(```|~~~)/ { if (!c) fence = !fence; next }
+    fence { next }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    /^[ \t]*$/ { flush(); next }
+    /^- (\*\*)?A[0-9]+(\*\*)?([^0-9A-Za-z]|$)/ {
+      flush(); buf = $0
+      match($0, /A[0-9]+/); id = substr($0, RSTART, RLENGTH)
+      next
+    }
+    /^([-*] |[0-9]+\. )/ { flush(); others++; next }
     { if (buf != "") buf = buf " " $0 }
     END {
-      flush()
+      if (f) flush()
       list = ""
       for (i = 1; i <= o && i <= 14; i++) list = list open[i] " "
       if (o > 14) list = list "(+" (o - 14) " more)"
       if (list == "") list = "-"
-      print total+0, o+0, list
+      print total + 0, o + 0, others + 0, list
     }' "$plan")"
 
   if [ "${open_n:-0}" -gt 0 ]; then
-    printf '>> WARN  %-42s %s entries, %s OPEN: %s\n' "$plan" "$total" "$open_n" "$open_list"
-    warnings=$((warnings+1))
+    printf '>> WARN  %-42s %s finding(s), %s OPEN: %s\n' "$plan" "$total" "$open_n" "$open_list"
+    warnings=$((warnings + 1))
+  elif [ "${total:-0}" -eq 0 ] && [ "${other:-0}" -gt 0 ]; then
+    # shellcheck disable=SC2016 # reason: the backticks are literal Markdown
+    printf '>> ok    %-42s 0 findings in `- A<n>` form (%s other item(s): plan notes — or findings in another form; look)\n' "$plan" "$other"
   else
-    printf '>> ok    %-42s %s entries, all disposed\n' "$plan" "$total"
+    printf '>> ok    %-42s %s finding(s), all disposed\n' "$plan" "${total:-0}"
   fi
 done
 
 if [ "$warnings" -gt 0 ]; then
   printf '>> %d plan(s) with open amendments. Each is a deferred reviewer finding: at the\n' "$warnings"
-  printf '   objective close every one owes a disposition in OUTCOME.md — done, re-targeted\n'
-  printf '   to a carry-forward, or declined WITH a reason. Never dropped (AGENTS §2).\n'
+  printf '   task close every one owes a disposition — in its PLAN entry and in OUTCOME.md\n'
+  # shellcheck disable=SC2016 # reason: the backticks are literal Markdown
+  printf '   `## Amendments`: fixed, re-targeted to a carry-forward, or declined WITH a\n'
+  printf '   reason. Never dropped (AGENTS.md §2).\n'
   [ "$STRICT" -eq 1 ] && exit 1
 fi
 exit 0

@@ -10,14 +10,19 @@ charter lives in `<link to spec doc>`.
 
 This file is governance (*what is true*). [`AGENTS.md`](./AGENTS.md) is the
 operating manual (*how to execute*), [`WORKFLOW.md`](./WORKFLOW.md) is the worked
-example, and [`../loop/`](../loop/) is the long-running **agent loop** (re-feed
+example, and [`loop/`](loop/) is the long-running **agent loop** (re-feed
 one fixed prompt; progress lives on disk, not in context). Work is tracked as
-per-phase task folders under [`../tasks/`](../tasks/) (`BRIEF/PLAN/LOG/OUTCOME`);
-specialist subagents live in [`../agents/`](../agents/).
+per-phase task folders under [`tasks/`](tasks/) (`BRIEF/PLAN/LOG/OUTCOME`);
+specialist subagents live in [`.claude/agents/`](.claude/agents/). `CLAUDE.md`
+`@`-imports this file and `AGENTS.md`, so both are already in every session's
+context.
 
-**At the start of any agentic session, read: RULES.md → AGENTS.md → the active
-task → `loop/STATE.md`.** The loop is dev-time tooling only, and it HARD-STOPS at
-every phase gate and every human-only boundary (see AGENTS.md §6).
+**At the start of any agentic session, run `loop/where.sh --json` and read only
+the files it lists** (AGENTS.md §3a) — it computes the phase, task, step and gate
+from disk, and leaves out what `CLAUDE.md` already loaded. The loop is dev-time
+tooling only. It tags a milestone and rolls into the next phase on its own **only
+once that phase's gate has objectively passed**, and it always stops at a
+human-only boundary (see AGENTS.md §6).
 
 ---
 
@@ -139,10 +144,11 @@ gates this.
 **Branching & parallel work**
 - The main branch is the working branch by default: atomic, separate commits
   directly to it. No feature branches / PRs unless the project needs them.
-- **Git worktrees** are the exception, used only when two efforts work on the
-  **same functionality in parallel** — give each its own worktree so edits don't
-  collide, then merge back. For independent parallel work, separate commits are
-  enough.
+- **Git worktrees** are the exception, for work that runs concurrently (a
+  `[parallel: X]` plan group, AGENTS.md §8a): read-only discovery and steps that
+  only create their own new files share the tree; any other concurrent edit gets
+  its own short-lived branch in its own worktree, merged back only after
+  `loop/merge-gate.sh` is green on the merged tree.
 
 **Cadence & milestones**
 - **Commit after every completed change, scope, or task** — do not batch

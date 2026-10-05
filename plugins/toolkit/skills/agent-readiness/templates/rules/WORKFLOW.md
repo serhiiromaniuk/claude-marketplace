@@ -12,10 +12,10 @@ Quick map of the moving parts:
 | Governance | [`RULES.md`](./RULES.md) | golden rules, architecture, git |
 | Operating manual | [`AGENTS.md`](./AGENTS.md) | how to execute |
 | This walkthrough | `WORKFLOW.md` | the example |
-| Loop engine | [`../loop/`](../loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `step-done.sh` (close an increment), `entry-size-guard.sh`, `STATE.md` |
-| Memory | [`../tasks/`](../tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
-| Specialists | [`../agents/`](../agents/) | planner, plan-reviewer, reviewer, adjudicator, verifier (optional) |
-| Shortcuts | [`../commands/`](../commands/) | `/status`, `/loop-step` |
+| Loop engine | [`loop/`](loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `step-done.sh` (close an increment), `entry-size-guard.sh`, `amendments-guard.sh`, `merge-gate.sh`, `STATE.md` |
+| Memory | [`tasks/`](tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
+| Specialists | [`.claude/agents/`](.claude/agents/) | planner, plan-reviewer, reviewer, adjudicator, verifier (optional) |
+| Shortcuts | [`.claude/commands/`](.claude/commands/) | `/where`, `/loop-step` |
 
 ---
 
@@ -100,7 +100,8 @@ reviewed. Every later decision must trace to a conclusion here.
 - No access to a needed source: record what's missing, continue other steps.
 
 ## Amendments
-<!-- append plan changes here, dated -->
+<!-- dated plan notes, and deferred reviewer findings as
+     `- A<n> · <date> · MEDIUM <file:line> — <finding> · disposition: open` -->
 ```
 
 **LOG.md** — first entry:
@@ -112,10 +113,10 @@ reviewed. Every later decision must trace to a conclusion here.
 Context loaded per `loop/where.sh --json`. Starting at step 1.
 ```
 
-Then flip this task's row in [`../tasks/INDEX.md`](../tasks/INDEX.md) to
+Then flip this task's row in [`tasks/INDEX.md`](tasks/INDEX.md) to
 `in-progress` — that is all the pointer work an open needs. Step position comes
 from the `PLAN.md` checkboxes, so nothing restates "step 1" anywhere.
-[`../loop/STATE.md`](../loop/STATE.md) is touched only for the gate verdict, a
+[`loop/STATE.md`](loop/STATE.md) is touched only for the gate verdict, a
 decision, or a carry-forward. Confirm with `make where`.
 
 ---
@@ -147,7 +148,7 @@ To run it unattended, a human starts the harness from a terminal:
 loop/loop.sh --max-iterations 8        # bounded; stops on a marker or the cap
 ```
 Or do one increment interactively with the `/loop-step` command, and check
-position any time with `/status`.
+position any time with `/where`.
 
 The loop **stops itself** when it emits `<<LOOP:DONE>>`, `<<LOOP:BLOCKED>>`, or
 `<<LOOP:GATE_FAILED>>` — or when it hits the iteration cap. It rolls
@@ -174,14 +175,22 @@ deps. <feasibility verdict>.
 - [ ] Human review of the foundation doc
 - [ ] On approval: tag v0.1-<name>; open Phase 2 task
 
+## Amendments
+- A1 — fixed in <sha>. A2 — re-targeted → CF-1 (phase 2). (`make amendments`: 0 open.)
+
 ## Lessons / Notes
 - <anything worth remembering>
 ```
 
-Then: set `tasks/INDEX.md` → `done`, emit `<<LOOP:PHASE_COMPLETE>>` (or, for a
-human-only boundary, hand over). Once the gate is green the milestone is tagged
-(`git tag v0.1-<name> && git push --tags`) and the next-phase task opens — the
-gate has lifted.
+This phase's gate includes a **human** review (golden rule #6), so it has not
+passed yet and nothing is tagged: set `loop/STATE.md` **Blocked?** to
+`yes — awaiting review of the foundation doc` and emit `<<LOOP:BLOCKED>>` naming
+the review. Once the owner records the approval (a `STATE.md` decision line), the
+next iteration finishes the close **in this order**: tag the milestone
+(`git tag v0.1-<name> && git push --tags`), set `tasks/INDEX.md` → `done`, open
+the Phase 2 task from `_template/`, and only then emit `<<LOOP:PHASE_COMPLETE>>`.
+A phase whose gate is fully objective (`make check` green, acceptance criteria
+met) skips the hand-off — but keeps the order: tag and open first, marker last.
 
 ---
 

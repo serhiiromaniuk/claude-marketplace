@@ -7,13 +7,13 @@ layer*** (how you actually execute work across long-running, multi-session,
 phase-gated tasks). [`WORKFLOW.md`](./WORKFLOW.md) is the worked example.
 
 Read order at the start of any session: **run
-[`../loop/where.sh`](../loop/where.sh)` --json` first**, then exactly the files it
+[`loop/where.sh`](loop/where.sh)` --json` first**, then exactly the files it
 lists in `.read` (RULES.md and AGENTS.md only when `CLAUDE.md` does not already
 import them — see `.loaded`), then `where.sh --context` once: the current step's
 full text, the tail of the active task's `LOG`, and the governing-spec sections
 the step cites.
 The oracle computes position, gate and tree state from disk, so
-[`../tasks/INDEX.md`](../tasks/INDEX.md) is **not** read for orientation and closed
+[`tasks/INDEX.md`](tasks/INDEX.md) is **not** read for orientation and closed
 tasks' folders are archive.
 
 > Do not improvise, skip steps, or deviate from the workflow below. When the
@@ -72,10 +72,12 @@ src/                  the main package / source tree
 tests/                the test suite (≥80% coverage)
 loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh ·
                         where.sh (position oracle) · step-done.sh (close a step) ·
-                        entry-size-guard.sh · STATE.md
+                        entry-size-guard.sh · amendments-guard.sh · merge-gate.sh ·
+                        STATE.md
 tasks/                per-phase BRIEF/PLAN/LOG/OUTCOME folders + INDEX.md ledger
-agents/               specialist subagents (planner, plan-reviewer, reviewer, adjudicator; verifier optional)
-commands/             slash-command shortcuts (/loop-step, /status)
+.claude/agents/       specialist subagents (planner, plan-reviewer, reviewer, adjudicator; verifier optional)
+.claude/commands/     slash-command shortcuts (/loop-step, /where)
+CLAUDE.md             @-imports RULES.md and AGENTS.md, so every session and subagent has them
 RULES.md              governance: golden rules, architecture, conventions, git
 AGENTS.md             this file — how an agent executes work here
 WORKFLOW.md           worked example
@@ -108,7 +110,7 @@ Makefile              the single sanctioned dev entrypoint
 
 Work is organized by the **phase roadmap in [`RULES.md`](./RULES.md)**. Each
 phase (or a meaningful slice of one) becomes a **task folder** under
-[`../tasks/`](../tasks/):
+[`tasks/`](tasks/):
 
 ```
 tasks/
@@ -134,8 +136,12 @@ tasks/
 
 Discipline: never edit a past `LOG.md` entry; never rewrite `PLAN.md` steps
 mid-flight (amend instead); never silently overwrite — append a dated note.
+Deferred reviewer findings live in `PLAN.md`'s `## Amendments` as
+`- A<n> … · disposition: open` items; each is settled in place (`fixed`,
+`re-targeted`, `declined — <reason>`) and accounted for in `OUTCOME.md` at the
+close (`make amendments` counts them). A deferred finding is never dropped.
 
-The ledger [`../tasks/INDEX.md`](../tasks/INDEX.md) gets one row per task with
+The ledger [`tasks/INDEX.md`](tasks/INDEX.md) gets one row per task with
 status `todo | in-progress | blocked | done`.
 
 ---
@@ -143,7 +149,7 @@ status `todo | in-progress | blocked | done`.
 ## 3. Session rituals
 
 ### 3a. Startup (before touching anything)
-1. Run [`../loop/where.sh`](../loop/where.sh)` --json` — phase · task · step N/M ·
+1. Run [`loop/where.sh`](loop/where.sh)` --json` — phase · task · step N/M ·
    step title · governing spec (and whether it is still a stub) · gate · tree state
    · **the read list**.
 2. Read **exactly** the files in `.read`, and nothing else: `STATE.md` for the
@@ -153,10 +159,14 @@ status `todo | in-progress | blocked | done`.
 3. Run `where.sh --context` once — the step's full text, the newest two `LOG.md`
    entries, the cited spec sections. Never open a whole `LOG.md`, and never a
    closed task's.
-4. Dispatch on the oracle's flags (loop/PROMPT.md §1): `.error` → open the next
-   task · `.tree_clean == false` → **reconcile the interrupted increment first** ·
-   `.needs_open` / `.needs_plan` / `.spec_stub` → that IS this iteration ·
-   `.all_steps_done` → close the task.
+4. Dispatch on the oracle's flags in loop/PROMPT.md §1's order, first true one
+   wins: `.error` → open the next task · `.tree_clean == false` → **reconcile the
+   interrupted increment first** · `.needs_open` / `.needs_plan` → that IS this
+   iteration · `.unasked_questions > 0` → ask them all in one batch ·
+   `.waiting_on` → blocked on an owner answer · `.spec_stub` → write the spec ·
+   `.all_steps_done` → close the task (`make amendments` first) ·
+   `.parallel_steps` (more than one) → the whole group is this increment ·
+   otherwise → step `.step`.
 
 ### 3b. Shutdown (end of session / loop iteration)
 1. Append a `LOG.md` entry in `_template/LOG.md`'s shape — **≤40 lines, bullets**.
@@ -164,8 +174,8 @@ status `todo | in-progress | blocked | done`.
 2. `loop/step-done.sh --commit "<msg>" [--push]` (§7): the gate tail into the LOG,
    the step's `PLAN.md` box, `make loop-hygiene`, the secret scan, the commit — one
    command. Push only reviewed commits (§8).
-3. Touch [`../loop/STATE.md`](../loop/STATE.md) or
-   [`../tasks/INDEX.md`](../tasks/INDEX.md) **only** when the gate verdict changes,
+3. Touch [`loop/STATE.md`](loop/STATE.md) or
+   [`tasks/INDEX.md`](tasks/INDEX.md) **only** when the gate verdict changes,
    a decision is made, a carry-forward is raised/discharged, or a task
    opens/closes — never to record a step. `where.sh` computes step position from
    the PLAN checkboxes and the last result from the LOG tail.
@@ -180,10 +190,10 @@ status `todo | in-progress | blocked | done`.
 
 The technique: **re-feed the same prompt to a fresh agent over and over; the
 filesystem and git history carry progress between iterations.** The invariant
-prompt is [`../loop/PROMPT.md`](../loop/PROMPT.md); the harness is
-[`../loop/loop.sh`](../loop/loop.sh); the position oracle is
-[`../loop/where.sh`](../loop/where.sh) and the non-derivable pointer is
-[`../loop/STATE.md`](../loop/STATE.md). See [`../loop/README.md`](../loop/README.md).
+prompt is [`loop/PROMPT.md`](loop/PROMPT.md); the harness is
+[`loop/loop.sh`](loop/loop.sh); the position oracle is
+[`loop/where.sh`](loop/where.sh) and the non-derivable pointer is
+[`loop/STATE.md`](loop/STATE.md). See [`loop/README.md`](loop/README.md).
 
 **One iteration does exactly this:**
 1. Load context (§3a) — `where.sh --json` first, then only what it names.
@@ -191,12 +201,13 @@ prompt is [`../loop/PROMPT.md`](../loop/PROMPT.md); the harness is
 3. **Verify** it (run the relevant check — §5), then the `reviewer` by risk tier
    (§8): risky steps before the commit, low-risk steps in a batch before the push;
    started in the background while you write the LOG. **One** pass, CRITICAL/HIGH
-   fixed now, MEDIUM appended to `PLAN.md`'s `## Amendments` with its `file:line`.
+   fixed now, MEDIUM appended to `PLAN.md`'s `## Amendments` as an `A<n>` item
+   with its `file:line`.
 4. Record what changed and the dispositions in `LOG.md` — the template's shape,
    ≤40 lines.
 5. `loop/step-done.sh --commit "<msg>" [--push]`: gate evidence, tick, hygiene,
    scan, commit (and push when nothing unreviewed remains).
-7. Emit a **completion marker** (below) and stop. The loop re-invokes a fresh
+6. Emit a **completion marker** (below) and stop. The loop re-invokes a fresh
    agent for the next step.
 
 **Completion markers** (exact strings — the harness greps for them):
@@ -249,8 +260,11 @@ change, you cannot call it done — say so in the log and leave the box unchecke
 
 ## 6. Gates — where the loop must stop
 
-Gates are **hard**. You may not cross one autonomously, and you may **never**
-weaken one to pass it ("fix the work, never lower the thresholds").
+Gates are **hard**. You cross one only on observed evidence that it passed — the
+milestone gate below is the one the loop crosses on its own — and you may
+**never** weaken one to pass it ("fix the work, never lower the thresholds").
+A gate that needs a human sign-off (golden rule #6's review, the human-only
+gate) is crossed only once that sign-off is on record.
 
 - **Foundation gate (golden rule #6):** the design/research/scaffold phase must
   be complete + reviewed before *any* later-phase production code. While it's
@@ -319,10 +333,12 @@ weaken one to pass it ("fix the work, never lower the thresholds").
   batch. Task-folder docs
   may ride along with the code change they describe, or be their own `docs(...)`
   commit.
-- **Parallel on the same code → git worktree.** The only reason to leave a single
-  working copy: when two efforts touch the **same functionality at once**. Give
-  each its own worktree so edits don't collide, then merge back. Independent
-  parallel work just makes separate commits.
+- **Parallel work → its own worktree branch (§8a).** Sequential steps commit
+  straight to the main branch. When steps run concurrently, read-only discovery
+  and steps that only create their own new files may share the working tree;
+  every other concurrent edit gets its own short-lived branch in its own git
+  worktree, so edits can't collide. Those branches merge back only after
+  `loop/merge-gate.sh <branches>` is green on the **merged** tree.
 - **Secrets hygiene.** Never write a key/token/secret into any file or commit.
   Secrets live only in the environment (gitignored). Before committing, scan the
   staged diff for anything secret-like.
@@ -336,7 +352,7 @@ weaken one to pass it ("fix the work, never lower the thresholds").
 
 Use a subagent when a side task would flood the main context with file dumps or
 search output you won't reuse, or when you want an **independent** opinion. They
-live in [`../agents/`](../agents/):
+live in [`.claude/agents/`](.claude/agents/):
 
 | Subagent | Use it to… | Phase |
 |----------|------------|-------|
@@ -445,7 +461,7 @@ was independent, and to fixed per-step ceremony paid once per step.
   `step-done.sh` to close a step, a parallel `make check`.
 - **Right-size steps:** a batch step for trivial items one check proves; review
   by risk (§8), not by ritual.
-- **Models are sized per role** in `../agents/` (strongest reasoner for plan
+- **Models are sized per role** in `.claude/agents/` (strongest reasoner for plan
   review and adjudication, a strong one for planning and review, a small one for
   a verifier that only runs commands). In Claude Code, `/fast` speeds up the
   main session's output on the same model — useful for long mechanical stretches.

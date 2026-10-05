@@ -5,7 +5,7 @@ Detect each pillar's signals in a target repo **without mutating anything**. Rec
 evidence (the file/line you saw) and a confidence flag per pillar. This is Mode 1's data-gathering step.
 
 ## Golden rules
-- **Read-only.** `find`, `ls`, `grep`, `cat`, `git log/status`. No writes, no installs, no running the repo's code.
+- **Read-only.** `find`, `ls`, `grep`, `cat`, `git log/status`. No edits, no installs, no running the repo's code. (Mode 1 writes its own `.agent-readiness/` results only after the scan.)
 - **Cite evidence.** For each pillar, note the concrete file(s) that raised its level. No file → the pillar isn't Verified.
 - **Assign confidence honestly.** 🟢 Verified = you read the file. 🟡 Inferred = it exists but you didn't confirm it's wired into the loop. ⚪ Assumed = you couldn't inspect (say why).
 - **Detect across conventions.** Agent tooling shows up under different names — check all common ones before scoring a pillar 0.
@@ -77,16 +77,25 @@ an artifact another rule mandates, that gate is mis-scoped — cap P4 at 3 and c
 ```bash
 ls .claude/agents/ .cursor/skills* 2>/dev/null
 for f in .claude/agents/*.md; do echo "== $f"; sed -n '1,6p' "$f"; done 2>/dev/null    # roles + tool/model scoping
-grep -rilE 'planner|reviewer|verifier|researcher|adversarial' .claude/agents 2>/dev/null
+grep -rilE 'planner|reviewer|verifier|adjudicator|adversarial' .claude/agents 2>/dev/null
+# the three P5 caps (rubric.md) — each grader must read what it grades:
+grep -lE 'INTENT|step.{0,20}(own )?text|acceptance criteria' .claude/agents/*review*.md 2>/dev/null  # reviewer judges the step, not only the diff
+grep -rlE 'step.{0,40}(text|acceptance)' loop .claude/commands AGENTS.md 2>/dev/null | head -3        # …and the caller hands it the step text
+ls .claude/agents/*plan*review*.md 2>/dev/null                                                      # a fresh PLAN.md is reviewed by someone
+grep -rlE 'plan-reviewer' loop .claude/commands AGENTS.md 2>/dev/null | head -3                     # …and the loop invokes it
+ls .claude/agents/*adjudicat*.md 2>/dev/null                                                        # an independent ruling on a failing gate
+grep -rlE 'decision record|ADR' .claude/agents/*adjudicat*.md AGENTS.md 2>/dev/null | head -3       # …that only a committed record can act on
 ```
 Several roles with tool scoping → 3; adversarial reviewer + model-per-role + invoked by the loop → 4.
+Apply the **P5 caps** from `rubric/rubric.md` from the last six probes: no reviewer that gets the
+step text, no plan review, or no independent gate adjudication each caps P5 at 3.
 
 **P6 Autonomy boundaries**
 ```bash
 grep -rilE 'human.?only|never (flip|push --force|deploy)|do not cross|hand (back|to a human)|permission' \
   CLAUDE.md AGENTS.md ralph .claude 2>/dev/null
 ls .claude/settings*.json 2>/dev/null                                                  # permission scoping
-grep -rhoE '<<[A-Z]+:(BLOCKED|READY_FOR_LIVE|DONE)>>' . 2>/dev/null | sort -u           # handback markers
+grep -rhoE '<<[A-Z]+:(BLOCKED|DONE)>>' . 2>/dev/null | sort -u                          # handback markers
 ```
 Explicit human-only list + loop halts and hands back → 3; add permission scoping + blocked/handback markers → 4.
 
@@ -106,5 +115,6 @@ Verified-absent (you looked and it's not there), not Assumed. Only use ⚪ Assum
 genuinely unable to inspect (e.g. no read access to a submodule).
 
 ## Integrity statement (put in the report)
-State plainly: the scan was read-only — no file created, modified, or run; no secrets read.
+State plainly: the scan was read-only — nothing in the repo was modified or run, and no
+secrets were read; the only files written are `.agent-readiness/score.json` and `report.md`.
 It's true and it builds trust, exactly as in the `assessment-report` discovery playbook.

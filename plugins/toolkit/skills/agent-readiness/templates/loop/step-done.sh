@@ -35,7 +35,12 @@
 #   make step-done MSG="<message>" [PUSH=1]
 #
 # Exit: 0 committed (or dry-run green) · 1 gate red, nothing changed · 2 usage
-#       · 3 precondition, scan or commit failed (LOG/PLAN may be edited — see output).
+#       · 3 precondition, scan or commit failed — LOG.md and PLAN.md are restored
+#         to how they were before the call, so fixing the cause and re-running
+#         is safe (it will not tick a second step). A push failure also exits 3,
+#         but after the commit: the commit stays, push it by hand.
+#       Run the script directly when the exit code matters: `make step-done`
+#       reports every failure as make's own exit 2.
 
 set -Eeuo pipefail
 
@@ -79,7 +84,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run) DRY=1 && shift ;;
     -h | --help)
-      grep '^#' "$SCRIPT" | sed '1d; s/^# \{0,1\}//'
+      awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$SCRIPT"
       exit 0
       ;;
     *)
@@ -98,6 +103,29 @@ die() {
   echo "!! $*" >&2
   exit 3
 }
+
+# From step 2 until the commit lands, LOG.md and PLAN.md are edited in place.
+# Any failure in that window (scan, hook, an unexpected error under `set -e`)
+# puts both files back and unstages them: otherwise a re-run after exit 3 would
+# append a second gate block and tick the NEXT, undone step.
+ARMED=0
+BAK_LOG=""
+BAK_PLAN=""
+out=""
+restore() {
+  cat "$BAK_LOG" >"$LOG"
+  [[ "$TICK" -eq 1 ]] && cat "$BAK_PLAN" >"$PLAN"
+  git reset -q -- "$LOG" 2>/dev/null || true
+  git reset -q -- "$PLAN" 2>/dev/null || true
+  echo "!! $LOG and $PLAN restored and unstaged — fix the cause, then re-run" >&2
+}
+on_exit() {
+  local rc=$?
+  [[ "$rc" -ne 0 && "$ARMED" -eq 1 ]] && restore
+  rm -f ${out:+"$out"} ${BAK_LOG:+"$BAK_LOG"} ${BAK_PLAN:+"$BAK_PLAN"}
+  exit "$rc"
+}
+trap on_exit EXIT
 
 # ── where is the active task? ────────────────────────────────────────────────
 json="$("$WHERE" --json 2>/dev/null)" || die "$WHERE found no active task — nothing to close"
@@ -118,14 +146,14 @@ fi
 
 # ── 1. the gate ──────────────────────────────────────────────────────────────
 out="$(mktemp)"
-trap 'rm -f "$out"' EXIT
 echo ">> gate: $GATE"
 set +e
 bash -c "$GATE" >"$out" 2>&1
 rc=$?
 set -e
+esc=$'\033' # BSD sed has no \x escapes
 # shellcheck disable=SC2016 # reason: literal backticks in a sed script, not an expansion
-evidence="$(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g; s/```/` ` `/g' "$out" | tail -n "$TAIL")"
+evidence="$(sed -E "s/${esc}\[[0-9;]*[A-Za-z]//g"'; s/```/` ` `/g' "$out" | tail -n "$TAIL")"
 if [[ "$rc" -ne 0 ]]; then
   printf '%s\n' "$evidence" >&2
   echo "!! gate RED (EXIT=$rc) — nothing changed. Fix the work, never the check." >&2
@@ -139,6 +167,11 @@ if [[ "$DRY" -eq 1 ]]; then
 fi
 
 # ── 2. machine-written evidence ──────────────────────────────────────────────
+BAK_LOG="$(mktemp)"
+BAK_PLAN="$(mktemp)"
+cat "$LOG" >"$BAK_LOG"
+[[ -f "$PLAN" ]] && cat "$PLAN" >"$BAK_PLAN"
+ARMED=1
 {
   echo
   echo "<!-- gate:begin (written by $HERE/step-done.sh — do not edit) -->"
@@ -187,7 +220,7 @@ builtin_scan() { # forbidden paths and key-shaped strings in the staged diff; ne
   done < <(git diff --cached --name-only --diff-filter=ACMR)
   local re='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|glpat-[A-Za-z0-9_-]{20}|xox[abprs]-[A-Za-z0-9-]{10,}'
   local hits
-  hits="$(git diff --cached -U0 --diff-filter=ACMR | grep -E '^\+[^+]' | grep -cE "$re" || true)"
+  hits="$(git diff --cached -U0 --diff-filter=ACMR | grep -vE '^\+\+\+ ' | grep -E '^\+' | grep -cE "$re" || true)"
   if [[ "$hits" -gt 0 ]]; then
     echo "!! $hits added line(s) look like a secret (key/token pattern) — values not shown" >&2
     bad=1
@@ -195,16 +228,17 @@ builtin_scan() { # forbidden paths and key-shaped strings in the staged diff; ne
   return "$bad"
 }
 if make -n staged-scan >/dev/null 2>&1; then
-  make --no-print-directory staged-scan || die "staged-scan failed — unstage the offending file; LOG/PLAN edits are staged"
+  make --no-print-directory staged-scan || die "staged-scan failed — unstage the offending file"
 else
-  builtin_scan || die "staged diff failed the built-in secret scan; LOG/PLAN edits are staged"
+  builtin_scan || die "staged diff failed the built-in secret scan — unstage the offending file"
 fi
 
 if [[ -n "$(git status --porcelain --untracked-files=normal | grep -vE '^[MADRC] ' || true)" ]]; then
   echo ">> WARN unstaged or untracked files remain (not in this commit):" >&2
   git status --short | grep -vE '^[MADRC] ' | sed 's/^/     /' >&2
 fi
-git commit -q -m "$MSG" || die "git commit failed (a hook refused it?) — fix and commit by hand"
+git commit -q -m "$MSG" || die "git commit failed (a hook refused it, or no git identity?)"
+ARMED=0
 echo ">> committed $(git rev-parse --short HEAD): $(git log -1 --format=%s)"
 
 # ── 6. push ──────────────────────────────────────────────────────────────────
