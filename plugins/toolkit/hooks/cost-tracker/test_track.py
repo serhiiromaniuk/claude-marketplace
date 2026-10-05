@@ -401,6 +401,19 @@ class MigrationTests(TempDirCase):
         self.assertEqual(track.ingest(self.db)["mode"], "scan")
         self.assertEqual(self.rows("SELECT COUNT(*) FROM usage WHERE legacy = 0"), [(3,)])
 
+    def test_a_hook_during_the_rescan_ingests_its_session_first_in_a_small_slice(self):
+        self.make_v0(self.v0_rows())
+        for n in range(3):
+            self.transcript("p/s%d.jsonl" % n, [line("r%d" % n, "msg_R%d" % n, usage(1, 1), TEXT,
+                                                     req="req_R%d" % n)])
+        mine = os.path.join(self.config, "projects", "p", "s2.jsonl")
+        with mock.patch.object(track, "HOOK_RESCAN_BUDGET", 0):
+            stats = track.ingest(self.db, payload={"transcript_path": mine})
+        self.assertEqual((stats["mode"], stats["transcripts_read"], stats["complete"]),
+                         ("rescan", 1, False))
+        self.assertEqual(self.rows("SELECT uuid FROM usage WHERE legacy = 0"), [("r2",)])
+        self.assertEqual(self.rows("SELECT value FROM meta WHERE key = 'needs_rescan'"), [("1",)])
+
 
 class CliTests(TempDirCase):
     def run_cli(self, *args, stdin=None):

@@ -3,6 +3,8 @@
 Source: https://platform.claude.com/docs/en/about-claude/pricing (model pricing
 table, fetched 2026-10-05). USD per 1,000,000 tokens, Anthropic first-party API.
 Bedrock and Vertex are partner-priced, so figures for them are estimates.
+Not modelled: the 1.1x surcharge for US-only inference (`inference_geo: "us"`)
+and Batch API discounts.
 
 Every rate below is copied from that table, not derived from the input price:
 the cache-read ratio differs by model (0.025x on Fable 5.1, 0.05x on Opus 5.5,

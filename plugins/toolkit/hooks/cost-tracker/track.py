@@ -54,6 +54,9 @@ STDIN_TIMEOUT = 2.0  # seconds to wait for a hook payload on a non-TTY stdin
 # after this many seconds, well inside the hook's 30 s timeout; per-file
 # offsets let the next turn carry on where this one stopped.
 TIME_BUDGET = 15.0
+# A Stop hook that lands during the post-migration rescan ingests its own
+# session first, then gives the rescan only this slice, so no turn waits long.
+HOOK_RESCAN_BUDGET = 2.0
 
 
 class UsageError(Exception):
@@ -325,7 +328,12 @@ def ingest(db_path, paths=None, backfill=False, payload=None, budget=TIME_BUDGET
         elif backfill:
             mode, files, full = "backfill", transcript_files(), True
         elif rescan:
-            mode, files, full = "rescan", transcript_files(), False
+            mode, full = "rescan", False
+            first = (session_files(payload) if payload else None) or []
+            seen = {os.path.realpath(f) for f in first}
+            files = first + [f for f in transcript_files() if os.path.realpath(f) not in seen]
+            if first:
+                budget = min(budget, HOOK_RESCAN_BUDGET)
         else:
             files = session_files(payload) if payload else None
             mode, full = ("hook" if files else "scan"), False

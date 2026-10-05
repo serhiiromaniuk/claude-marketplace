@@ -104,7 +104,7 @@ All notable changes to the `toolkit` plugin. Versions follow
   `confluence-publish.md` notes that `createConfluencePage` accepts a space key and needs
   `getContentFormatGuide` first.
 
-### Fixed — cost-tracker (spend was overstated about 2.9x)
+### Fixed — cost-tracker (spend was overstated, about 2.9x on the author's history)
 
 - **One API response is counted once.** Claude Code writes a response as several
   transcript lines (thinking, text, tool use), each carrying the full usage; every line
@@ -118,10 +118,11 @@ All notable changes to the `toolkit` plugin. Versions follow
   older model's price. `CLAUDE_COST_PRICING` now maps an exact model id to five rates;
   files in the old format are ignored with a warning.
 - **The Stop hook stays out of the way.** It reads its own session from the hook payload
-  and resumes from saved offsets (about 0.2 s per turn instead of about 2 s rescanning
-  all history), uses WAL and a busy timeout, never exits 2, prints nothing with
+  and resumes from saved offsets (on the author's history about 0.2 s per turn instead
+  of about 2 s rescanning everything), uses WAL and a busy timeout, never exits 2, prints nothing with
   `--quiet`, and records failures in `last-error.json` for `--status`. `hooks.json`
-  sets a 30 s timeout.
+  sets a 30 s timeout. During the one-time rescan after a migration, a hook ingests
+  its own session first and gives the rescan a 2 s slice, so no turn waits long.
 - **Databases migrate in place without losing a row.** Schema v2 (`PRAGMA user_version`)
   backs up first, de-duplicates rows whose transcript still exists, keeps rows whose
   transcript is gone (with an estimate of their overstatement in `--status`), and
