@@ -128,6 +128,19 @@ fi
 # terminal launched the loop.
 if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]]; then export CLAUDE_CONFIG_DIR; fi
 
+# Credentials in the environment reach every command the agent runs: one injected
+# instruction — in a fetched page, an issue, a dependency's README — only has to
+# print them, and a narrower token helps less than its absence. So the loop
+# belongs where none are set (loop/README.md "Credentials"). Checked after
+# loop/env.sh, whose exports count too. Names only, never values. The agent's own
+# login (ANTHROPIC_*, CLAUDE_*) is left out: the CLI needs it. Warn-only.
+CRED_RE='(^|_)(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIALS?)(_|$)'
+cred_vars="$(compgen -e | grep -E "$CRED_RE" | grep -vE '^(ANTHROPIC|CLAUDE)_' | sort | tr '\n' ' ')"
+if [[ -n "$cred_vars" ]]; then
+  echo ">> WARN credential-like variables are set; every command the agent runs can read them: ${cred_vars% }" >&2
+  echo "   Run the loop where they are not set (loop/README.md \"Credentials\")." >&2
+fi
+
 MODEL_FLAG=()
 [[ -n "$MODEL" ]] && MODEL_FLAG=(--model "$MODEL")
 

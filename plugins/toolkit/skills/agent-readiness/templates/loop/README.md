@@ -105,6 +105,27 @@ loop/loop.sh --continuous --model opus --skip-permissions --max-iterations 1000
 If the loop's child shells can't see your toolchain (verify fails with a spurious
 `GATE_FAILED`), create `loop/env.sh` to export `PATH`.
 
+### Credentials
+
+Everything in the loop's environment and home directory can be read by every
+command the agent runs. One injected instruction — in a fetched page, an issue, a
+dependency's README — only has to print it. A narrower token limits the damage
+less than you'd hope, because what a model can do with a "limited" token keeps
+growing. The structural fix is that the credential is not there:
+
+- Run an unattended loop in a container or VM whose environment and home hold no
+  cloud keys, API tokens or SSH keys beyond what this repo needs.
+- Let git push with a credential bound to this one repo when it is cloned (a
+  deploy key, or a credential helper scoped to the remote), not a token exported
+  in the environment.
+- Keep anything that needs a real credential — deploys, cloud changes, publishing
+  — behind the human-only boundary below. The loop hands back; a human runs it.
+
+`loop.sh` lists, by name only, the credential-like variables it sees at start
+(after `loop/env.sh`). The agent's own login (`ANTHROPIC_*`, `CLAUDE_*`) is left
+out; files such as `~/.aws/credentials` cannot be seen this way, which is why the
+container matters more than the warning.
+
 ## Completion markers (the harness dispatches on the last one the agent prints)
 
 | Marker | Meaning | Loop |

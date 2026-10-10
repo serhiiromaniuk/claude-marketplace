@@ -47,6 +47,16 @@ All notable changes to the `toolkit` plugin. Versions follow
   time when the loop's model changes, measured on a comparable task, and the
   result recorded in a decision record. Structural parts stay whatever the model.
 
+### Added — agent-readiness credential warning
+
+- **`loop.sh` names credential-like environment variables at start** (after
+  `loop/env.sh`; names only, never values; the agent's own `ANTHROPIC_*` /
+  `CLAUDE_*` login excluded). Anything in the loop's environment can be read by
+  every command the agent runs, and one injected instruction only has to print it.
+  `loop/README.md` gains a "Credentials" section: run unattended in a container or
+  VM that holds none, push with a credential bound to the repo at clone time, keep
+  real-credential work behind the human-only boundary. Warn-only; 4 new tests.
+
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
 - **Model and effort per role.** Every subagent template now sets `effort:` next to

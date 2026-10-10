@@ -236,6 +236,10 @@ prompt is [`loop/PROMPT.md`](loop/PROMPT.md); the harness is
   production credentials, production deploys, destructive infrastructure, and
   irreversible external actions. At these, stop (`<<LOOP:DONE>>` at the final
   milestone, else `<<LOOP:BLOCKED>>`) and hand back to a human.
+- **Credentials stay out of reach.** Anything in the loop's environment or home
+  can be read by every command the agent runs, so run it unattended where no
+  credentials are set; `loop.sh` names any it sees ([`loop/README.md`](loop/README.md)
+  "Credentials").
 
 ---
 

@@ -619,6 +619,18 @@ check "--model is passed through" has "$(cat "$FD/args")" '--model opus'
 seqs DONE
 lp
 check "no --model → no empty argument (bash 3.2 empty-array path)" lacks "$(cat "$FD/args")" '--model'
+
+seqs DONE
+LOOP_TEST_API_TOKEN="s3cr3t-value" lp
+check "a credential-like variable is named on stderr" has "$LE" 'LOOP_TEST_API_TOKEN'
+check "…but its value is never printed" lacks "$LO$LE" 's3cr3t-value'
+seqs DONE
+(cd "$L" && env -i HOME="$HOME" PATH="$ROOT/bin:$PATH" FAKE_DIR="$FD" LIMIT_WAIT=0 FAIL_BACKOFF=0 \
+  ANTHROPIC_API_KEY=x CLAUDE_CODE_OAUTH_TOKEN=x TOKENIZERS_PARALLELISM=false loop/loop.sh) \
+  >"$ROOT/lp.out" 2>"$ROOT/lp.err"
+eq "a clean environment still runs" "$? $(calls)" "0 1"
+check "…with no credential warning (the agent's own login and TOKENIZERS_* are not credentials here)" \
+  lacks "$(cat "$ROOT/lp.err")" 'credential-like'
 seqs DONE
 lp --dry-run
 eq "--dry-run runs nothing" "$? $(calls)" "0 0"
