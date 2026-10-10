@@ -78,7 +78,7 @@ an artifact another rule mandates, that gate is mis-scoped — cap P4 at 3 and c
 ls .claude/agents/ .cursor/skills* 2>/dev/null
 for f in .claude/agents/*.md; do echo "== $f"; sed -n '1,/^---$/p' "$f"; done 2>/dev/null  # roles + tool/model/effort scoping (whole frontmatter)
 grep -rilE 'planner|reviewer|verifier|adjudicator|adversarial' .claude/agents 2>/dev/null
-# the three P5 caps (rubric.md) — each grader must read what it grades:
+# the four P5 caps (rubric.md) — each grader must read what it grades:
 grep -lE 'INTENT|step.{0,20}(own )?text|acceptance criteria' .claude/agents/*review*.md 2>/dev/null | grep -vi plan  # reviewer judges the step (a plan-reviewer match does not count)
 grep -rlE 'step.{0,40}(text|acceptance)' loop .claude/commands AGENTS.md 2>/dev/null | head -3        # …and the caller hands it the step text
 ls .claude/agents/*plan*review*.md 2>/dev/null                                                      # a fresh PLAN.md is reviewed by someone

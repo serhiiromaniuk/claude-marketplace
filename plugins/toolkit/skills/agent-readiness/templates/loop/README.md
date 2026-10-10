@@ -122,7 +122,8 @@ growing. The structural fix is that the credential is not there:
   — behind the human-only boundary below. The loop hands back; a human runs it.
 
 `loop.sh` lists, by name only, the credential-like variables it sees at start
-(after `loop/env.sh`). The agent's own login (`ANTHROPIC_*`, `CLAUDE_*`) is left
+(after `loop/env.sh`) — a forwarded `SSH_AUTH_SOCK` among them, since it opens
+every host the agent's keys open. The agent's own login (`ANTHROPIC_*`, `CLAUDE_*`) is left
 out; files such as `~/.aws/credentials` cannot be seen this way, which is why the
 container matters more than the warning.
 
@@ -159,21 +160,28 @@ its own, and those assumptions go stale as models improve. Two kinds:
 
 - **Capability** — the model, alone, does this worse. These expire: re-test them
   when the loop's model changes.
-- **Structural** — no model fixes a conflict of interest, a lost process or a
-  leaked credential. Keep these whatever the model.
+- **Structural** — about the setup, not the model: a conflict of interest, a lost
+  process, a leaked credential, arithmetic no single branch can see. Keep these
+  whatever the model. A grader's *existence* is structural — the writer is never
+  its own judge, and `rubric.md` caps P5 without it — but its tier, model and
+  effort are capability, and tunable.
 
 | Part | Assumes | Kind | Stale when |
 |------|---------|------|------------|
 | `planner` | the driver under-scopes, or builds before it has specified the work | capability | plans the driver writes alone pass `plan-reviewer` with no HIGH, task after task |
-| `plan-reviewer` | plan defects surface only when executed | capability | several tasks in a row with no CRITICAL/HIGH from it and no mid-task `plan:` amendment |
-| `reviewer` before the commit | the writer misses its own bugs | capability, per class of step | a class of step (config, say) draws no CRITICAL/HIGH over many reviews — move it to the batched tier |
-| `close-reviewer` | a writer grades its own finished work leniently | capability | it passes close after close first time, and nothing it passed turns up later |
+| `plan-reviewer` | plan defects surface only when executed | structural; its model is capability | several tasks with no CRITICAL/HIGH from it — size its model down (`AGENTS.md` §10) |
+| `reviewer` | the writer misses its own bugs and grades its own work leniently | structural; which steps it sees before the commit is capability | a class of step (config, say) draws no CRITICAL/HIGH over many reviews — move that class to the batched tier |
+| `close-reviewer` | steps can each pass while the BRIEF stays unmet; a writer grades its finished work leniently | structural; its model is capability | it passes close after close first time and nothing it passed turns up later — size its model down |
+| `adjudicator` | the agent that wants to continue will argue its gate is wrong | structural | — |
 | one step per iteration | a long increment drifts and is hard to review | capability | batch steps and parallel groups keep passing review clean — let the planner size steps larger |
 | `verifier` | a deterministic gate needs a model to run it | capability — **already removed**: `step-done.sh` runs the gate | — |
-| `scout` on a mid-size model | breadth reading needs no top model | cost | its pages draw HIGH findings in the batched review — size it up (`AGENTS.md` §10) |
+| `scout` on a mid-size model | breadth reading needs no top model | capability (cost) | its pages draw HIGH findings in the batched review — size it up (`AGENTS.md` §10) |
 | fresh context per iteration | a crash, `/clear` or new day must never lose progress | structural | — |
 | `where.sh`, `entry-size-guard.sh` | the agent re-reads what it narrates, so control-plane prose grows every iteration | structural, measured | — |
-| `adjudicator` | the agent that wants to continue will argue its gate is wrong | structural | — |
+| `step-done.sh` | gate evidence retyped by the agent that wants green drifts toward green | structural | — |
+| `amendments-guard.sh` | a deferred finding nobody counts is a dropped one | structural | — |
+| `merge-gate.sh` | branches green alone can be red together | structural | — |
+| `--max-iterations` | an unattended loop needs a bound no agent can talk past | structural | — |
 | human-only boundary; no credentials in the loop's environment | an injected instruction can steer any model | structural | — |
 
 **Removing one:**

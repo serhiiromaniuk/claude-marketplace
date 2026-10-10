@@ -205,8 +205,11 @@ fi
 
 # ── 5. stage, scan, commit ───────────────────────────────────────────────────
 if [[ "$ALL" -eq 1 ]]; then git add -A; fi
-git add -- "$LOG"
-[[ "$TICK" -eq 1 ]] && git add -- "$PLAN"
+# PLAN.md is staged with --no-tick too: an increment that ticks nothing (a
+# close, a spec, an amendment fix) still owes the commit its own PLAN edits —
+# the amendments it appended, a `close-hold` tag. Left unstaged, they read as an
+# interrupted iteration next time, and the reconcile step may restore them away.
+git add -- "$LOG" "$PLAN"
 
 builtin_scan() { # forbidden paths and key-shaped strings in the staged diff; never prints a value
   local bad=0 f

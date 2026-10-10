@@ -51,7 +51,9 @@ share of review findings turn out false or imprecise. Read the lines you indict.
 The caller gives you the active `PLAN.md` step's own text — number, title, acceptance
 criteria. An increment no step covers comes with its own source instead — the BRIEF's
 What, Scope and Done-when for a spec, the `A<n>` line for an amendment fix — and you
-judge INTENT against that. For a **batched pass** (AGENTS §8: low-risk steps reviewed together, or a
+judge INTENT against that. For a spec, ask whether it specifies everything What, Scope
+and Done-when require and nothing outside Scope — not whether the spec itself meets
+Done-when. For a **batched pass** (AGENTS §8: low-risk steps reviewed together, or a
 parallel group) it gives a commit range (`git diff <base>..HEAD`) and every covered
 step's text; answer INTENT once per step (`INTENT 4: …`) and judge the batch as one
 change too — cross-document contradictions are the defect a per-step pass cannot

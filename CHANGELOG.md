@@ -10,10 +10,14 @@ All notable changes to the `toolkit` plugin. Versions follow
 - **A grader for the task close.** At `all_steps_done` the driver used to dispose of
   amendments, tick the BRIEF's done-when boxes and tag the milestone alone — the
   writer grading its own finished work. `close-reviewer` (opus/high) now runs
-  before any box is ticked: it re-runs each done-when check that changes nothing,
-  exercises the deliverable through its real entry point, greps for stubs, and
-  tests every `declined` amendment's reason. `VERDICT: hold` turns its findings
-  into open amendments for the next close; a third hold is the escape hatch.
+  before any box is ticked: it re-runs each done-when check that leaves
+  `git status` unchanged, exercises the deliverable through its real entry point,
+  greps for stubs, and tests the reason of every `declined` and `re-targeted`
+  amendment. A box only a human can check passes on the owner's record (a
+  `STATE.md` decision or a `human-verified` LOG line, which the loop may never
+  write; `close-reviewer` rejects one added in a loop commit). `VERDICT: hold` turns its
+  findings into open amendments numbered `close-hold <n>`; a third hold is the
+  escape hatch, and a hold on human-only boxes hands back with `BLOCKED`.
 - **Rubric:** a fourth P5 cap — a task closed by the agent that did the work, with
   no independent check of the BRIEF against the evidence. Re-running an audit on a
   repo without such a role can drop P5 to 3. `scan-playbook.md` probes for it.
@@ -41,9 +45,9 @@ All notable changes to the `toolkit` plugin. Versions follow
 ### Added — agent-readiness harness assumptions
 
 - **Each part of the loop now names the assumption it encodes.** `loop/README.md`
-  gains a table of every role and script, whether it covers a model weakness
-  (capability) or a conflict of interest, crash or credential risk (structural),
-  and the signal that it has gone stale. Capability parts are re-tested one at a
+  gains a table of every role and loop script, whether it covers a model weakness
+  (capability) or a property of the setup (structural: a grader's existence, crash
+  safety, credentials), and the signal that it has gone stale. Capability parts are re-tested one at a
   time when the loop's model changes, measured on a comparable task, and the
   result recorded in a decision record. Structural parts stay whatever the model.
 
@@ -51,11 +55,12 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 - **`loop.sh` names credential-like environment variables at start** (after
   `loop/env.sh`; names only, never values; the agent's own `ANTHROPIC_*` /
-  `CLAUDE_*` login excluded). Anything in the loop's environment can be read by
+  `CLAUDE_*` login excluded; `*_PAT`, `*_KEY`, `PGPASSWORD`, DSNs, `DATABASE_URL`
+  and a forwarded `SSH_AUTH_SOCK` included). Anything in the loop's environment can be read by
   every command the agent runs, and one injected instruction only has to print it.
   `loop/README.md` gains a "Credentials" section: run unattended in a container or
   VM that holds none, push with a credential bound to the repo at clone time, keep
-  real-credential work behind the human-only boundary. Warn-only; 4 new tests.
+  real-credential work behind the human-only boundary. Warn-only; 6 new tests.
 
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
@@ -64,7 +69,7 @@ All notable changes to the `toolkit` plugin. Versions follow
   `plan-reviewer` fable/high, `reviewer` opus/high, `adjudicator` fable/xhigh,
   `verifier` haiku/high. `AGENTS.md` §10 replaces its one-line note with a table of
   each role's model, effort, run frequency and reason, adds the loop driver and
-  read-only discovery workers (`sonnet`, passed per call from PROMPT §3), and lists
+  read-only discovery workers (now the `scout` role, sonnet/medium), and lists
   the frontmatter to avoid on graders (`isolation: worktree`, `memory:`,
   `omitClaudeMd`). Each template also gets a `color:` so the roles are told apart
   in the task list.
@@ -82,9 +87,14 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 - **Increments with no PLAN step now have a step text.** Writing the governing spec
   and fixing an amendment are increments no `PLAN.md` step covers, so the reviewer
-  had nothing to judge INTENT against. The spec is now reviewed as a risky step
-  against the BRIEF's What, Scope and Done-when; an amendment fix against its
-  `A<n>` line.
+  had nothing to judge INTENT against. The spec is now reviewed as a risky step:
+  does it specify everything the BRIEF's What, Scope and Done-when require, and
+  nothing outside Scope? An amendment fix is judged against its `A<n>` line. Both
+  commit with `step-done.sh --no-tick`; the spec used to tick PLAN step 1.
+- **`step-done.sh --no-tick` now stages `PLAN.md` as well.** Its header already said
+  it did. Without it, an increment that ticks nothing (a close, a spec, an
+  amendment fix) left its own amendments out of the commit. The next iteration
+  then saw a dirty tree and could restore them away. 2 new tests.
 - The P5 "reviewer judges the step" probe in `scan-playbook.md` matched
   `plan-reviewer.md` through the glob `*review*.md`, so a repo whose `reviewer` had
   no INTENT check still passed the cap. Plan-reviewer matches are now filtered out,

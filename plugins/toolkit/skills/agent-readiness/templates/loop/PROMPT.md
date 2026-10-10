@@ -59,24 +59,36 @@ row, and `git status --porcelain`. Then:
      (one batch with any other pending ones) and wait.
    - `.spec_stub == true` → the governing spec is still a stub. **Write it first —
      that IS this iteration.** No code precedes its spec. Review it as a risky
-     step (§4b): every later step follows it.
+     step (§4b): every later step follows it. Commit it with
+     `loop/step-done.sh --no-tick` — no PLAN step covers it.
    - `.all_steps_done == true` → close the task: run `make amendments` (or
      `loop/amendments-guard.sh`) and give every still-open deferred finding its
      disposition — in its PLAN entry and in `OUTCOME.md` `## Amendments` (fixed,
      re-targeted to a carry-forward, or declined with a reason; never dropped) —
-     then draft the rest of `OUTCOME.md`, proposing a calibration line for any
-     grader that was wrong this task (AGENTS.md §8b). Then spawn the **`close-reviewer`**
+     then draft the rest of `OUTCOME.md` — naming the carry-forwards this task
+     discharges, and proposing a calibration line for any grader that was wrong
+     this task (AGENTS.md §8b). Then spawn the **`close-reviewer`**
      (`.claude/agents/close-reviewer.md`): it re-runs the done-when checks,
      exercises the deliverable and hunts stubs — the writer never grades its own
-     finished work. On `VERDICT: close` → tick the BRIEF's done-when boxes, strike
-     any discharged carry-forward, put its MEDIUM findings in `OUTCOME.md`
-     `## Pending / Follow-up`, check the phase gate, and emit the right marker
-     per §7. On `hold` → append each CRITICAL/HIGH/UNVERIFIED item to
-     `## Amendments` as an open `A<n>` entry, tick nothing, commit
-     (`loop/step-done.sh --no-tick`), and emit
-     `<<LOOP:CONTINUE>>`: the next close fixes them (each fix reviewed per §4b)
-     and asks again. An UNVERIFIED item that needs a human is `<<LOOP:BLOCKED>>`;
-     a third `hold` is the §6 escape hatch.
+     finished work. Restore any file it reports as `TREE-CHANGED`.
+     - `VERDICT: close` → tick the BRIEF's done-when boxes, strike the discharged
+       carry-forwards, put its MEDIUM findings in `OUTCOME.md`
+       `## Pending / Follow-up`, check the phase gate, and emit the right marker
+       per §7.
+     - `hold` with findings → append every CRITICAL/HIGH/MEDIUM finding to
+       `## Amendments` as an open `A<n>` entry tagged `· close-hold <n>` (n = one
+       more than the highest `close-hold` already in `PLAN.md`), tick nothing,
+       `git add` the `OUTCOME.md` draft, commit with `loop/step-done.sh
+       --no-tick` (it stages `LOG.md` and `PLAN.md`), and emit `<<LOOP:CONTINUE>>`.
+       The next close fixes them — each fix reviewed per §4b and committed with
+       `--no-tick` — then asks again. When n would reach 3, that is the §6
+       escape hatch: record the findings, then `<<LOOP:BLOCKED>>`.
+     - `hold` on UNVERIFIED boxes only → commit the draft the same way, then
+       `<<LOOP:BLOCKED>>` naming what the owner must check. The owner writes and
+       commits their own record — a `STATE.md` decision line, or a LOG line
+       `human-verified <date>: <what> → <result>` — and it clears the box at the
+       next close. **You never write either line**: a sign-off the driver wrote is
+       the writer grading itself again.
    - `.parallel_steps` has more than one entry → the step opens a parallel
      group: do the whole group as this increment (§3, AGENTS.md §8a).
    - otherwise → do step `.step` of `.steps`, titled `.step_title`.
@@ -146,8 +158,9 @@ How to run it — **pipelined, never skipped:**
    **THIS STEP'S OWN TEXT** — number, title, acceptance criteria, verbatim from
    `PLAN.md` (for a batch: the commit range `@{u}..HEAD` and every covered step's
    text). An increment no PLAN step covers passes its own source instead: the
-   BRIEF's What, Scope and Done-when for a spec, the `A<n>` line for an amendment
-   fix. It answers `INTENT: satisfied | shortfall | creep` before the rule
+   BRIEF's What, Scope and Done-when for a spec (does the spec cover all they
+   require, and nothing outside Scope?), the `A<n>` line for an amendment fix. It
+   answers `INTENT: satisfied | shortfall | creep` before the rule
    audit. Without the step text the only judge of "did this increment do what
    step N said" is you, the writer.
 2. While it runs, write the step's `LOG.md` entry (§5). Do not start the next step.

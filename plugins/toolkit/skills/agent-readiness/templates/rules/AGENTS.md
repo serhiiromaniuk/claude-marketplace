@@ -366,7 +366,7 @@ live in [`.claude/agents/`](.claude/agents/):
 | `verifier` | *optional* — run a check that needs judgment (smoke run, thresholds) and report pass/fail **with evidence**, no edits | any |
 | `adjudicator` | rule whether a failing hard gate is itself wrong | on a gate failure |
 | `scout` | discover one area read-only and write one sourced page (findings, gaps, open questions) | research / design tasks |
-| `close-reviewer` | audit a task close before done-when is ticked — re-run the checks, exercise the deliverable, hunt stubs, test each declined amendment | task close |
+| `close-reviewer` | audit a task close before done-when is ticked — re-run the checks, exercise the deliverable, hunt stubs, test each declined or re-targeted amendment | task close |
 
 Patterns: **parallelize independent reads**; **evaluator-optimizer** =
 `reviewer`/`verifier` checking the builder's output in a fresh context so the
@@ -530,6 +530,8 @@ was independent, and to fixed per-step ceremony paid once per step.
   `loop/step-done.sh` would have written it.
 - Lowering a gate threshold, or skipping the foundation phase, to "make progress".
 - Editing a grader's prompt or `## Calibration` from inside the loop (§8b).
+- Writing an owner's sign-off — a `human-verified` LOG line or an owner decision
+  in `STATE.md` — from inside the loop. Only the owner records their own check.
 - Running an unbounded loop, or thrashing on a failing step past the 3-try hatch.
 - Batching unrelated changes into one commit, or letting the remote lag.
 - Importing a vendor SDK outside its adapter, or reading config outside the one

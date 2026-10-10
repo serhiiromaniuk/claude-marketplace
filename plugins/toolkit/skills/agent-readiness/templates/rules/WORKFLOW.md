@@ -161,9 +161,9 @@ observed-green.
 
 When every step is checked and the gate is satisfied, draft **OUTCOME.md**, then
 spawn the `close-reviewer` before ticking any done-when box. It re-runs the
-checks, opens the foundation doc as its reader would, and tests each declined
-amendment; a `hold` turns its findings into open amendments for the next
-iteration. Only after `VERDICT: close` is the outcome final:
+checks, opens the foundation doc as its reader would, and tests each declined or
+re-targeted amendment; a `hold` with findings turns them into open amendments
+for the next iteration. The draft:
 ```markdown
 # Outcome
 ## Summary
@@ -186,11 +186,13 @@ deps. <feasibility verdict>.
 - <anything worth remembering>
 ```
 
-This phase's gate includes a **human** review (golden rule #6), so it has not
-passed yet and nothing is tagged: set `loop/STATE.md` **Blocked?** to
+This phase's done-when includes a **human** review (golden rule #6). The
+`close-reviewer` reports that box UNVERIFIED until the owner's approval is on
+record, so nothing is ticked or tagged yet: set `loop/STATE.md` **Blocked?** to
 `yes — awaiting review of the foundation doc` and emit `<<LOOP:BLOCKED>>` naming
 the review. Once the owner records the approval (a `STATE.md` decision line), the
-next iteration finishes the close **in this order**: tag the milestone
+next iteration re-runs the close; the `close-reviewer` accepts the record, and on
+`VERDICT: close` the iteration finishes **in this order**: tag the milestone
 (`git tag v0.1-<name> && git push --tags`), set `tasks/INDEX.md` → `done`, open
 the Phase 2 task from `_template/`, and only then emit `<<LOOP:PHASE_COMPLETE>>`.
 A phase whose gate is fully objective (`make check` green, acceptance criteria

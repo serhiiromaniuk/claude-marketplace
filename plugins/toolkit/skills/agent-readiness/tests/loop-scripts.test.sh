@@ -391,6 +391,11 @@ check "--no-tick commits the LOG evidence and leaves PLAN alone" \
   test $? -eq 0 -a "$(sd log -1 --format=%s)" = "docs: no tick"
 cmp -s "$PLAN" "$ROOT/plan.before"
 check "…PLAN unchanged" test $? -eq 0
+printf -- '- A9 · 2026-10-10 · MEDIUM `x:1` — t · close-hold 1 · disposition: open\n' >>"$PLAN"
+(cd "$S" && loop/step-done.sh --commit "docs: hold" --no-tick >/dev/null 2>&1)
+check "--no-tick still commits the PLAN edits the increment made (an amendment)" \
+  grep -q 'PLAN.md' <<<"$(sd show --name-only --format= HEAD)"
+check "…and leaves the tree clean" test -z "$(sd status --porcelain -- tasks)"
 
 echo "untracked" >"$S/docs/untracked.md"
 (cd "$S" && loop/step-done.sh --commit "docs: all" --all >/dev/null 2>&1)
@@ -624,6 +629,10 @@ seqs DONE
 LOOP_TEST_API_TOKEN="s3cr3t-value" lp
 check "a credential-like variable is named on stderr" has "$LE" 'LOOP_TEST_API_TOKEN'
 check "…but its value is never printed" lacks "$LO$LE" 's3cr3t-value'
+seqs DONE
+PGPASSWORD="pg-v4lue" MYSQL_PWD=x lp
+check "PGPASSWORD (no separator) and MYSQL_PWD are named too" grep -qE 'MYSQL_PWD.*PGPASSWORD' <<<"$LE"
+check "…without their values" lacks "$LO$LE" 'pg-v4lue'
 seqs DONE
 (cd "$L" && env -i HOME="$HOME" PATH="$ROOT/bin:$PATH" FAKE_DIR="$FD" LIMIT_WAIT=0 FAIL_BACKOFF=0 \
   ANTHROPIC_API_KEY=x CLAUDE_CODE_OAUTH_TOKEN=x TOKENIZERS_PARALLELISM=false loop/loop.sh) \
