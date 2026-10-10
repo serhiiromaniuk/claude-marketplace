@@ -20,8 +20,9 @@ the ratchet that keeps it that way. See `reference/ratchets.md` §"Control-plane
 prose" in the `agent-readiness` skill for the numbers.
 
 Why it fits this repo: the work is long, gated, and correctness-sensitive. A
-fresh context per step avoids context rot, and the filesystem-as-memory model
-means a crash, a `/clear`, or a new day never loses progress.
+fresh context per step keeps each increment small enough to review, and the
+filesystem-as-memory model means a crash, a `/clear`, or a new day never loses
+progress — both hold however well the model handles a long context.
 
 ## Files
 
@@ -129,3 +130,39 @@ milestones and crosses code-phase gates autonomously, but stops with
 `<<LOOP:BLOCKED>>` whenever a next step would cross that boundary, and with
 `<<LOOP:DONE>>` when the project goal is reached. See [`../AGENTS.md`](../AGENTS.md)
 §4 and §6.
+
+## What each part assumes — and when to remove it
+
+Every part of a harness encodes an assumption about what the model cannot do on
+its own, and those assumptions go stale as models improve. Two kinds:
+
+- **Capability** — the model, alone, does this worse. These expire: re-test them
+  when the loop's model changes.
+- **Structural** — no model fixes a conflict of interest, a lost process or a
+  leaked credential. Keep these whatever the model.
+
+| Part | Assumes | Kind | Stale when |
+|------|---------|------|------------|
+| `planner` | the driver under-scopes, or builds before it has specified the work | capability | plans the driver writes alone pass `plan-reviewer` with no HIGH, task after task |
+| `plan-reviewer` | plan defects surface only when executed | capability | several tasks in a row with no CRITICAL/HIGH from it and no mid-task `plan:` amendment |
+| `reviewer` before the commit | the writer misses its own bugs | capability, per class of step | a class of step (config, say) draws no CRITICAL/HIGH over many reviews — move it to the batched tier |
+| `close-reviewer` | a writer grades its own finished work leniently | capability | it passes close after close first time, and nothing it passed turns up later |
+| one step per iteration | a long increment drifts and is hard to review | capability | batch steps and parallel groups keep passing review clean — let the planner size steps larger |
+| `verifier` | a deterministic gate needs a model to run it | capability — **already removed**: `step-done.sh` runs the gate | — |
+| `scout` on a mid-size model | breadth reading needs no top model | cost | its pages draw HIGH findings in the batched review — size it up (`AGENTS.md` §10) |
+| fresh context per iteration | a crash, `/clear` or new day must never lose progress | structural | — |
+| `where.sh`, `entry-size-guard.sh` | the agent re-reads what it narrates, so control-plane prose grows every iteration | structural, measured | — |
+| `adjudicator` | the agent that wants to continue will argue its gate is wrong | structural | — |
+| human-only boundary; no credentials in the loop's environment | an injected instruction can steer any model | structural | — |
+
+**Removing one:**
+1. One part at a time. Remove several at once and you lose which one was
+   load-bearing.
+2. Run a comparable task with and without it. Compare defects found after the
+   close, iteration wall time and cost.
+3. Record the result as a decision record, the way the `verifier` became
+   optional once `step-done.sh` ran the gate.
+4. Never remove a structural part for a capability reason.
+
+The space of useful parts does not shrink as models improve; it moves. A stronger
+model takes on harder tasks, and those may need a part this table does not have yet.

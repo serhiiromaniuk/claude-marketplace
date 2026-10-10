@@ -38,6 +38,15 @@ All notable changes to the `toolkit` plugin. Versions follow
 - **The reviewer may not talk itself out of a verified finding.** "Minor",
   "probably fine" and "can be fixed later" are named as the writer's arguments.
 
+### Added — agent-readiness harness assumptions
+
+- **Each part of the loop now names the assumption it encodes.** `loop/README.md`
+  gains a table of every role and script, whether it covers a model weakness
+  (capability) or a conflict of interest, crash or credential risk (structural),
+  and the signal that it has gone stale. Capability parts are re-tested one at a
+  time when the loop's model changes, measured on a comparable task, and the
+  result recorded in a decision record. Structural parts stay whatever the model.
+
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
 - **Model and effort per role.** Every subagent template now sets `effort:` next to
