@@ -22,3 +22,7 @@ What was achieved, in 2–4 sentences.
 
 ## Lessons / Notes
 What's worth remembering next time (gotchas, dead ends, decisions and why).
+
+<!-- Calibration proposals for the owner (AGENTS.md §8b), one per clear case:
+       - <grader> · missed|false: <the kind of defect> — <why>
+     The owner copies the ones they agree with into the grader's file. -->

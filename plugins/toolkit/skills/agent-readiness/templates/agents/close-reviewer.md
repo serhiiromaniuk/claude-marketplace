@@ -68,3 +68,15 @@ UNVERIFIED <done-when box> — <why it could not be checked; what a human must r
 
 Then one tally line. `close` only with no CRITICAL, no HIGH and no UNVERIFIED box.
 No preamble, no praise, no restating the BRIEF. You never edit a file.
+
+## Calibration
+
+Cases where your judgment and the owner's diverged. Treat each as a worked
+example: flag the kind of defect a `missed:` line passed, and do not raise a
+finding on the grounds a `false:` line was wrong about.
+
+<!-- One line each, newest last, at most ten — replace the least useful. The
+     owner adds them from the OUTCOME.md proposals (AGENTS.md §8b):
+       - <date> · missed: <the kind of defect passed> — <what should have flagged it>
+       - <date> · false: <the kind of finding raised> — <why it was wrong>
+     Write the kind of defect, not the file: a line names a pattern. -->

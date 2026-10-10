@@ -63,3 +63,15 @@ LOW      <id> PLAN.md:line — …
 
 Then one tally line. No preamble, no praise, no restating the plan. If the plan is
 sound, say exactly that in one line. You never edit a file.
+
+## Calibration
+
+Cases where your judgment and the owner's diverged. Treat each as a worked
+example: flag the kind of defect a `missed:` line passed, and do not raise a
+finding on the grounds a `false:` line was wrong about.
+
+<!-- One line each, newest last, at most ten — replace the least useful. The
+     owner adds them from the OUTCOME.md proposals (AGENTS.md §8b):
+       - <date> · missed: <the kind of defect passed> — <what should have flagged it>
+       - <date> · false: <the kind of finding raised> — <why it was wrong>
+     Write the kind of defect, not the file: a line names a pattern. -->

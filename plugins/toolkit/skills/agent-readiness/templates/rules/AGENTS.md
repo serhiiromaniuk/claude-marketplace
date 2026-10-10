@@ -436,6 +436,24 @@ unsure, sequence it.
 The reviewer will always find *something*; act only on gaps that affect
 correctness or a stated requirement, not on style or speculative hardening.
 
+### 8b. Calibrate the graders — from their misses, by the owner
+
+A separate grader is far easier to make skeptical than a writer is to make
+self-critical — but only if its verdicts are read against what happened. Graders
+are tuned from the cases where they were wrong:
+
+- A CRITICAL/HIGH finding the driver rejects after reading the cited source is
+  logged as `rejected — <why it is false>`; a defect found after a grader passed
+  it (by a later step, the `close-reviewer`, or the owner) is logged naming that
+  grader.
+- At the close, the driver proposes one line per clear case in `OUTCOME.md`
+  `## Lessons / Notes`: `<grader> · missed|false: <the kind of defect> — <why>`.
+- The **owner** adds the lines they agree with to that grader's `## Calibration`
+  section (ten at most per grader). The agent being graded never edits its
+  grader — a writer that tunes its own reviewer has made itself the judge again.
+- A grader that repeats a calibrated mistake needs its prompt changed or its
+  model sized up (§10), not an eleventh line.
+
 ---
 
 ## 9. Multi-perspective review (before any significant or risky change)
@@ -507,6 +525,7 @@ was independent, and to fixed per-step ceremony paid once per step.
 - Pushing a commit no reviewer has seen, or retyping gate output by hand when
   `loop/step-done.sh` would have written it.
 - Lowering a gate threshold, or skipping the foundation phase, to "make progress".
+- Editing a grader's prompt or `## Calibration` from inside the loop (§8b).
 - Running an unbounded loop, or thrashing on a failing step past the 3-try hatch.
 - Batching unrelated changes into one commit, or letting the remote lag.
 - Importing a vendor SDK outside its adapter, or reading config outside the one

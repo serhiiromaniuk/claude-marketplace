@@ -27,6 +27,17 @@ All notable changes to the `toolkit` plugin. Versions follow
   its area — and never touches `LOG.md`, `PLAN.md` or another page. The model and
   tool scope now live in the file, so the driver cannot forget them.
 
+### Added — agent-readiness grader calibration
+
+- **Graders are tuned from their misses.** `reviewer`, `plan-reviewer` and
+  `close-reviewer` get a `## Calibration` section of worked `missed:` / `false:`
+  cases. A finding the driver rejects is logged `rejected — <why it is false>`, the
+  close proposes calibration lines in `OUTCOME.md`, and only the owner adds them —
+  the agent being graded never edits its grader (`AGENTS.md` §8b, a new
+  anti-pattern in §11).
+- **The reviewer may not talk itself out of a verified finding.** "Minor",
+  "probably fine" and "can be fixed later" are named as the writer's arguments.
+
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
 - **Model and effort per role.** Every subagent template now sets `effort:` next to

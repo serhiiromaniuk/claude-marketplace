@@ -99,4 +99,18 @@ Severity is a contract, not a flavour: the caller fixes CRITICAL/HIGH before the
 commit (before the push, for a batched pass) and defers MEDIUM to the PLAN's
 `## Amendments` as `- A<n> … · disposition: open` entries (PROMPT §4b). Rank by
 what breaks if it ships, and never inflate a MEDIUM to get it fixed this turn — nor
-deflate a HIGH to fit the cap.
+deflate a HIGH to fit the cap. Never talk yourself out of a finding you verified:
+"minor", "probably fine" and "can be fixed later" are the writer's arguments, not
+yours.
+
+## Calibration
+
+Cases where your judgment and the owner's diverged. Treat each as a worked
+example: flag the kind of defect a `missed:` line passed, and do not raise a
+finding on the grounds a `false:` line was wrong about.
+
+<!-- One line each, newest last, at most ten — replace the least useful. The
+     owner adds them from the OUTCOME.md proposals (AGENTS.md §8b):
+       - <date> · missed: <the kind of defect passed> — <what should have flagged it>
+       - <date> · false: <the kind of finding raised> — <why it was wrong>
+     Write the kind of defect, not the file: a line names a pattern. -->

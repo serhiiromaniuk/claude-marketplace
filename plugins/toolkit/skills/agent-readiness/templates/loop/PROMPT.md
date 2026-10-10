@@ -64,7 +64,8 @@ row, and `git status --porcelain`. Then:
      `loop/amendments-guard.sh`) and give every still-open deferred finding its
      disposition — in its PLAN entry and in `OUTCOME.md` `## Amendments` (fixed,
      re-targeted to a carry-forward, or declined with a reason; never dropped) —
-     then draft the rest of `OUTCOME.md`. Then spawn the **`close-reviewer`**
+     then draft the rest of `OUTCOME.md`, proposing a calibration line for any
+     grader that was wrong this task (AGENTS.md §8b). Then spawn the **`close-reviewer`**
      (`.claude/agents/close-reviewer.md`): it re-runs the done-when checks,
      exercises the deliverable and hunts stubs — the writer never grades its own
      finished work. On `VERDICT: close` → tick the BRIEF's done-when boxes, strike
@@ -161,7 +162,8 @@ How to run it — **pipelined, never skipped:**
      ``- A<n> · <date> · MEDIUM `<file:line>` — <the finding> · disposition: open``.
      A disposition, not a dismissal: `make amendments` counts the open ones, and
      the task close settles each.
-   - Record every disposition in `LOG.md` (fixed / deferred to amendment A<n>).
+   - Record every disposition in `LOG.md` (fixed / deferred to amendment A<n> /
+     `rejected — <why it is false>`, only after reading the source it cites).
    - A **second** pass is warranted only when a CRITICAL/HIGH fix changed logic —
      re-review that fix, not the whole diff. Otherwise stop at one.
 4. Close with `loop/step-done.sh` (§5): it re-runs the gate on the final tree and
