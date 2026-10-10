@@ -18,6 +18,15 @@ All notable changes to the `toolkit` plugin. Versions follow
   no independent check of the BRIEF against the evidence. Re-running an audit on a
   repo without such a role can drop P5 to 3. `scan-playbook.md` probes for it.
 
+### Added — agent-readiness `scout`
+
+- **A defined role for read-only discovery.** Each step of a discovery group now
+  goes to a `scout` (sonnet/medium; Read, Grep, Glob, Bash, Write, WebFetch,
+  WebSearch) instead of a general-purpose worker on the driver's model. It writes
+  exactly one page — sourced findings, gaps, open questions, a recommendation for
+  its area — and never touches `LOG.md`, `PLAN.md` or another page. The model and
+  tool scope now live in the file, so the driver cannot forget them.
+
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
 - **Model and effort per role.** Every subagent template now sets `effort:` next to

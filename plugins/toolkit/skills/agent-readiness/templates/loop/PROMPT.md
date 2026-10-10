@@ -104,7 +104,7 @@ reading the whole control plane.
 - **A parallel group is one increment** (`.parallel_steps`, AGENTS.md §8a): fan
   out one subagent per step — read-only discovery or disjoint new files in the
   same tree, anything else on its own branch in its own worktree; a read-only
-  discovery worker runs on `model: "sonnet"` (AGENTS.md §10) — then
+  discovery step goes to the **`scout`** subagent — then
   `loop/merge-gate.sh <branches>`, merge, ONE batched reviewer pass with every
   step's text, one LOG entry per step, and `loop/step-done.sh --steps "<N M …>"`.
 - If the step is genuinely too big for one increment, split it: append an

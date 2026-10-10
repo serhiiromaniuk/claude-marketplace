@@ -38,7 +38,7 @@ Produce a `PLAN.md` (use `tasks/_template/PLAN.md`) where:
   shared-state-changing step. Keep a group ≤ 4 steps.
 - **Research-heavy tasks fan out.** When the task is discovery or design, the
   first group is one read-only discovery step per area (inventory, data,
-  network, dependencies…), each writing its own page or section; independent
+  network, dependencies…), each run by a `scout` and writing its own page; independent
   decision records are a second group, drafted side by side. One batched
   reviewer pass over each group catches the cross-document contradictions a
   per-step pass cannot. Done serially, this phase can take a large share of

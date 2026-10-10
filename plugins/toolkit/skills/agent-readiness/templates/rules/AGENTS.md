@@ -75,7 +75,7 @@ loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh ·
                         entry-size-guard.sh · amendments-guard.sh · merge-gate.sh ·
                         STATE.md
 tasks/                per-phase BRIEF/PLAN/LOG/OUTCOME folders + INDEX.md ledger
-.claude/agents/       specialist subagents (planner, plan-reviewer, reviewer, close-reviewer, adjudicator; verifier optional)
+.claude/agents/       specialist subagents (planner, plan-reviewer, reviewer, close-reviewer, adjudicator, scout; verifier optional)
 .claude/commands/     slash-command shortcuts (/loop-step, /where)
 CLAUDE.md             @-imports RULES.md and AGENTS.md, so every session and subagent has them
 RULES.md              governance: golden rules, architecture, conventions, git
@@ -361,6 +361,7 @@ live in [`.claude/agents/`](.claude/agents/):
 | `reviewer` | audit a diff (or a batch of commits) in a **fresh context** against the step text, the golden rules + correctness, report gaps only | any |
 | `verifier` | *optional* — run a check that needs judgment (smoke run, thresholds) and report pass/fail **with evidence**, no edits | any |
 | `adjudicator` | rule whether a failing hard gate is itself wrong | on a gate failure |
+| `scout` | discover one area read-only and write one sourced page (findings, gaps, open questions) | research / design tasks |
 | `close-reviewer` | audit a task close before done-when is ticked — re-run the checks, exercise the deliverable, hunt stubs, test each declined amendment | task close |
 
 Patterns: **parallelize independent reads**; **evaluator-optimizer** =
@@ -401,9 +402,10 @@ can't collide.
 **How a `[parallel: X]` group runs** (the planner tags it; `where.sh` reports it
 as `.parallel_steps`; the group is ONE increment):
 
-1. Fan out one subagent per step, launched together. Read-only discovery and
-   steps that only create their own new files run in the same tree; anything
-   else gets its own branch in its own git worktree (§7).
+1. Fan out one subagent per step, launched together. A read-only discovery step
+   goes to a `scout` (one area, one sourced page, nothing else written). Steps
+   that only create their own new files run in the same tree; anything else gets
+   its own branch in its own git worktree (§7).
 2. Subagents deliver their step's files only — never `LOG.md`, `PLAN.md` or a
    shared index row. Branches go through `loop/merge-gate.sh <branches>` (the
    gate on the MERGED tree), then merge.
@@ -413,7 +415,7 @@ as `.parallel_steps`; the group is ONE increment):
    `loop/step-done.sh --steps "<N M …>"` ticks the group together.
 
 **Research-heavy tasks** open with such a group: one read-only discovery area per
-subagent, each writing its own page, then the decision records drafted side by
+`scout`, each writing its own page, then the decision records drafted side by
 side. Done serially, that phase can dominate the whole run.
 
 This does **not** override §1's simplicity rule: map the dependencies first and
@@ -477,7 +479,8 @@ was independent, and to fixed per-step ceremony paid once per step.
   | `close-reviewer` | `opus` | `high` | once per close | checks evidence and runs the deliverable; a stronger model adds little to that |
   | `adjudicator` | `fable` | `xhigh` | rarely — a gate failed at ≥3 checkpoints | its ruling can move a threshold, so the per-row arithmetic must hold |
   | `verifier` (optional) | `haiku` | `high` | only checks that need judgment | reads output against written thresholds; the smallest model, thinking hard, still costs little |
-  | parallel-group workers | `sonnet` (the call's `model`) | inherited | read-only discovery steps (§8a) | breadth reading; the batched `reviewer` checks what they write |
+  | `scout` | `sonnet` | `medium` | each read-only discovery step (§8a) | breadth reading with sources; the batched `reviewer` checks every page together |
+  | other parallel-group workers | inherited | inherited | steps that write files | the same work the driver would do, so the driver's model |
 
   Move a role up or down on evidence, not by habit: `verifier` → `sonnet` when its
   output needs real interpretation; `reviewer` → `fable` when its findings keep

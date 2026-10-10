@@ -83,7 +83,7 @@ at `${CLAUDE_PLUGIN_ROOT}/skills/agent-readiness/templates` — copy from there;
   parallel — with `--output-sync=target` on GNU make ≥ 4.0, interleaved output on older make) plus the
   `where` / `loop-hygiene` / `step-done` / `amendments` targets. Install the graders
   together — `templates/agents/{planner,reviewer,plan-reviewer,close-reviewer,adjudicator}.md`, plus
-  `verifier.md` when a step's check needs judgment (it is optional: the deterministic
+  `scout.md` for read-only discovery steps, and `verifier.md` when a step's check needs judgment (it is optional: the deterministic
   gate is run by `step-done.sh`) — since PROMPT §1/§4b/§7 dispatch them, and
   `templates/loop/step-done.sh`, `amendments-guard.sh` + `merge-gate.sh` alongside the
   other two scripts. **Install `templates/loop/where.sh` +

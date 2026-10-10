@@ -14,7 +14,7 @@ Quick map of the moving parts:
 | This walkthrough | `WORKFLOW.md` | the example |
 | Loop engine | [`loop/`](loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `step-done.sh` (close an increment), `entry-size-guard.sh`, `amendments-guard.sh`, `merge-gate.sh`, `STATE.md` |
 | Memory | [`tasks/`](tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
-| Specialists | [`.claude/agents/`](.claude/agents/) | planner, plan-reviewer, reviewer, close-reviewer, adjudicator, verifier (optional) |
+| Specialists | [`.claude/agents/`](.claude/agents/) | planner, plan-reviewer, reviewer, close-reviewer, adjudicator, scout, verifier (optional) |
 | Shortcuts | [`.claude/commands/`](.claude/commands/) | `/where`, `/loop-step` |
 
 ---
@@ -127,7 +127,7 @@ Each iteration = **one step → verify → review → log → `step-done.sh` →
 (AGENTS.md §4). A `[parallel: A]` group is one iteration (AGENTS.md §8a):
 
 ```text
-where.sh: .parallel_steps = [1,2,3] → spawn three discovery subagents in ONE
+where.sh: .parallel_steps = [1,2,3] → spawn three `scout` subagents in ONE
 turn, one page each → one batched reviewer pass over the three pages →
 one LOG entry per step → loop/step-done.sh --steps "1 2 3" --commit "docs(…): …"
 ```
