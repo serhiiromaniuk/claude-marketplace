@@ -50,6 +50,11 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ### Fixed — agent-readiness
 
+- **Increments with no PLAN step now have a step text.** Writing the governing spec
+  and fixing an amendment are increments no `PLAN.md` step covers, so the reviewer
+  had nothing to judge INTENT against. The spec is now reviewed as a risky step
+  against the BRIEF's What, Scope and Done-when; an amendment fix against its
+  `A<n>` line.
 - The P5 "reviewer judges the step" probe in `scan-playbook.md` matched
   `plan-reviewer.md` through the glob `*review*.md`, so a repo whose `reviewer` had
   no INTENT check still passed the cap. Plan-reviewer matches are now filtered out,

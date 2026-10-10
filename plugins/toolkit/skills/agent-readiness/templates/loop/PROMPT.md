@@ -58,7 +58,8 @@ row, and `git status --porcelain`. Then:
      the loop: `<<LOOP:BLOCKED>>` naming the questions. Interactively: ask them
      (one batch with any other pending ones) and wait.
    - `.spec_stub == true` → the governing spec is still a stub. **Write it first —
-     that IS this iteration.** No code precedes its spec.
+     that IS this iteration.** No code precedes its spec. Review it as a risky
+     step (§4b): every later step follows it.
    - `.all_steps_done == true` → close the task: run `make amendments` (or
      `loop/amendments-guard.sh`) and give every still-open deferred finding its
      disposition — in its PLAN entry and in `OUTCOME.md` `## Amendments` (fixed,
@@ -143,7 +144,9 @@ How to run it — **pipelined, never skipped:**
    (`.claude/agents/reviewer.md`) **in the background** in a fresh context, and give it
    **THIS STEP'S OWN TEXT** — number, title, acceptance criteria, verbatim from
    `PLAN.md` (for a batch: the commit range `@{u}..HEAD` and every covered step's
-   text). It answers `INTENT: satisfied | shortfall | creep` before the rule
+   text). An increment no PLAN step covers passes its own source instead: the
+   BRIEF's What, Scope and Done-when for a spec, the `A<n>` line for an amendment
+   fix. It answers `INTENT: satisfied | shortfall | creep` before the rule
    audit. Without the step text the only judge of "did this increment do what
    step N said" is you, the writer.
 2. While it runs, write the step's `LOG.md` entry (§5). Do not start the next step.
