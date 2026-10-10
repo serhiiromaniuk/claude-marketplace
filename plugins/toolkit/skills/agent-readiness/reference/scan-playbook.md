@@ -76,10 +76,10 @@ an artifact another rule mandates, that gate is mis-scoped — cap P4 at 3 and c
 **P5 Role-specialized subagents**
 ```bash
 ls .claude/agents/ .cursor/skills* 2>/dev/null
-for f in .claude/agents/*.md; do echo "== $f"; sed -n '1,6p' "$f"; done 2>/dev/null    # roles + tool/model scoping
+for f in .claude/agents/*.md; do echo "== $f"; sed -n '1,/^---$/p' "$f"; done 2>/dev/null  # roles + tool/model/effort scoping (whole frontmatter)
 grep -rilE 'planner|reviewer|verifier|adjudicator|adversarial' .claude/agents 2>/dev/null
 # the three P5 caps (rubric.md) — each grader must read what it grades:
-grep -lE 'INTENT|step.{0,20}(own )?text|acceptance criteria' .claude/agents/*review*.md 2>/dev/null  # reviewer judges the step, not only the diff
+grep -lE 'INTENT|step.{0,20}(own )?text|acceptance criteria' .claude/agents/*review*.md 2>/dev/null | grep -vi plan  # reviewer judges the step (a plan-reviewer match does not count)
 grep -rlE 'step.{0,40}(text|acceptance)' loop .claude/commands AGENTS.md 2>/dev/null | head -3        # …and the caller hands it the step text
 ls .claude/agents/*plan*review*.md 2>/dev/null                                                      # a fresh PLAN.md is reviewed by someone
 grep -rlE 'plan-reviewer' loop .claude/commands AGENTS.md 2>/dev/null | head -3                     # …and the loop invokes it
@@ -87,6 +87,8 @@ ls .claude/agents/*adjudicat*.md 2>/dev/null                                    
 grep -rlE 'decision record|ADR' .claude/agents/*adjudicat*.md AGENTS.md 2>/dev/null | head -3       # …that only a committed record can act on
 ```
 Several roles with tool scoping → 3; adversarial reviewer + model-per-role + invoked by the loop → 4.
+A grader with `model:` but no `effort:` inherits the session's effort — note it as a finding
+(`templates/rules/AGENTS.md` §10), not a cap.
 Apply the **P5 caps** from `rubric/rubric.md` from the last six probes: no reviewer that gets the
 step text, no plan review, or no independent gate adjudication each caps P5 at 3.
 

@@ -461,10 +461,32 @@ was independent, and to fixed per-step ceremony paid once per step.
   `step-done.sh` to close a step, a parallel `make check`.
 - **Right-size steps:** a batch step for trivial items one check proves; review
   by risk (§8), not by ritual.
-- **Models are sized per role** in `.claude/agents/` (strongest reasoner for plan
-  review and adjudication, a strong one for planning and review, a small one for
-  a verifier that only runs commands). In Claude Code, `/fast` speeds up the
-  main session's output on the same model — useful for long mechanical stretches.
+- **Model and effort are sized per role**, in each `.claude/agents/*.md`
+  frontmatter (`model:` + `effort:`). Both are set explicitly: a subagent without
+  them inherits the session's, so a session at low effort would grade at low
+  effort.
+
+  | Who | Model | Effort | Runs | Why this size |
+  |-----|-------|--------|------|---------------|
+  | loop driver | `loop.sh --model opus` | config default | every iteration | writes the increment; the graders below check it |
+  | `planner` | `opus` | `high` | once per task | decomposition; `plan-reviewer` audits it next |
+  | `plan-reviewer` | `fable` | `high` | once per task | plan defects cost the most and surface only when executed; one call per task |
+  | `reviewer` | `opus` | `high` | every risky step, every batch | the most frequent strong call; each false finding costs a fix-and-re-review round |
+  | `adjudicator` | `fable` | `xhigh` | rarely — a gate failed at ≥3 checkpoints | its ruling can move a threshold, so the per-row arithmetic must hold |
+  | `verifier` (optional) | `haiku` | `high` | only checks that need judgment | reads output against written thresholds; the smallest model, thinking hard, still costs little |
+  | parallel-group workers | `sonnet` (the call's `model`) | inherited | read-only discovery steps (§8a) | breadth reading; the batched `reviewer` checks what they write |
+
+  Move a role up or down on evidence, not by habit: `verifier` → `sonnet` when its
+  output needs real interpretation; `reviewer` → `fable` when its findings keep
+  turning out false. The aliases (`opus`, `sonnet`, `haiku`, `fable`) follow each
+  new release; pin a full model ID (e.g. `claude-opus-5-5`) only for a run that must
+  be reproducible. `CLAUDE_CODE_EFFORT_LEVEL` overrides every `effort:` line, so
+  keep it unset where the loop runs. Never give a grader `isolation: worktree` (the
+  worktree branches from the default branch, not `HEAD`, so it grades the wrong
+  tree) or `memory:` (it adds Write and Edit to a read-only role), and leave
+  `omitClaudeMd` off: the rules reach every subagent through `CLAUDE.md`.
+- In Claude Code, `/fast` speeds up the main session's output on the same model —
+  useful for long mechanical stretches.
 
 ---
 

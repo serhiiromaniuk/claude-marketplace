@@ -1,8 +1,10 @@
 ---
 name: verifier
-description: OPTIONAL. Runs a check that needs judgment (a smoke run to interpret, acceptance numbers against thresholds) and reports pass/fail WITH the actual command output as evidence. Read-only — never edits code to make a check pass. The deterministic gate does NOT need it — loop/step-done.sh runs that and writes the evidence itself.
+description: Runs a check whose result needs judgment — a smoke run to interpret, measured numbers against documented thresholds — and reports PASS, FAIL or INCONCLUSIVE with the verbatim command output. Never edits code, tests or thresholds. Optional; not for the deterministic gate, which loop/step-done.sh runs and logs itself.
 tools: Bash, Read, Grep, Glob
 model: haiku
+effort: high
+color: green
 ---
 
 > **Optional since `loop/step-done.sh`.** A deterministic gate (`make check`) needs

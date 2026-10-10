@@ -3,6 +3,36 @@
 All notable changes to the `toolkit` plugin. Versions follow
 [Semantic Versioning](https://semver.org/); dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Changed — agent-readiness subagents (re-install `templates/agents/`)
+
+- **Model and effort per role.** Every subagent template now sets `effort:` next to
+  `model:`, so a grader no longer inherits the session's effort: `planner` opus/high,
+  `plan-reviewer` fable/high, `reviewer` opus/high, `adjudicator` fable/xhigh,
+  `verifier` haiku/high. `AGENTS.md` §10 replaces its one-line note with a table of
+  each role's model, effort, run frequency and reason, adds the loop driver and
+  read-only discovery workers (`sonnet`, passed per call from PROMPT §3), and lists
+  the frontmatter to avoid on graders (`isolation: worktree`, `memory:`,
+  `omitClaudeMd`). Each template also gets a `color:` so the roles are told apart
+  in the task list.
+- **Descriptions match what the loop does.** `reviewer` says the caller must pass the
+  step text and follows the risk tiers instead of "before closing any code
+  increment"; `planner` no longer invites restructuring a frozen plan; `plan-reviewer`
+  says "task", not "objective"; `verifier` leads with its job and drops "read-only";
+  `adjudicator` carries the ≥3-checkpoint trigger and the `blocked` ruling name.
+- **Skill description.** The triggers that lived only in the body's "When to use"
+  section (which loads after triggering) move into `description`, which also says
+  "set up for" and "Not a code-quality review". Mode 2 now checks for user-level
+  agents that a project agent of the same name would hide.
+
+### Fixed — agent-readiness
+
+- The P5 "reviewer judges the step" probe in `scan-playbook.md` matched
+  `plan-reviewer.md` through the glob `*review*.md`, so a repo whose `reviewer` had
+  no INTENT check still passed the cap. Plan-reviewer matches are now filtered out,
+  and the frontmatter probe prints the whole frontmatter instead of six lines.
+
 ## [1.1.0] - 2026-10-05
 
 ### Added — status line

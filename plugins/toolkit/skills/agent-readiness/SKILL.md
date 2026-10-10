@@ -1,6 +1,6 @@
 ---
 name: agent-readiness
-description: Audit how well a software repo is adopted for autonomous / long-running agentic work (Claude Code, agents, unattended loops), grade it against a 7-pillar rubric into a short scorecard + a stateful .agent-readiness/score.json, then optionally plan and apply the improvements. Use when asked to "grade this repo for agents", "how agent-ready / automation-ready is this codebase", "audit the Claude Code setup", "make this repo work for a Ralph loop / long-running agent", or "score and then fix our agentic tooling".
+description: Audit how well a software repo is set up for autonomous, long-running agentic work (Claude Code, AGENTS.md / CLAUDE.md, subagents, unattended Ralph-style loops) — grade 7 pillars into a short scorecard plus a stateful .agent-readiness/score.json with a trend, then optionally plan or apply the fixes from bundled templates. Use when asked to "grade this repo for agents", "how agent-ready / automation-ready is this codebase", "is this ready for an unattended Claude loop", "audit our Claude Code / AGENTS.md setup", "make this repo work for a Ralph loop / long-running agent", "re-run the readiness check and show the trend", "bring this repo up to <reference> for automation", or "score and then fix our agentic tooling". Not a code-quality review.
 ---
 
 # Agent readiness
@@ -19,11 +19,6 @@ second mode the reporting skill doesn't have: **apply the fixes**.
 
 Default to `audit`. Only enter `uplift` when the user asks to fix/adapt, and confirm which
 apply-mode (on-the-fly vs. postponed) before writing to their repo.
-
-## When to use
-"grade / score this repo for agents", "how agent-ready is this codebase", "is this ready for a
-long-running / unattended Claude loop", "audit our Claude Code / AGENTS.md setup", "bring this
-repo up to <reference> for automation", "re-run the readiness check and show the trend".
 
 ---
 
@@ -96,6 +91,11 @@ at `${CLAUDE_PLUGIN_ROOT}/skills/agent-readiness/templates` — copy from there;
   control-plane bloat described in `reference/ratchets.md`, which is the single largest
   measured cause of iteration slowdown.
   **Never overwrite** an existing file silently — show a diff and confirm, or write alongside.
+  The same goes for a name: a project `.claude/agents/<name>.md` hides a user-level
+  `~/.claude/agents/<name>.md` of that name, so check for `planner`, `reviewer`, … there and
+  tell the owner which of their own agents would stop loading in this repo. Keep each
+  template's `model:` / `effort:` lines (`templates/rules/AGENTS.md` §10 says why each role
+  is sized as it is).
   Then re-run Mode 1 to confirm the grade moved, and commit per the repo's own hygiene rules.
 
 - **Postponed (write to file):** dogfood the methodology — write the plan *in the format it
@@ -118,7 +118,7 @@ at `${CLAUDE_PLUGIN_ROOT}/skills/agent-readiness/templates` — copy from there;
 - **Every grader reads what it is grading.** `reviewer` gets the step's own acceptance text and answers `INTENT: satisfied | shortfall | creep` first — without it the only judge of "did this increment do what the step said" is the agent that wrote it, and a flawless diff against the wrong step returns green from both graders. `plan-reviewer` audits a freshly written `PLAN.md` before step 1, because plan defects are found by *executing* them (two real cases: a plan revised 16→20 steps mid-objective; a step that became "part 1…part 8"). `adjudicator` rules on whether a *failing gate* is itself wrong, and is the only role with no stake in the increment continuing — a `raise-with-basis` ruling is actionable only once its arithmetic is in a committed decision record.
 - **Review by risk, close by script.** Risky steps (code with logic, scripts, infra config, host/env changes, decision records, anything near a golden rule) get the `reviewer` before the commit; low-risk steps (doc prose, mechanical edits) are committed unpushed and reviewed in one batch before the push — unpushed == unreviewed, and `where.sh` reports the count as `.unreviewed`. The reviewer runs in the background while the LOG is written, reports every CRITICAL/HIGH, at most 3 MEDIUM and no LOW. `loop/step-done.sh` closes the step in one command (gate → LOG evidence → tick → hygiene → scan → commit), so a deterministic gate needs no verifier subagent.
 - **Position is computed, never narrated.** `templates/loop/where.sh` derives phase · task · step N/M · governing spec · tree state · the read list from the `PLAN.md` checkboxes, the `LOG.md` tail and `git status`. The loop reads ONLY the files it names, which is what keeps closed tasks' logs out of context structurally. The read list is lean on purpose: rules `CLAUDE.md` already `@`-imports are reported as `.loaded` and not re-read, the active `LOG.md` is replaced by `where.sh --context` (newest two entries), and the governing spec shrinks to the sections the step cites with `spec §<key>`, which cuts the resume read to a fraction. Detail is written **once**, in the LOG; pointer files (`STATE.md`, `INDEX.md`) change only on gate/decision/carry-forward/task-boundary events. `entry-size-guard.sh` is the ratchet. See `reference/ratchets.md` §"Control-plane prose".
-- **Speed comes from round-trips, not from cutting gates.** Measured on real projects, wall time goes to tool-call round-trips, serial work that was independent, and per-step ceremony. So the templates batch independent calls, fan out `[parallel: X]` plan groups (research areas, independent decision records — merged through `merge-gate.sh`, reviewed in one pass), collect owner questions into the PLAN and ask them in one batch, allow batch steps for trivial items one check proves, script the ceremony (`where.sh --context`, `step-done.sh`, a parallel `make check`), and size a model per role. `/fast` speeds up the main session's output on the same model. `templates/rules/AGENTS.md` §10.
+- **Speed comes from round-trips, not from cutting gates.** Measured on real projects, wall time goes to tool-call round-trips, serial work that was independent, and per-step ceremony. So the templates batch independent calls, fan out `[parallel: X]` plan groups (research areas, independent decision records — merged through `merge-gate.sh`, reviewed in one pass), collect owner questions into the PLAN and ask them in one batch, allow batch steps for trivial items one check proves, script the ceremony (`where.sh --context`, `step-done.sh`, a parallel `make check`), and size a model and an effort per role. `/fast` speeds up the main session's output on the same model. `templates/rules/AGENTS.md` §10.
 - **Never invent a timestamp or a score.** Timestamps come from `date`; levels come from observed evidence. Verified-absent (you looked, it's not there) beats a guessed level.
 
 ## Files
