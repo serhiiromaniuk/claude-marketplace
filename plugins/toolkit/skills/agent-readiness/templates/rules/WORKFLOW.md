@@ -14,7 +14,7 @@ Quick map of the moving parts:
 | This walkthrough | `WORKFLOW.md` | the example |
 | Loop engine | [`loop/`](loop/) | `PROMPT.md`, `loop.sh`, `where.sh` (position oracle), `step-done.sh` (close an increment), `entry-size-guard.sh`, `amendments-guard.sh`, `merge-gate.sh`, `STATE.md` |
 | Memory | [`tasks/`](tasks/) | `BRIEF/PLAN/LOG/OUTCOME` per task + `INDEX.md` |
-| Specialists | [`.claude/agents/`](.claude/agents/) | planner, plan-reviewer, reviewer, adjudicator, verifier (optional) |
+| Specialists | [`.claude/agents/`](.claude/agents/) | planner, plan-reviewer, reviewer, close-reviewer, adjudicator, verifier (optional) |
 | Shortcuts | [`.claude/commands/`](.claude/commands/) | `/where`, `/loop-step` |
 
 ---
@@ -159,7 +159,11 @@ observed-green.
 
 ## Phase D — Close (agent writes, human gates the boundary)
 
-When every step is checked and the gate is satisfied, write **OUTCOME.md**:
+When every step is checked and the gate is satisfied, draft **OUTCOME.md**, then
+spawn the `close-reviewer` before ticking any done-when box. It re-runs the
+checks, opens the foundation doc as its reader would, and tests each declined
+amendment; a `hold` turns its findings into open amendments for the next
+iteration. Only after `VERDICT: close` is the outcome final:
 ```markdown
 # Outcome
 ## Summary

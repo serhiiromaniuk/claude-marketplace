@@ -85,12 +85,15 @@ ls .claude/agents/*plan*review*.md 2>/dev/null                                  
 grep -rlE 'plan-reviewer' loop .claude/commands AGENTS.md 2>/dev/null | head -3                     # …and the loop invokes it
 ls .claude/agents/*adjudicat*.md 2>/dev/null                                                        # an independent ruling on a failing gate
 grep -rlE 'decision record|ADR' .claude/agents/*adjudicat*.md AGENTS.md 2>/dev/null | head -3       # …that only a committed record can act on
+ls .claude/agents/*close*review*.md 2>/dev/null                                                     # a task close is graded by someone other than its writer
+grep -rlE 'close-reviewer' loop .claude/commands AGENTS.md 2>/dev/null | head -3                    # …and the loop invokes it before done-when is ticked
 ```
 Several roles with tool scoping → 3; adversarial reviewer + model-per-role + invoked by the loop → 4.
 A grader with `model:` but no `effort:` inherits the session's effort — note it as a finding
 (`templates/rules/AGENTS.md` §10), not a cap.
-Apply the **P5 caps** from `rubric/rubric.md` from the last six probes: no reviewer that gets the
-step text, no plan review, or no independent gate adjudication each caps P5 at 3.
+Apply the **P5 caps** from `rubric/rubric.md` from the last eight probes: no reviewer that gets the
+step text, no plan review, no independent gate adjudication, or no independent close review each
+caps P5 at 3.
 
 **P6 Autonomy boundaries**
 ```bash

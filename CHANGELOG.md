@@ -5,6 +5,19 @@ All notable changes to the `toolkit` plugin. Versions follow
 
 ## [Unreleased]
 
+### Added — agent-readiness `close-reviewer`
+
+- **A grader for the task close.** At `all_steps_done` the driver used to dispose of
+  amendments, tick the BRIEF's done-when boxes and tag the milestone alone — the
+  writer grading its own finished work. `close-reviewer` (opus/high) now runs
+  before any box is ticked: it re-runs each done-when check that changes nothing,
+  exercises the deliverable through its real entry point, greps for stubs, and
+  tests every `declined` amendment's reason. `VERDICT: hold` turns its findings
+  into open amendments for the next close; a third hold is the escape hatch.
+- **Rubric:** a fourth P5 cap — a task closed by the agent that did the work, with
+  no independent check of the BRIEF against the evidence. Re-running an audit on a
+  repo without such a role can drop P5 to 3. `scan-playbook.md` probes for it.
+
 ### Changed — agent-readiness subagents (re-install `templates/agents/`)
 
 - **Model and effort per role.** Every subagent template now sets `effort:` next to

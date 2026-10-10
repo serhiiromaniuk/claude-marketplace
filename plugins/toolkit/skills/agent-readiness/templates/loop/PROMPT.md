@@ -63,9 +63,18 @@ row, and `git status --porcelain`. Then:
      `loop/amendments-guard.sh`) and give every still-open deferred finding its
      disposition — in its PLAN entry and in `OUTCOME.md` `## Amendments` (fixed,
      re-targeted to a carry-forward, or declined with a reason; never dropped) —
-     then write the rest of `OUTCOME.md`, tick the BRIEF's done-when boxes, strike
-     any discharged carry-forward, check the phase gate, and emit the right
-     marker per §7.
+     then draft the rest of `OUTCOME.md`. Then spawn the **`close-reviewer`**
+     (`.claude/agents/close-reviewer.md`): it re-runs the done-when checks,
+     exercises the deliverable and hunts stubs — the writer never grades its own
+     finished work. On `VERDICT: close` → tick the BRIEF's done-when boxes, strike
+     any discharged carry-forward, put its MEDIUM findings in `OUTCOME.md`
+     `## Pending / Follow-up`, check the phase gate, and emit the right marker
+     per §7. On `hold` → append each CRITICAL/HIGH/UNVERIFIED item to
+     `## Amendments` as an open `A<n>` entry, tick nothing, commit
+     (`loop/step-done.sh --no-tick`), and emit
+     `<<LOOP:CONTINUE>>`: the next close fixes them (each fix reviewed per §4b)
+     and asks again. An UNVERIFIED item that needs a human is `<<LOOP:BLOCKED>>`;
+     a third `hold` is the §6 escape hatch.
    - `.parallel_steps` has more than one entry → the step opens a parallel
      group: do the whole group as this increment (§3, AGENTS.md §8a).
    - otherwise → do step `.step` of `.steps`, titled `.step_title`.

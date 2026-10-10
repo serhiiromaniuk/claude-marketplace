@@ -75,7 +75,7 @@ loop/                 agent loop: PROMPT.md (invariant prompt) · loop.sh ·
                         entry-size-guard.sh · amendments-guard.sh · merge-gate.sh ·
                         STATE.md
 tasks/                per-phase BRIEF/PLAN/LOG/OUTCOME folders + INDEX.md ledger
-.claude/agents/       specialist subagents (planner, plan-reviewer, reviewer, adjudicator; verifier optional)
+.claude/agents/       specialist subagents (planner, plan-reviewer, reviewer, close-reviewer, adjudicator; verifier optional)
 .claude/commands/     slash-command shortcuts (/loop-step, /where)
 CLAUDE.md             @-imports RULES.md and AGENTS.md, so every session and subagent has them
 RULES.md              governance: golden rules, architecture, conventions, git
@@ -361,10 +361,12 @@ live in [`.claude/agents/`](.claude/agents/):
 | `reviewer` | audit a diff (or a batch of commits) in a **fresh context** against the step text, the golden rules + correctness, report gaps only | any |
 | `verifier` | *optional* — run a check that needs judgment (smoke run, thresholds) and report pass/fail **with evidence**, no edits | any |
 | `adjudicator` | rule whether a failing hard gate is itself wrong | on a gate failure |
+| `close-reviewer` | audit a task close before done-when is ticked — re-run the checks, exercise the deliverable, hunt stubs, test each declined amendment | task close |
 
 Patterns: **parallelize independent reads**; **evaluator-optimizer** =
 `reviewer`/`verifier` checking the builder's output in a fresh context so the
-writer isn't its own grader. Keep the toolset small — more agents ≠ better.
+writer isn't its own grader — per step, and `close-reviewer` once for the whole
+task, because steps can each pass while the BRIEF stays unmet. Keep the toolset small — more agents ≠ better.
 
 **Mandatory, by risk (PROMPT.md §4b):** every commit is reviewed by the `reviewer`
 in a fresh context before it is **pushed**.
@@ -472,6 +474,7 @@ was independent, and to fixed per-step ceremony paid once per step.
   | `planner` | `opus` | `high` | once per task | decomposition; `plan-reviewer` audits it next |
   | `plan-reviewer` | `fable` | `high` | once per task | plan defects cost the most and surface only when executed; one call per task |
   | `reviewer` | `opus` | `high` | every risky step, every batch | the most frequent strong call; each false finding costs a fix-and-re-review round |
+  | `close-reviewer` | `opus` | `high` | once per close | checks evidence and runs the deliverable; a stronger model adds little to that |
   | `adjudicator` | `fable` | `xhigh` | rarely — a gate failed at ≥3 checkpoints | its ruling can move a threshold, so the per-row arithmetic must hold |
   | `verifier` (optional) | `haiku` | `high` | only checks that need judgment | reads output against written thresholds; the smallest model, thinking hard, still costs little |
   | parallel-group workers | `sonnet` (the call's `model`) | inherited | read-only discovery steps (§8a) | breadth reading; the batched `reviewer` checks what they write |
