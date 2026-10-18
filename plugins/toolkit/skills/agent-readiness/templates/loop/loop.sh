@@ -179,9 +179,13 @@ stop_code() {
 echo ">> loop | repo=$REPO_ROOT | prompt=$PROMPT_FILE | max-iterations=$MAX_ITERS"
 echo ">> model=${MODEL:-<config default>} | perms=${PERM_FLAG[*]} | continuous=$CONTINUOUS | stop-on-phase=$STOP_ON_PHASE"
 echo ">> CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-<default>}"
+# A timer tool keeps a headless `claude -p` alive until the timer fires: an agent that
+# sets a "fallback" ScheduleWakeup while its reviewer runs idles for the whole delay
+# after its marker (measured: 16-50 min per iteration). Deny the timer tools.
+NO_TIMERS=(--disallowedTools=ScheduleWakeup,CronCreate)
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo ">> --dry-run: would run up to $MAX_ITERS times:"
-  echo "   claude -p \"\$(cat $PROMPT_FILE)\" ${MODEL_FLAG[*]+"${MODEL_FLAG[*]}"} ${PERM_FLAG[*]}"
+  echo "   claude -p \"\$(cat $PROMPT_FILE)\" ${MODEL_FLAG[*]+"${MODEL_FLAG[*]}"} ${PERM_FLAG[*]} ${NO_TIMERS[*]}"
   echo "---- prompt ----"
   cat "$PROMPT_FILE"
   exit 0
@@ -232,7 +236,7 @@ trap 'rm -f "$OUT_FILE"' EXIT
 run_agent() { # → sets $out and returns claude's exit code
   # 9>&- : the agent (and anything it leaves running, e.g. a dev server) must not
   # inherit the lock, or the next loop would refuse to start.
-  claude -p "$(cat "$PROMPT_FILE")" ${MODEL_FLAG[@]+"${MODEL_FLAG[@]}"} "${PERM_FLAG[@]}" \
+  claude -p "$(cat "$PROMPT_FILE")" ${MODEL_FLAG[@]+"${MODEL_FLAG[@]}"} "${PERM_FLAG[@]}" "${NO_TIMERS[@]}" \
     >"$OUT_FILE" 2>&1 </dev/null 9>&- &
   child=$!
   wait "$child"

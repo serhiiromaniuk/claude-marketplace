@@ -3,6 +3,16 @@
 All notable changes to the `toolkit` plugin. Versions follow
 [Semantic Versioning](https://semver.org/); dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Fixed — agent-readiness `loop.sh`
+
+- **An iteration no longer idles after its marker.** A loop agent that set a
+  "fallback" `ScheduleWakeup` while its reviewer ran kept the headless `claude -p`
+  process alive until the timer fired, so `loop.sh` waited 16–50 minutes per affected
+  iteration. Every iteration now runs with
+  `--disallowedTools=ScheduleWakeup,CronCreate`.
+
 ## [1.2.0] - 2026-10-10
 
 ### Added — agent-readiness `close-reviewer`
